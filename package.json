@@ -1,0 +1,56 @@
+{
+  "name": "mocker",
+  "version": "2.4.0",
+  "description": "HTTP(S) mock server for Samizdat and other external services",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "yarn lint && yarn type-check && yarn jest",
+    "start": "NODE_OPTIONS='--max-http-header-size=1000000 --unhandled-rejections=strict' ./mocker",
+    "dev:httpbin": "nodemon -q -w src --ignore __fixtures__/**/*.json mocker --responsesDir ./responses/httpbin --origin http://httpbin.org --logging verbose --mode read-write",
+    "dev:vi": "./scripts/dev-vi",
+    "dev": "NODE_OPTIONS='--max-http-header-size=1000000 --unhandled-rejections=strict' nodemon -q -w src --ignore __fixtures__/**/*.json mocker",
+    "jest": "NODE_OPTIONS='--max-old-space-size=4000' NODE_ENV=test jest --collectCoverageFrom='./src/**/*.js'",
+    "type-check": "tsc --p './tsconfig.json'",
+    "fmt": "yarn fmt:src && yarn fmt:docs",
+    "fmt:docs": "prettier --print-width 80 --prose-wrap always --write 'docs/**/*.md'",
+    "fmt:src": "eslint --ext '.js' --ext '.json' --report-unused-disable-directives --fix .",
+    "lint": "eslint --ext '.js' --ext '.json' --report-unused-disable-directives ."
+  },
+  "license": "UNLICENSED",
+  "private": true,
+  "devDependencies": {
+    "@types/jest": "26.0.23",
+    "@types/node": "15.3.0",
+    "@typescript-eslint/parser": "4.24.0",
+    "eslint": "7.26.0",
+    "eslint-config-prettier": "8.3.0",
+    "eslint-plugin-import": "2.23.2",
+    "eslint-plugin-jest": "24.3.6",
+    "eslint-plugin-jest-formatting": "3.0.0",
+    "eslint-plugin-json": "3.0.0",
+    "eslint-plugin-node": "11.1.0",
+    "eslint-plugin-prettier": "3.4.0",
+    "eslint-plugin-sort-class-members": "1.11.0",
+    "get-port": "5.1.1",
+    "jest": "26.6.3",
+    "memfs": "3.2.2",
+    "nodemon": "2.0.7",
+    "prettier": "2.3.0",
+    "ttab": "0.7.1",
+    "typescript": "4.2.4"
+  },
+  "engines": {
+    "node": ">=15.14.0"
+  },
+  "bin": "./mocker",
+  "jest": {
+    "testPathIgnorePatterns": [
+      "__tests__/helpers/"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "branches": 78.14
+      }
+    }
+  }
+}

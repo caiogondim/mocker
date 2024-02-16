@@ -1,0 +1,9 @@
+.git
+docs/
+node_modules/
+coverage/
+**/*.ts
+**/test.js
+.npmrc
+.npmignore
+tools/

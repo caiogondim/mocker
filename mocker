@@ -1,0 +1,149 @@
+#!/usr/bin/env node
+
+/* eslint-disable no-process-exit */
+
+const {
+  parseArgv,
+  PORT_DEFAULT,
+  DELAY_DEFAULT,
+  THROTTLE_DEFAULT,
+  MODE_DEFAULT,
+  UPDATE_DEFAULT,
+  WORKERS_DEFAULT,
+  CACHE_DEFAULT,
+  MOCK_KEYS_DEFAULT,
+  MODE_VALID_VALUES,
+  UPDATE_VALID_VALUES,
+  MOCK_KEYS_VALID_VALUES,
+  REDACTED_HEADERS_DEFAULT,
+  RETRIES_DEFAULT,
+  LOGGING_DEFAULT,
+  LOGGING_VALID_VALUES,
+  OVERWRITE_RESPONSE_HEADERS_DEFAULT,
+  OVERWRITE_REQUEST_HEADERS_DEFAULT,
+} = require('./src/args')
+const Mocker = require('./src')
+const Logger = require('./src/shared/logger')
+const { bold, stripMargin, table, dim, stringify } = require('./src/shared/logger/format')
+const packageJson = require('./package.json')
+
+const mockKeysDefaultStr = Array.from(MOCK_KEYS_DEFAULT.values()).join(',')
+
+const logger = new Logger({ forceLog: true })
+
+function printHelp() {
+  // Based on docopt http://docopt.org/
+  logger.log(
+    stripMargin(`
+      |${bold('mocker')} 🥸 v${packageJson.version}
+      |
+      |${bold('ARGS')}`)
+  )
+  logger.log(
+    table(
+      [`  --origin <URL>`, `Origin base URL ${dim(`[e.g.: "http://vi.nytimes.com:3000"]`)}`],
+      [`  --responsesDir <path>`, `Path to mocked responses directory ${dim(`[e.g.: "./path/to/responses"]`)}`],
+      [
+        `  [--update <update>]`,
+        `One of: ${stringify(UPDATE_VALID_VALUES)} ${dim(
+          `[default: ${stringify(UPDATE_DEFAULT)}]`
+        )}`,
+      ],
+      [
+        `  [--mode <mode>]`,
+        `One of: ${stringify(MODE_VALID_VALUES.filter(mode => mode !== 'pass-through'))} ${dim(
+          `${dim(`[default: ${stringify(MODE_DEFAULT)}]`)}`
+        )}`,
+      ],
+      [
+        `  [--port <n>]`,
+        `Port the mocker server will listen to ${dim(
+          `[default: ${stringify(PORT_DEFAULT)}]`
+        )}`,
+      ],
+      [
+        `  [--retries <n>]`,
+        `Max number of retries to origin while response is not a 200 ${dim(
+          `[default: ${stringify(RETRIES_DEFAULT)}]`
+        )}`,
+      ],
+      [
+        `  [--redactedHeaders <JSON>]`,
+        `JSON of header names to redact from mocks and logging ${dim(
+          `[default: ${stringify(REDACTED_HEADERS_DEFAULT)}]`
+        )}`,
+      ],
+      [
+        `  [--overwriteRequestHeaders <JSON>]`,
+        `JSON of request headers to be overwritten ${dim(
+          `[default: ${stringify(OVERWRITE_REQUEST_HEADERS_DEFAULT)}]`
+        )}`,
+      ],
+      [
+        `  [--overwriteResponseHeaders <JSON>]`,
+        `JSON of response headers to be overwritten ${dim(
+          `[default: ${stringify(OVERWRITE_RESPONSE_HEADERS_DEFAULT)}]`
+        )}`,
+      ],
+      [
+        `  [--delay <ms>]`,
+        `Artificial delay to every request ${dim(
+          `[default: ${stringify(DELAY_DEFAULT)}]`
+        )}`,
+      ],
+      [
+        `  [--throttle <kB/s>]`,
+        `Artificial throttle to every request ${dim(
+          `[default: ${stringify(THROTTLE_DEFAULT)}]`
+        )}`,
+      ],
+      [
+        `  [--workers <n>]`,
+        `Number of workers ${dim(`[default: ${stringify(WORKERS_DEFAULT)}]`)}`,
+      ],
+      [
+        `  [--logging <logging>]`,
+        `One of: ${stringify(LOGGING_VALID_VALUES)} ${dim(
+          `[default: ${stringify(LOGGING_DEFAULT)}]`
+        )}`,
+      ],
+      [
+        `  [--mockKeys <val1,val2>]`,
+        `Set of: ${stringify([...MOCK_KEYS_VALID_VALUES, 'body.**'])} ${dim(
+          `[default: ${stringify(mockKeysDefaultStr)}]`
+        )}`,
+      ]
+    )
+  )
+  logger.log(
+    stripMargin(`
+      |${bold('USAGE')}
+      |  mocker --origin http://nytimes.com --responsesDir ~/Desktop
+      |  mocker --origin http://nytimes.com --responsesDir ~/Desktop --mockKeys url,method,body.variables.id
+      |  mocker --origin http://nytimes.com --responsesDir ~/Desktop --mode read-write --workers 4
+      |  mocker --origin http://nytimes.com --responsesDir ~/Desktop --update startup --workers 4`)
+  )
+  logger.log(
+    stripMargin(`
+      |${bold('DOCS')}
+      |  https://github.com/nytimes/mocker/tree/main/docs`)
+  )
+}
+
+async function main() {
+  if (process.argv[2] === '--help' || process.argv[2] === '-h') {
+    printHelp()
+  } else {
+    try {
+      const args = await parseArgv(process.argv)
+      const mocker = new Mocker(args)
+      await mocker.listen()
+    } catch (error) {
+      logger.log('')
+      logger.error(error)
+      process.exit(1)
+    }
+  }
+}
+
+main()

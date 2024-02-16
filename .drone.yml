@@ -1,0 +1,31 @@
+---
+kind: pipeline
+name: default
+
+platform:
+  os: linux
+  arch: amd64
+
+steps:
+  - name: test
+    image: node:15.14.0-alpine3.12
+    commands:
+      - yarn install
+      - yarn test
+    environment:
+      FORCE_COLOR: true
+  - name: gcr
+    image: plugins/gcr:18@sha256:5868a924a88b667f9d4a3fd22a8381d8e6927786e3a50e49fb43c83256430fdf
+    when:
+      event:
+        - tag
+    environment:
+      FORCE_COLOR: true
+    settings:
+      registry: us.gcr.io
+      repo: nyt-wfvi-dev/mocker
+      tags:
+        - ${DRONE_TAG}
+        - latest
+      json_key:
+        from_secret: GOOGLE_CREDENTIALS
