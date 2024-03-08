@@ -13,7 +13,7 @@ describe('rewindable', () => {
     stream.write('2')
     stream.write('3')
     stream.end()
-    expect(await values(stream)).toStrictEqual(
+    await expect(values(stream)).resolves.toStrictEqual(
       await values(rewindableStream.rewind())
     )
   })
@@ -40,7 +40,7 @@ describe('rewindable', () => {
       })(),
     ])
 
-    expect(consumedRewindableStream.join('')).toStrictEqual('12345')
+    expect(consumedRewindableStream.join('')).toBe('12345')
   })
 
   it('rewindable stream is a proxy for the original stream', async () => {
@@ -54,13 +54,13 @@ describe('rewindable', () => {
 
     // Check if it's possible to consume the source stream through the proxy.
     const streamRewindableValues = await values(rewindableStream)
-    expect(streamRewindableValues.toString()).toStrictEqual('123')
+    expect(streamRewindableValues.toString()).toBe('123')
 
     // Check if it's possible to consume properties from the source object
     // through the proxy.
-    expect(rewindableStream.readableEnded).toStrictEqual(true)
-    expect(rewindableStream.readable).toStrictEqual(false)
-    expect(typeof rewindableStream.resume).toStrictEqual('function')
+    expect(rewindableStream.readableEnded).toBe(true)
+    expect(rewindableStream.readable).toBe(false)
+    expect(typeof rewindableStream.resume).toBe('function')
   })
 
   it('can be called N times', async () => {
@@ -73,9 +73,9 @@ describe('rewindable', () => {
     stream.end('3')
 
     // All calls should have the same output
-    expect(`${await values(rewindableStream.rewind())}`).toStrictEqual('1,2,3')
-    expect(`${await values(rewindableStream.rewind())}`).toStrictEqual('1,2,3')
-    expect(`${await values(rewindableStream.rewind())}`).toStrictEqual('1,2,3')
+    expect(`${await values(rewindableStream.rewind())}`).toBe('1,2,3')
+    expect(`${await values(rewindableStream.rewind())}`).toBe('1,2,3')
+    expect(`${await values(rewindableStream.rewind())}`).toBe('1,2,3')
   })
 
   it('works with empty streams', async () => {
@@ -85,7 +85,7 @@ describe('rewindable', () => {
     const rewindableStream = rewindable(stream)
     stream.end()
 
-    expect(`${await values(rewindableStream.rewind())}`).toStrictEqual('')
+    expect(`${await values(rewindableStream.rewind())}`).toBe('')
   })
 
   it('throws an error in case the stream is already finished', async () => {
@@ -123,7 +123,7 @@ describe('rewindable', () => {
 
     for (let i = 0; i < 4; i += 1) {
       const streamValue = streamsValues[i]
-      expect(`${streamValue}`).toStrictEqual('1,2,3')
+      expect(`${streamValue}`).toBe('1,2,3')
     }
   })
 
@@ -161,6 +161,6 @@ describe('rewindable', () => {
       })(),
     ])
 
-    expect(consumedRewindableStream.join('')).toStrictEqual('12345')
+    expect(consumedRewindableStream.join('')).toBe('12345')
   })
 })

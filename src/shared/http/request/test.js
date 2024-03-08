@@ -29,7 +29,7 @@ describe('createRequest', () => {
       const response = await responsePromise
 
       const responseBody = await getBody(response)
-      expect(responseBody.toString()).toStrictEqual('lorem ipsumlorem ipsum')
+      expect(responseBody.toString()).toBe('lorem ipsumlorem ipsum')
     } finally {
       duplicateRequestServer.close()
     }
@@ -71,10 +71,10 @@ describe('createRequest', () => {
       request.end()
 
       const response = await responsePromise
-      expect(response.statusCode).toStrictEqual(200)
+      expect(response.statusCode).toBe(200)
 
       const responseBody = await getBody(response)
-      expect(responseBody.toString()).toStrictEqual('dolor sit amet')
+      expect(responseBody.toString()).toBe('dolor sit amet')
     } finally {
       flakyServer.close()
     }
@@ -99,10 +99,10 @@ describe('createRequest', () => {
       request.end()
 
       const response = await responsePromise
-      expect(response.statusCode).toStrictEqual(500)
+      expect(response.statusCode).toBe(500)
 
       const responseBody = await getBody(response)
-      expect(responseBody.toString()).toStrictEqual('')
+      expect(responseBody.toString()).toBe('')
     } finally {
       flakyServer.close()
     }
@@ -171,10 +171,10 @@ describe('createRequest', () => {
       ])
 
       const response = await responsePromise
-      expect(response.statusCode).toStrictEqual(200)
+      expect(response.statusCode).toBe(200)
 
       const responseBody = await getBody(response)
-      expect(responseBody.toString()).toStrictEqual('dolor sit amet')
+      expect(responseBody.toString()).toBe('dolor sit amet')
     } finally {
       flakyServer.close()
     }

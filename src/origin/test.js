@@ -28,9 +28,9 @@ describe('origin', () => {
       const responseJson = JSON.parse(responseBody)
 
       try {
-        expect(responseJson.host).toStrictEqual('dolor')
-        expect(responseJson.lorem).toStrictEqual('ipsum')
-        expect(responseJson.dolor).toStrictEqual('5')
+        expect(responseJson.host).toBe('dolor')
+        expect(responseJson.lorem).toBe('ipsum')
+        expect(responseJson.dolor).toBe('5')
       } finally {
         await requestHeaderOnResponseBodyServer.close()
       }
@@ -60,8 +60,8 @@ describe('origin', () => {
       const responseJson = JSON.parse(responseBody)
 
       try {
-        expect(responseJson.lorem).toStrictEqual('ipsum')
-        expect(responseJson.dolor).toStrictEqual('5')
+        expect(responseJson.lorem).toBe('ipsum')
+        expect(responseJson.dolor).toBe('5')
         expect(responseJson.via).toBeUndefined()
       } finally {
         await requestHeaderOnResponseBodyServer.close()
@@ -90,12 +90,10 @@ describe('origin', () => {
 
       try {
         const response = await responsePromise
-        expect(response.statusCode).toStrictEqual(200)
+        expect(response.statusCode).toBe(200)
 
         const responseBody = await getBody(response)
-        expect(responseBody.toString()).toStrictEqual(
-          'lorem ipsum dolor sit amet'
-        )
+        expect(responseBody.toString()).toBe('lorem ipsum dolor sit amet')
       } finally {
         await flakyServer.close()
       }
@@ -121,10 +119,10 @@ describe('origin', () => {
       // Then it should work as it does for relative URLs
       try {
         const response = await responsePromise
-        expect(response.statusCode).toStrictEqual(200)
+        expect(response.statusCode).toBe(200)
 
         const responseBody = await getBody(response)
-        expect(responseBody.toString()).toStrictEqual('3')
+        expect(responseBody.toString()).toBe('3')
       } finally {
         await mathServer.close()
       }

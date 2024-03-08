@@ -69,9 +69,7 @@ describe('args.update', () => {
     const response2Body = `${await getBody(response2)}`
 
     try {
-      expect(response2.headers['x-nyt-mocker-response-from']).toStrictEqual(
-        'Mock'
-      )
+      expect(response2.headers['x-nyt-mocker-response-from']).toBe('Mock')
       expect(Number(response2Body)).toBeGreaterThanOrEqual(
         Number(response1Body)
       )

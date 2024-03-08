@@ -14,7 +14,7 @@ describe('throttle', () => {
     await pipeline(Readable.from(input), throttle({ bps: 128 }))
     const t2 = Date.now()
 
-    expect(Math.floor((t2 - t1) / 1000)).toStrictEqual(2)
+    expect(Math.floor((t2 - t1) / 1000)).toBe(2)
   })
 
   it('behaves as a PassThrough stream', async () => {

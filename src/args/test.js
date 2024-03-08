@@ -162,7 +162,7 @@ describe('--delay', () => {
     const argv = ['', '', ...getRequiredArgs()]
     const args = await parseArgv(argv)
 
-    expect(args.delay).toStrictEqual(0)
+    expect(args.delay).toBe(0)
   })
 
   it('throws an error if not a positive number', async () => {
@@ -222,7 +222,7 @@ describe('--mode', () => {
     const argv = ['', '', ...getRequiredArgs()]
     const args = await parseArgv(argv)
 
-    expect(args.mode).toStrictEqual('pass')
+    expect(args.mode).toBe('pass')
   })
 
   it('doesnt throw an error for a valid value', async () => {
@@ -318,7 +318,7 @@ describe('--update', () => {
     const argv = ['', '', ...getRequiredArgs()]
     const args = await parseArgv(argv)
 
-    expect(args.update).toStrictEqual('off')
+    expect(args.update).toBe('off')
   })
 
   it('doesnt throw an error for a valid value', async () => {
@@ -359,7 +359,7 @@ describe('--workers', () => {
     const argv = ['', '', ...getRequiredArgs()]
     const args = await parseArgv(argv)
 
-    expect(args.workers).toStrictEqual(1)
+    expect(args.workers).toBe(1)
   })
 
   it('throws an error if not a positive number', async () => {
@@ -390,7 +390,7 @@ describe('--workers', () => {
     const args = await parseArgv(argv)
 
     expect(typeof args.workers).toBe('number')
-    expect(args.workers > 0).toBe(true)
+    expect(args.workers).toBeGreaterThan(0)
   })
 })
 
@@ -431,7 +431,7 @@ describe('--responsesDir', () => {
     const argv = ['', '', ...getRequiredArgs()]
     const args = await parseArgv(argv)
 
-    expect(path.isAbsolute(args.responsesDir)).toStrictEqual(true)
+    expect(path.isAbsolute(args.responsesDir)).toBe(true)
   })
 
   it('accepts deprecated `--folder` as an alias', async () => {
@@ -604,7 +604,7 @@ describe('--cache', () => {
         const argv = ['', '', ...getRequiredArgs(), '--cache', inputValue]
         const args = await parseArgv(argv)
 
-        expect(typeof args.cache).toStrictEqual('boolean')
+        expect(typeof args.cache).toBe('boolean')
       }
     } finally {
       consoleWarnSpy.mockRestore()
@@ -648,6 +648,7 @@ describe('--mockKeys', () => {
      * @returns {string[][]}
      */
     function combine(cur = [], keys = [...validKeysArr], combinations = []) {
+      // eslint-disable-next-line jest/no-conditional-in-test
       if (cur.length >= 4) {
         combinations.push([...cur])
         return combinations
@@ -694,7 +695,7 @@ describe('--retries', () => {
     const argv = ['', '', ...getRequiredArgs(), '--retries', '3']
     const args = await parseArgv(argv)
 
-    expect(args.retries).toStrictEqual(3)
+    expect(args.retries).toBe(3)
   })
 
   it('throws an error if a negative integer', async () => {

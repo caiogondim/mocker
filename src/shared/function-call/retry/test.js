@@ -30,15 +30,15 @@ describe('retry', () => {
     const throwUntil3 = createThrowUntilN(3)
     await expect(throwUntil3()).rejects.toThrow(Error)
     await expect(throwUntil3()).rejects.toThrow(Error)
-    await expect(throwUntil3()).resolves.toStrictEqual('lorem')
+    await expect(throwUntil3()).resolves.toBe('lorem')
 
     //
     // Test behavior with `retry`
     //
 
-    await expect(
-      retry(createThrowUntilN(3), { backoff })
-    ).resolves.toStrictEqual('lorem')
+    await expect(retry(createThrowUntilN(3), { backoff })).resolves.toBe(
+      'lorem'
+    )
   })
 
   it('retries up to `retries`', async () => {
@@ -97,7 +97,7 @@ describe('retry', () => {
 
     const result = await retry(throwUntil3, { retries, backoff: mockBackoff })
 
-    expect(result).toStrictEqual('lorem')
+    expect(result).toBe('lorem')
     expect(mockBackoff).toHaveBeenCalledTimes(2)
   })
 })
