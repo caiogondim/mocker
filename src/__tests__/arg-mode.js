@@ -29,7 +29,7 @@ describe(`mode = 'pass'`, () => {
       const response = await responsePromise
       const responseBody = (await getBody(response)).toString()
 
-      expect(responseBody).toStrictEqual('4')
+      expect(responseBody).toBe('4')
     } finally {
       await closeServer(mocker)
       await closeServer(mathServer)
@@ -65,7 +65,7 @@ describe(`mode = 'read-pass`, () => {
       const response1 = await response1Promise
       const response1Body = (await getBody(response1)).toString()
 
-      expect(response1Body).toStrictEqual('14')
+      expect(response1Body).toBe('14')
 
       //
       // Mocked response: client <-> proxy
@@ -78,7 +78,7 @@ describe(`mode = 'read-pass`, () => {
       const response2 = await response2Promise
       const response2Body = (await getBody(response2)).toString()
 
-      expect(response2Body).toStrictEqual('14')
+      expect(response2Body).toBe('14')
     } finally {
       await closeServer(mocker)
       await closeServer(mathServer)
@@ -108,7 +108,7 @@ describe(`mode = 'read-pass`, () => {
       const response = await responsePromise
       const responseBody = (await getBody(response)).toString()
 
-      expect(responseBody).toStrictEqual('4')
+      expect(responseBody).toBe('4')
     } finally {
       await closeServer(mocker)
       await closeServer(mathServer)
@@ -141,10 +141,12 @@ describe(`mode = 'read-write`, () => {
         url: `http://localhost:${mockerPort}/?a=2&b=5&operation=multiply`,
       })
       request1.end()
+
       const response1 = await response1Promise
+
       const response1Body = (await getBody(response1)).toString()
 
-      expect(response1Body).toStrictEqual('10')
+      expect(response1Body).toBe('10')
 
       // Turning off origin server to make sure proxy is returning a mocked response
       await mathServer.close()
@@ -160,7 +162,7 @@ describe(`mode = 'read-write`, () => {
       const response2 = await response2Promise
       const response2Body = (await getBody(response2)).toString()
 
-      expect(response2Body).toStrictEqual('10')
+      expect(response2Body).toBe('10')
     } finally {
       await closeServer(mocker)
       await closeServer(mathServer)
@@ -194,7 +196,7 @@ describe(`mode = 'read-write`, () => {
       const response1 = await response1Promise
       const response1Body = (await getBody(response1)).toString()
 
-      expect(response1Body).toStrictEqual('14')
+      expect(response1Body).toBe('14')
 
       //
       // Mocked response: client <-> proxy
@@ -207,7 +209,7 @@ describe(`mode = 'read-write`, () => {
       const response2 = await response2Promise
       const response2Body = (await getBody(response2)).toString()
 
-      expect(response2Body).toStrictEqual('14')
+      expect(response2Body).toBe('14')
     } finally {
       await closeServer(mocker)
       await closeServer(mathServer)
@@ -239,7 +241,7 @@ describe(`mode = 'read'`, () => {
       request.end()
       const response = await responsePromise
 
-      expect(response.statusCode).toStrictEqual(404)
+      expect(response.statusCode).toBe(404)
     } finally {
       await closeServer(mocker)
       await closeServer(mathServer)
@@ -371,6 +373,7 @@ describe(`mode = 'pass-read'`, () => {
     const originPort = await getPort()
     let shouldOriginReturn500 = false
     const originServer = createServer(async (req, res) => {
+      // eslint-disable-next-line jest/no-conditional-in-test
       const statusCode = shouldOriginReturn500 ? 500 : 200
       res.writeHead(statusCode, {})
       res.end()

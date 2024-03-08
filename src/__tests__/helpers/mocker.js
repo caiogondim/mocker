@@ -1,4 +1,5 @@
 /** @typedef {import('../../args/types').Args} Args */
+/** @typedef {import('../../shared/types').FsLike} FsLike */
 
 const getPort = require('get-port')
 const { Volume, createFsFromVolume } = require('memfs')
@@ -43,7 +44,7 @@ async function getCommonArgs() {
 }
 
 /**
- * @param {object} args
+ * @param {Partial<Args & { fs: FsLike }>} args
  * @returns {Promise<Mocker>}
  */
 async function createMocker(args = {}) {

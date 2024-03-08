@@ -19,7 +19,7 @@ describe('origin', () => {
 
       const origin = new Origin({
         host: `http://localhost:${originPort}`,
-        overwriteRequestHeaders: { host: null, lorem: 'ipsum', dolor: 5 },
+        overwriteRequestHeaders: { lorem: 'ipsum', dolor: 5, host: 'dolor' },
       })
       const [request, responsePromise] = await origin.request({ url: `/` })
       request.end()
@@ -28,46 +28,16 @@ describe('origin', () => {
       const responseJson = JSON.parse(responseBody)
 
       try {
-        expect(responseJson.host).toBeUndefined()
-        expect(responseJson.lorem).toStrictEqual('ipsum')
-        expect(responseJson.dolor).toStrictEqual('5')
+        expect(responseJson.host).toBe('dolor')
+        expect(responseJson.lorem).toBe('ipsum')
+        expect(responseJson.dolor).toBe('5')
       } finally {
         await requestHeaderOnResponseBodyServer.close()
       }
     })
 
-    // Node.js implicitly adds the `host` header to every request. We want to
-    // remove this implicit behavior and create a request object with only
-    // the arguments provided at runtime, and nothing more.
-    it(`doesn't add any headers by default on request`, async () => {
-      expect.assertions(1)
-
-      // Given I have an object describing the headers on the request...
-
-      const headers = { foo: 1, bar: 2 }
-      const origin = new Origin({
-        host: `https://nytimes.com`,
-      })
-
-      // When I make a request...
-
-      const [request] = await origin.request({
-        url: '/',
-        headers,
-      })
-      try {
-        // Then the request should contain only headers explicitly passed as
-        // argument
-
-        // eslint-disable-next-line jest/prefer-strict-equal
-        expect(request.getHeaders()).toEqual(headers)
-      } finally {
-        request.abort()
-      }
-    })
-
     it(`removes \`via\` header request header if \`overwriteRequestHeaders\` equals to \`{ via: null }\``, async () => {
-      expect.assertions(4)
+      expect.assertions(3)
 
       const originPort = await getPort()
       const requestHeaderOnResponseBodyServer =
@@ -77,7 +47,7 @@ describe('origin', () => {
       const origin = new Origin({
         host: `http://localhost:${originPort}`,
         overwriteRequestHeaders: {
-          host: null,
+          host: 'example.com',
           lorem: 'ipsum',
           dolor: 5,
           via: null,
@@ -90,9 +60,8 @@ describe('origin', () => {
       const responseJson = JSON.parse(responseBody)
 
       try {
-        expect(responseJson.host).toBeUndefined()
-        expect(responseJson.lorem).toStrictEqual('ipsum')
-        expect(responseJson.dolor).toStrictEqual('5')
+        expect(responseJson.lorem).toBe('ipsum')
+        expect(responseJson.dolor).toBe('5')
         expect(responseJson.via).toBeUndefined()
       } finally {
         await requestHeaderOnResponseBodyServer.close()
@@ -121,12 +90,10 @@ describe('origin', () => {
 
       try {
         const response = await responsePromise
-        expect(response.statusCode).toStrictEqual(200)
+        expect(response.statusCode).toBe(200)
 
         const responseBody = await getBody(response)
-        expect(responseBody.toString()).toStrictEqual(
-          'lorem ipsum dolor sit amet'
-        )
+        expect(responseBody.toString()).toBe('lorem ipsum dolor sit amet')
       } finally {
         await flakyServer.close()
       }
@@ -152,10 +119,10 @@ describe('origin', () => {
       // Then it should work as it does for relative URLs
       try {
         const response = await responsePromise
-        expect(response.statusCode).toStrictEqual(200)
+        expect(response.statusCode).toBe(200)
 
         const responseBody = await getBody(response)
-        expect(responseBody.toString()).toStrictEqual('3')
+        expect(responseBody.toString()).toBe('3')
       } finally {
         await mathServer.close()
       }

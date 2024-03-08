@@ -30,9 +30,9 @@ describe('health checks endpoints', () => {
 
     try {
       // Then it should return HTTP 200
-      expect(response.statusCode).toStrictEqual(200)
+      expect(response.statusCode).toBe(200)
       // And an empty body
-      expect(responseBody).toStrictEqual('')
+      expect(responseBody).toBe('')
     } finally {
       await closeServer(mocker)
     }
@@ -63,9 +63,9 @@ describe('health checks endpoints', () => {
 
     try {
       // Then it should return HTTP 200
-      expect(response.statusCode).toStrictEqual(200)
+      expect(response.statusCode).toBe(200)
       // And an empty body
-      expect(responseBody).toStrictEqual('')
+      expect(responseBody).toBe('')
     } finally {
       await closeServer(mocker)
     }
@@ -100,11 +100,11 @@ describe('health checks endpoints', () => {
 
     try {
       // Then it should behave normally proxying the request to origin.
-      expect(response.statusCode).toStrictEqual(200)
+      expect(response.statusCode).toBe(200)
 
       // And it should not have an empty response body, since the response comes
       // from origin.
-      expect(responseBody).not.toStrictEqual('')
+      expect(responseBody).not.toBe('')
     } finally {
       await closeServer(mocker)
       await closeServer(origin)

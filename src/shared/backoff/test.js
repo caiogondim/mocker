@@ -1,6 +1,7 @@
 const createBackoff = require('.')
 
 jest.useFakeTimers()
+jest.spyOn(global, 'setTimeout')
 
 describe('backoff', () => {
   it('increments the previous back off time by multiplying by 2', async () => {

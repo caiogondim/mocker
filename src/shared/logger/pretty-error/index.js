@@ -7,8 +7,7 @@ const prettyErrorSymbol = Symbol('pretty-error')
  * @returns {Boolean}
  */
 function isPrettyError(x) {
-  const objectPropertySymbols = Object.getOwnPropertySymbols(x)
-  return objectPropertySymbols.includes(prettyErrorSymbol)
+  return typeof x === 'object' && Reflect.get(x, prettyErrorSymbol) === true
 }
 
 /**
@@ -32,14 +31,17 @@ function prettifyError({ error, expected, received, hint = '' }) {
     return message
   })()
 
-  // Creating a proxy so the original object is not modified
-  const proxy = Object.defineProperty(new Proxy(error, {}), 'message', {
-    value: prettyErrorMessage,
-  })
+  const proxy = new Proxy(error, {
+    get(target, property) {
+      if (property === 'message') {
+        return prettyErrorMessage
+      } else if (property === prettyErrorSymbol) {
+        return true
+      }
 
-  // Attaching a `prettyErrorSymbol` property to flag this is a "pretty error"
-  // object.
-  proxy[prettyErrorSymbol] = true
+      return Reflect.get(target, property)
+    },
+  })
 
   return proxy
 }

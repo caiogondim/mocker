@@ -88,7 +88,11 @@ async function createRequest({ url, headers = {}, method = 'GET' }) {
   await new Promise((resolve, reject) => {
     request.on('error', reject)
     request.on('socket', (socket) => {
-      socket.on('ready', resolve)
+      if (socket.readyState === 'open') {
+        resolve(undefined)
+      } else {
+        socket.on('connect', resolve)
+      }
     })
   })
 

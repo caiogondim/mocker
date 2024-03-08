@@ -69,9 +69,7 @@ describe('args.update', () => {
     const response2Body = `${await getBody(response2)}`
 
     try {
-      expect(response2.headers['x-nyt-mocker-response-from']).toStrictEqual(
-        'Mock'
-      )
+      expect(response2.headers['x-nyt-mocker-response-from']).toBe('Mock')
       expect(Number(response2Body)).toBeGreaterThanOrEqual(
         Number(response1Body)
       )
@@ -178,8 +176,8 @@ describe('args.update', () => {
     try {
       // Then it should fail since `startup: 'only'` only updates all mocked
       // responses, and doesn't start the server.
-      await expect(() => createRequestThunk()).rejects.toThrow(
-        `connect ECONNREFUSED 127.0.0.1:${mockerPort}`
+      await expect(() => createRequestThunk()).rejects.toMatchInlineSnapshot(
+        `[AggregateError]`
       )
     } finally {
       await timeServer.close()

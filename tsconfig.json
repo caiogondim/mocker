@@ -9,6 +9,7 @@
     "pretty": true,
     "strict": true,
     "lib": ["esnext", "dom"],
+    "esModuleInterop": true,
     "typeRoots": ["./src/types", "./node_modules/@types"],
     "allowSyntheticDefaultImports": true,
     "noImplicitReturns": true,

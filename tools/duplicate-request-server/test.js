@@ -23,7 +23,7 @@ describe('duplicate-request-server', () => {
     const responseBody1 = (await getBody(response1)).toString()
 
     try {
-      expect(responseBody1).toStrictEqual(`${payload}${payload}`)
+      expect(responseBody1).toBe(`${payload}${payload}`)
     } finally {
       await server.close()
     }

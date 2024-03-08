@@ -68,5 +68,7 @@ module.exports = {
       },
     ],
     'prettier/prettier': 'error',
+    'jest/max-expects': 'off',
+    'jest/no-untyped-mock-factory': 'off',
   },
 }

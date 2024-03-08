@@ -19,14 +19,14 @@ describe('mockManager.prototype.get', () => {
 
     const { hasMock: hasMock1 } = await mockManager.has({ request: request1 })
 
-    expect(hasMock1).toStrictEqual(true)
+    expect(hasMock1).toBe(true)
 
     // Test an equal request on another request object
     const request2 = rewindable(createMockedRequest())
     request2.end('Lorem Ipsum')
     const { hasMock: hasMock2 } = await mockManager.has({ request: request2 })
 
-    expect(hasMock2).toStrictEqual(true)
+    expect(hasMock2).toBe(true)
   })
 
   it('throws an error for non-existing responses for the request passed as argument', async () => {
@@ -60,9 +60,7 @@ describe('mockManager.prototype.get', () => {
     const { mockedResponse } = await mockManager.get({ request: request1 })
 
     expect(mockedResponse.headers['content-length']).toBeUndefined()
-    expect(mockedResponse.headers['content-type']).toStrictEqual(
-      'application/json'
-    )
+    expect(mockedResponse.headers['content-type']).toBe('application/json')
   })
 
   // It should redact the header and unredact it with the value provided on `redactedHeaders`
@@ -88,7 +86,7 @@ describe('mockManager.prototype.get', () => {
 
     const { mockedResponse } = await mockManager.get({ request: request1 })
 
-    expect(mockedResponse.headers['nyt-token']).toStrictEqual(1234)
+    expect(mockedResponse.headers['nyt-token']).toBe(1234)
   })
 
   it('throws an error in case it cant unredact all secrets', async () => {
@@ -155,13 +153,13 @@ describe('mockManager.prototype.has', () => {
     // it should return `false`
     const { hasMock: hasMock1 } = await mockManager1.has({ request: request3 })
 
-    expect(hasMock1).toStrictEqual(false)
+    expect(hasMock1).toBe(false)
 
     // Since it uses only `url` for key and we are using the same `url`,
     // it should return `true`
     const { hasMock: hasMock2 } = await mockManager2.has({ request: request3 })
 
-    expect(hasMock2).toStrictEqual(true)
+    expect(hasMock2).toBe(true)
   })
 
   it('considers the same response for a request with same value on the body as defined on mockKeys', async () => {
@@ -269,7 +267,7 @@ describe('mockManager.prototype.clear', () => {
 
     const { hasMock: hasMock1 } = await mockManager.has({ request: request1 })
 
-    expect(hasMock1).toStrictEqual(true)
+    expect(hasMock1).toBe(true)
 
     await mockManager.clear()
 
@@ -283,7 +281,7 @@ describe('mockManager.prototype.clear', () => {
 
     const { hasMock: hasMock2 } = await mockManager.has({ request: request2 })
 
-    expect(hasMock2).toStrictEqual(false)
+    expect(hasMock2).toBe(false)
   })
 })
 
@@ -301,8 +299,8 @@ describe('mockManager.prototype.set', () => {
 
     const { hasMock, mockPath } = await mockManager.has({ request })
 
-    expect(hasMock).toStrictEqual(true)
-    expect(typeof mockPath).toStrictEqual('string')
+    expect(hasMock).toBe(true)
+    expect(typeof mockPath).toBe('string')
   })
 
   it('doesnt save file on error', async () => {
@@ -328,7 +326,7 @@ describe('mockManager.prototype.set', () => {
 
     const { hasMock: hasMock2 } = await mockManager.has({ request })
 
-    expect(hasMock2).toStrictEqual(false)
+    expect(hasMock2).toBe(false)
   })
 
   // In case we dont have write access to the mock file while updating the
@@ -383,7 +381,7 @@ describe('mockManager.prototype.set', () => {
 
     const { hasMock: hasMock2 } = await mockManager.has({ request: request2 })
 
-    expect(hasMock2).toStrictEqual(true)
+    expect(hasMock2).toBe(true)
   })
 })
 
@@ -426,6 +424,7 @@ describe('mockManager.prototype.getAll', () => {
       mockedRequest,
       mockedResponse,
     } of mockManager.getAll()) {
+      // eslint-disable-next-line jest/no-conditional-in-test
       if (mockedRequest === null || mockedResponse === null) {
         throw new Error('mockedRequest/mockedResponse shouldnt be `null`')
       }
@@ -476,13 +475,14 @@ describe('mockManager.prototype.getAll', () => {
     //
 
     for await (const { mockedResponse, error } of mockManager.getAll()) {
+      // eslint-disable-next-line jest/no-conditional-in-test
       if (mockedResponse === null) {
         throw new Error('mockedResponse shouldnt be `null`')
       }
 
       // mockedResponse nyt-token header should have the same value as passed on
       // `redactedHeaders`
-      expect(mockedResponse.headers['nyt-token']).toStrictEqual(1234)
+      expect(mockedResponse.headers['nyt-token']).toBe(1234)
       expect(error).toBeNull()
     }
   })

@@ -1,6 +1,6 @@
 /**
  * @callback ConsoleMethod
- * @param {...any} [args]
+ * @param {{ (...data: any[]): void; (message?: any, ...optionalParams: any[]): void; }} [args]
  * @returns {void}
  */
 /** @typedef {{ log: ConsoleMethod; error: ConsoleMethod; warn: ConsoleMethod }} Console */
@@ -62,7 +62,7 @@ class Logger {
       return false
     }
 
-    this._console.warn(yellow('warn'), ...args)
+    this._console.warn.apply([yellow('warn'), ...args])
 
     return true
   }
@@ -83,7 +83,7 @@ class Logger {
       return false
     }
 
-    this._console.error(red('erro'), ...args)
+    this._console.error.apply([red('erro'), ...args])
 
     return true
   }
@@ -97,7 +97,7 @@ class Logger {
       return false
     }
 
-    this._console.log(blue('info'), ...args)
+    this._console.log.apply([blue('info'), ...args])
 
     return true
   }
@@ -111,7 +111,7 @@ class Logger {
       return false
     }
 
-    this._console.log(green('succ'), ...args)
+    this._console.log.apply([green('succ'), ...args])
 
     return true
   }

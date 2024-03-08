@@ -2,7 +2,7 @@
 /** @typedef {import('../shared/http').Headers} Headers */
 /** @typedef {Map<string, string>} ArgvMap */
 
-const cluster = require('cluster')
+const cluster = require('node:cluster')
 const path = require('path')
 const { promises: fs } = require('fs')
 const stringToBoolean = require('../shared/string-to-boolean')
@@ -58,7 +58,9 @@ const OVERWRITE_REQUEST_HEADERS_DEFAULT = {}
  * @returns {boolean}
  */
 function shouldWarnDeprecation(logging) {
-  return cluster.isMaster && (logging === 'warn' || logging === 'verbose')
+  // Type definition for cluster module is broken
+  // @ts-expect-error
+  return cluster.isPrimary && (logging === 'warn' || logging === 'verbose')
 }
 
 /**

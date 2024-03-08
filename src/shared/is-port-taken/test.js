@@ -12,7 +12,7 @@ describe('isPortTaken', () => {
       const port = await getPort()
       await mathServer.listen(port)
 
-      expect(await isPortTaken(port)).toStrictEqual(true)
+      await expect(isPortTaken(port)).resolves.toBe(true)
     } finally {
       await mathServer.close()
     }
@@ -21,7 +21,7 @@ describe('isPortTaken', () => {
   it('returns `false` if a port is available', async () => {
     expect.assertions(1)
     const port = await getPort()
-    expect(await isPortTaken(port)).toStrictEqual(false)
+    await expect(isPortTaken(port)).resolves.toBe(false)
   })
 
   // Regression test. There was a bug when running `isPortTaken` inside a loop
@@ -31,7 +31,7 @@ describe('isPortTaken', () => {
     expect.assertions(100)
     const port = await getPort()
     for (let i = 0; i < 100; i += 1) {
-      expect(await isPortTaken(port)).toStrictEqual(false)
+      await expect(isPortTaken(port)).resolves.toBe(false)
     }
   })
 
@@ -48,7 +48,7 @@ describe('isPortTaken', () => {
       await mathServer.listen(port)
 
       for (let i = 0; i < 100; i += 1) {
-        expect(await isPortTaken(port)).toStrictEqual(true)
+        await expect(isPortTaken(port)).resolves.toBe(true)
       }
     } finally {
       await mathServer.close()
