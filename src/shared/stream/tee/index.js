@@ -28,6 +28,7 @@ function cloneProps(source, target) {
  * all properties from `stream` to all connections.
  *
  * @type {Tee}
+ * @returns {PassThrough[]}
  */
 function tee(stream, numOfConnections = 2) {
   const teeStreams = []

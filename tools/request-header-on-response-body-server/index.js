@@ -4,7 +4,7 @@ const http = require('http')
 
 /** @returns {AsyncHttpServer} */
 function createServer() {
-  async function handleRequest(req, res) {
+  const server = http.createServer(async (req, res) => {
     if (typeof req.url === 'undefined') {
       res.writeHead(500, {})
       res.end()
@@ -14,9 +14,7 @@ function createServer() {
     res.setHeader('content-type', 'application/json')
     res.write(JSON.stringify(req.headers))
     res.end()
-  }
-  const server = http.createServer()
-  server.on('request', handleRequest)
+  })
 
   return {
     /**

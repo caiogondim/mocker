@@ -121,7 +121,11 @@ function throttle({ bps }) {
         }
         return callback(null)
       } catch (error) {
-        return callback(error)
+        if (error === null || error === undefined || error instanceof Error) {
+          return callback(error)
+        } else {
+          throw error
+        }
       }
     },
   })

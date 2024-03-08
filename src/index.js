@@ -217,7 +217,7 @@ class Mocker {
         .join('\n')}\n`
     }
 
-    if (cluster.isMaster) {
+    if (cluster.isPrimary) {
       logger.log(printStartMessage())
 
       this._addListeners()
@@ -243,7 +243,7 @@ class Mocker {
         this._httpServer = http
           .createServer(this._server.bind(this))
           .listen(port, resolve)
-      } else if (cluster.isMaster) {
+      } else if (cluster.isPrimary) {
         logger.info(
           `started on port ${bold(port)}, with pid ${bold(
             process.pid
@@ -295,7 +295,7 @@ class Mocker {
 
     this._removeListeners()
 
-    if (process.env.NODE_ENV !== 'test' && cluster.isMaster) {
+    if (process.env.NODE_ENV !== 'test' && cluster.isPrimary) {
       return new Promise((resolve) => {
         cluster.disconnect(resolve)
       })
