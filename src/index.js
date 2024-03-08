@@ -217,6 +217,8 @@ class Mocker {
         .join('\n')}\n`
     }
 
+    // Type definition for cluster module is broken
+    // @ts-expect-error
     if (cluster.isPrimary) {
       logger.log(printStartMessage())
 
@@ -243,6 +245,8 @@ class Mocker {
         this._httpServer = http
           .createServer(this._server.bind(this))
           .listen(port, resolve)
+        // Type definition for cluster module is broken
+        // @ts-expect-error
       } else if (cluster.isPrimary) {
         logger.info(
           `started on port ${bold(port)}, with pid ${bold(
@@ -260,21 +264,35 @@ class Mocker {
         )
 
         for (let i = 0; i < args.workers; i += 1) {
+          // Type definition for cluster module is broken
+          // @ts-expect-error
           cluster.fork()
         }
 
+        // Type definition for cluster module is broken
+        // @ts-expect-error
         cluster.on('online', (worker) => {
           logger.info(`worker pid ${bold(worker.process.pid)} started`)
         })
 
+        // Type definition for cluster module is broken
+        // @ts-expect-error
         cluster.on('exit', (worker) => {
           if (!state.isClosing) {
             logger.warn(`worker pid ${bold(worker.process.pid)} died`)
+
+            // Type definition for cluster module is broken
+            // @ts-expect-error
             cluster.fork()
           }
         })
 
+        // Type definition for cluster module is broken
+        // @ts-expect-error
         cluster.on('listening', resolve)
+
+        // Type definition for cluster module is broken
+        // @ts-expect-error
       } else if (cluster.isWorker) {
         this._httpServer = http
           .createServer(this._server.bind(this))
@@ -295,8 +313,12 @@ class Mocker {
 
     this._removeListeners()
 
+    // Type definition for cluster module is broken
+    // @ts-expect-error
     if (process.env.NODE_ENV !== 'test' && cluster.isPrimary) {
       return new Promise((resolve) => {
+        // Type definition for cluster module is broken
+        // @ts-expect-error
         cluster.disconnect(resolve)
       })
     }

@@ -58,6 +58,8 @@ const OVERWRITE_REQUEST_HEADERS_DEFAULT = {}
  * @returns {boolean}
  */
 function shouldWarnDeprecation(logging) {
+  // Type definition for cluster module is broken
+  // @ts-expect-error
   return cluster.isPrimary && (logging === 'warn' || logging === 'verbose')
 }
 
