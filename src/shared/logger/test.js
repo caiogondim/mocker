@@ -1,23 +1,14 @@
+/** @typedef {import('./index').Console} Console */
+
 const Logger = require('.')
 
+/** @type {Console} */
 const consoleMock = {
-  /**
-   * @param {...any} args
-   * @returns {void}
-   */
-  log(...args) {}, // eslint-disable-line no-unused-vars
+  log() {},
 
-  /**
-   * @param {...any} args
-   * @returns {void}
-   */
-  warn(...args) {}, // eslint-disable-line no-unused-vars
+  warn() {},
 
-  /**
-   * @param {...any} args
-   * @returns {void}
-   */
-  error(...args) {}, // eslint-disable-line no-unused-vars
+  error() {},
 }
 
 const logger = new Logger({ console: consoleMock })

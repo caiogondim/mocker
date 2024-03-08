@@ -23,7 +23,11 @@ function delay({ ms }) {
         }
         return callback(null, chunk)
       } catch (error) {
-        return callback(error)
+        if (error instanceof Error) {
+          return callback(error)
+        } else {
+          throw error
+        }
       }
     },
     flush(callback) {
