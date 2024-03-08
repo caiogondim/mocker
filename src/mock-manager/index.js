@@ -296,7 +296,7 @@ class MockManager {
       // Deletes a file if there is an error while writing to it to avoid having
       // a corrupted file.
       // If the error is "no write access", do nothing.
-      if (error && error.code !== 'EACCES') {
+      if (error && Reflect.get(error, 'code') !== 'EACCES') {
         await unlink(filePath)
       }
 
@@ -389,7 +389,7 @@ class MockManager {
         }
       } catch (error) {
         yield {
-          error,
+          error: error instanceof Error ? error : null,
           mockPath: filePath,
           mockedResponse: null,
           mockedRequest: null,

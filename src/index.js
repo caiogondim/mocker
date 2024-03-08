@@ -579,7 +579,8 @@ class Mocker {
     } catch (error) {
       if (
         !(
-          error instanceof OriginResponseError || error?.code === 'ECONNREFUSED'
+          error instanceof OriginResponseError ||
+          Reflect.get(error || {}, 'code') === 'ECONNREFUSED'
         )
       ) {
         throw error
@@ -855,7 +856,7 @@ class Mocker {
               error_.message
             }. mock was not modified`
           )
-        } else if (error_ && error_.code === 'EACCES') {
+        } else if (error_ && Reflect.get(error_, 'code') === 'EACCES') {
           logger.warn(
             `${dim(progress())} ${bold(
               mockBasename

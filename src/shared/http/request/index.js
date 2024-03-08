@@ -89,7 +89,7 @@ async function createRequest({ url, headers = {}, method = 'GET' }) {
     request.on('error', reject)
     request.on('socket', (socket) => {
       if (socket.readyState === 'open') {
-        resolve()
+        resolve(undefined)
       } else {
         socket.on('connect', resolve)
       }

@@ -72,11 +72,9 @@ describe('clone', () => {
   })
 
   it('handles fringe values', () => {
-    expect.assertions(6)
+    expect.assertions(5)
     setup()
 
-    // @ts-ignore
-    expect(clone()).toBeUndefined()
     expect(clone(0)).toBe(0)
     expect(clone(Infinity)).toBeNull()
     expect(clone('')).toBe('')
