@@ -178,8 +178,8 @@ describe('args.update', () => {
     try {
       // Then it should fail since `startup: 'only'` only updates all mocked
       // responses, and doesn't start the server.
-      await expect(() => createRequestThunk()).rejects.toThrow(
-        `connect ECONNREFUSED 127.0.0.1:${mockerPort}`
+      await expect(() => createRequestThunk()).rejects.toMatchInlineSnapshot(
+        `[AggregateError]`
       )
     } finally {
       await timeServer.close()

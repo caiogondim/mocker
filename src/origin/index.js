@@ -62,15 +62,6 @@ class Origin {
       retries,
     })
 
-    // Node.js adds, by default, some headers on every request
-    // (e.g., `host`). Here we are removing any header that was not
-    // explicitly passed as argument.
-    for (const header of Object.keys(request.getHeaders())) {
-      if (!Reflect.has(headers, header)) {
-        request.removeHeader(header)
-      }
-    }
-
     return [request, responsePromise]
   }
 

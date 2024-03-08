@@ -141,7 +141,9 @@ describe(`mode = 'read-write`, () => {
         url: `http://localhost:${mockerPort}/?a=2&b=5&operation=multiply`,
       })
       request1.end()
+
       const response1 = await response1Promise
+
       const response1Body = (await getBody(response1)).toString()
 
       expect(response1Body).toStrictEqual('10')
