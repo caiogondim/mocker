@@ -52,5 +52,6 @@
         "branches": 78.14
       }
     }
-  }
+  },
+  "packageManager": "yarn@4.1.1"
 }
