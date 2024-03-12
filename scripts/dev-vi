@@ -1,8 +1,0 @@
-#!/usr/bin/env bash
-
-# Starts all upstream mocked servers used by VI in dev mode. This script was
-# initially created in order to make debugging integration with VI easier.
-
-./node_modules/.bin/ttab -G -t "🥸 Samizdat" yarn dev --port 8733 --mode write --origin https://samizdat-graphql.nytimes.com --responsesDir ../wf-project-vi/tools/mocker/responses/samizdat --mockKeys url,method,body.operationName,body.variables --redactedHeaders '{"nyt-token":"[REDACTED]"}' --retries 3 --overwriteRequestHeaders '{"host": null}'
-./node_modules/.bin/ttab -G -t "🥸 Abra" yarn dev --port 8734 --mode read --origin https://a1.nyt.com --responsesDir ../wf-project-vi/tools/mocker/responses/abra --mockKeys method --redactedHeaders '{"nyt-token": "[REDACTED]"}' --retries 3 --overwriteRequestHeaders '{"host":null}'
-./node_modules/.bin/ttab -G -t "🥸 Meter" yarn dev --port 8735 --mode write --origin https://meter-svc.nytimes.com --responsesDir ../wf-project-vi/tools/mocker/responses/meter --redactedHeaders '{"nyt-token": "[REDACTED]"}' --retries 3 --overwriteRequestHeaders '{"host":null}'

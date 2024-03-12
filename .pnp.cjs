@@ -42,7 +42,6 @@ const RAW_RUNTIME_STATE =
           ["jest", "virtual:bc910a83b2ea4a3c5624b37fdaeaf06f5d2420fb3f1b9341fa9e77347594865125e736c9744bc1f82124c201bdf1d7274d8734954d773b9e2b6c681d1266cbdf#npm:29.7.0"],\
           ["memfs", "npm:4.7.7"],\
           ["prettier", "npm:3.2.5"],\
-          ["ttab", "npm:0.7.1"],\
           ["typescript", "patch:typescript@npm%3A5.3.3#optional!builtin<compat/typescript>::version=5.3.3&hash=e012d7"]\
         ],\
         "linkType": "SOFT"\
@@ -5268,7 +5267,6 @@ const RAW_RUNTIME_STATE =
           ["jest", "virtual:bc910a83b2ea4a3c5624b37fdaeaf06f5d2420fb3f1b9341fa9e77347594865125e736c9744bc1f82124c201bdf1d7274d8734954d773b9e2b6c681d1266cbdf#npm:29.7.0"],\
           ["memfs", "npm:4.7.7"],\
           ["prettier", "npm:3.2.5"],\
-          ["ttab", "npm:0.7.1"],\
           ["typescript", "patch:typescript@npm%3A5.3.3#optional!builtin<compat/typescript>::version=5.3.3&hash=e012d7"]\
         ],\
         "linkType": "SOFT"\
@@ -6415,15 +6413,6 @@ const RAW_RUNTIME_STATE =
         "packagePeers": [\
           "@types/typescript",\
           "typescript"\
-        ],\
-        "linkType": "HARD"\
-      }]\
-    ]],\
-    ["ttab", [\
-      ["npm:0.7.1", {\
-        "packageLocation": "./.yarn/unplugged/ttab-npm-0.7.1-f5750705ab/node_modules/ttab/",\
-        "packageDependencies": [\
-          ["ttab", "npm:0.7.1"]\
         ],\
         "linkType": "HARD"\
       }]\
