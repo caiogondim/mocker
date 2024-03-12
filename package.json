@@ -6,9 +6,9 @@
   "scripts": {
     "test": "yarn lint && yarn type-check && yarn jest",
     "start": "NODE_OPTIONS='--max-http-header-size=1000000 --unhandled-rejections=strict' ./mocker",
-    "dev:httpbin": "nodemon -q -w src --ignore __fixtures__/**/*.json mocker --responsesDir ./responses/httpbin --origin http://httpbin.org --logging verbose --mode read-write",
+    "dev:httpbin": "node --watch-path=./src mocker --responsesDir ./responses/httpbin --origin http://httpbin.org --logging verbose --mode read-write",
     "dev:vi": "./scripts/dev-vi",
-    "dev": "NODE_OPTIONS='--max-http-header-size=1000000 --unhandled-rejections=strict' nodemon -q -w src --ignore __fixtures__/**/*.json mocker",
+    "dev": "NODE_OPTIONS='--max-http-header-size=1000000 --unhandled-rejections=strict' node --watch-path=./src mocker",
     "jest": "NODE_OPTIONS='--max-old-space-size=4000' NODE_ENV=test jest --collectCoverageFrom='./src/**/*.js'",
     "type-check": "tsc --p './tsconfig.json'",
     "fmt": "yarn fmt:src && yarn fmt:docs",
@@ -34,9 +34,7 @@
     "get-port": "5.1.1",
     "jest": "^29.7.0",
     "memfs": "^4.7.7",
-    "nodemon": "^3.1.0",
     "prettier": "^3.2.5",
-    "ttab": "0.7.1",
     "typescript": "5.3.3"
   },
   "engines": {
@@ -53,5 +51,5 @@
       }
     }
   },
-  "packageManager": "yarn@4.1.1"
+  "packageManager": "yarn@4.1.1+sha256.f3cc0eda8e5560e529c7147565b30faa43b4e472d90e8634d7134a37c7f59781"
 }
