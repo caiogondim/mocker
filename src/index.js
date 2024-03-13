@@ -259,7 +259,7 @@ class Mocker {
         logger.info(
           `system has ${bold(numCpus)} CPU${
             numCpus > 1 ? 's' : ''
-          }. spawning ${bold(args.workers)} worker${
+          }, spawning ${bold(args.workers)} worker${
             args.workers > 1 ? 's' : ''
           }`
         )
@@ -371,6 +371,7 @@ class Mocker {
    * @param {http.ServerResponse} response
    * @returns {Promise<void>}
    */
+  // eslint-disable-next-line complexity
   async _server(request, response) {
     const { _args: args } = this
     const connectionId = createId()
@@ -395,7 +396,7 @@ class Mocker {
 
     const requestRewindable = rewindable(request)
 
-    if (request.method === 'OPTIONS') {
+    if (args.cors && request.method === 'OPTIONS') {
       this._handleCors(requestRewindable, response, connectionId)
       return
     }
@@ -543,7 +544,7 @@ class Mocker {
   }
 
   async _handleCors(request, response, connectionId) {
-    logger.log(`${dim(connectionId)} CORS OPTIONS`)
+    logger.info(`${dim(connectionId)} 👈 ${formatStatusCode(200)} CORS`)
 
     response.setHeader('access-control-allow-origin', request.headers.origin)
     response.setHeader('Access-Control-Allow-Credentials', 'true')
@@ -761,7 +762,7 @@ class Mocker {
       }
     }
 
-    if (true) {
+    if (args.cors) {
       response.setHeader('access-control-allow-origin', requestHeaders.origin)
     }
   }

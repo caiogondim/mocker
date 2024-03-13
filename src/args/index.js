@@ -52,6 +52,7 @@ const RETRIES_DEFAULT = 0
 const OVERWRITE_RESPONSE_HEADERS_DEFAULT = {}
 /** @type {Args['overwriteRequestHeaders']} */
 const OVERWRITE_REQUEST_HEADERS_DEFAULT = {}
+const CORS_DEFAULT = false
 
 /**
  * @param {string} logging
@@ -107,6 +108,7 @@ function validateArgvKeys(argv) {
     '--retries',
     '--overwriteResponseHeaders',
     '--overwriteRequestHeaders',
+    '--cors',
   ]
 
   for (let i = 2; i < argv.length; i += 2) {
@@ -629,6 +631,16 @@ function validateHeadersType(headers, customTypeError) {
 }
 
 /**
+ * @param {ArgvMap} argvMap
+ * @returns {Args['cache']}
+ */
+function getCors(argvMap) {
+  const cors = stringToBoolean(argvMap.get('cors') ?? `${CORS_DEFAULT}`)
+
+  return cors
+}
+
+/**
  * @param {string[]} argv
  * @returns {Promise<Args>}
  */
@@ -655,6 +667,7 @@ async function parseArgv(argv) {
   const redactedHeaders = getRedactedHeaders(argvMap)
   const overwriteResponseHeaders = getOverwriteResponseHeaders(argvMap)
   const overwriteRequestHeaders = getOverwriteRequestHeaders(argvMap)
+  const cors = getCors(argvMap)
 
   /** @type {Args} */
   const args = {
@@ -673,6 +686,7 @@ async function parseArgv(argv) {
     retries,
     overwriteResponseHeaders,
     overwriteRequestHeaders,
+    cors,
   }
 
   return args
@@ -697,4 +711,5 @@ module.exports = {
   LOGGING_VALID_VALUES,
   OVERWRITE_RESPONSE_HEADERS_DEFAULT,
   OVERWRITE_REQUEST_HEADERS_DEFAULT,
+  CORS_DEFAULT,
 }
