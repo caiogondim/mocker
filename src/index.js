@@ -553,7 +553,10 @@ class Mocker {
   async _handleCors(request, response, connectionId) {
     logger.info(`${dim(connectionId)} 👈 ${formatStatusCode(200)} CORS`)
 
-    response.setHeader('access-control-allow-origin', `${request.headers.origin}`)
+    response.setHeader(
+      'access-control-allow-origin',
+      `${request.headers.origin}`
+    )
     response.setHeader('Access-Control-Allow-Credentials', 'true')
     response.setHeader(
       'Access-Control-Allow-Methods',
@@ -771,7 +774,10 @@ class Mocker {
     }
 
     if (args.cors) {
-      response.setHeader('access-control-allow-origin', `${requestHeaders.origin}`)
+      response.setHeader(
+        'access-control-allow-origin',
+        `${requestHeaders.origin}`
+      )
     }
   }
 
