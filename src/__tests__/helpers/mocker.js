@@ -58,6 +58,7 @@ async function createMocker(args = {}) {
     fs,
     origin: '',
     mode: 'read-write',
+    cors: false,
     ...(await getCommonArgs()),
     ...args,
   })

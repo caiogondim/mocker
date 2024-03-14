@@ -8,6 +8,7 @@ const {
   OVERWRITE_RESPONSE_HEADERS_DEFAULT,
   OVERWRITE_REQUEST_HEADERS_DEFAULT,
   REDACTED_HEADERS_DEFAULT,
+  CORS_DEFAULT,
 } = require('./index')
 
 function getRequiredArgs() {
@@ -23,10 +24,10 @@ describe('behavior', () => {
 
     const argv2 = ['', '', ...getRequiredArgs(), '--foo', 'bar']
     await expect(parseArgv(argv2)).rejects.toMatchInlineSnapshot(`
-            [TypeError: [1mTypeError[22m[0m: invalid arg
-            [32mExpected[89m[0m one of ["--origin", "--port", "--delay", "--throttle", "--update", "--mode", "--workers", "--responsesDir", "--folder", "--cache", "--logging", "--mockKeys", "--redactedHeaders", "--retries", "--overwriteResponseHeaders", "--overwriteRequestHeaders"]
-            [31mReceived[89m[0m "--foo"]
-          `)
+      [TypeError: [1mTypeError[22m[0m: invalid arg
+      [32mExpected[89m[0m one of ["--origin", "--port", "--delay", "--throttle", "--update", "--mode", "--workers", "--responsesDir", "--folder", "--cache", "--logging", "--mockKeys", "--redactedHeaders", "--retries", "--overwriteResponseHeaders", "--overwriteRequestHeaders", "--cors"]
+      [31mReceived[89m[0m "--foo"]
+    `)
   })
 
   it('throws an error if argv doesnt respect the `--key value` pattern', async () => {
@@ -1091,5 +1092,35 @@ describe('--overwriteRequestHeaders', () => {
             [32mExpected[89m[0m valid JSON string
             [31mReceived[89m[0m "{1: \\"lorem\\"}"]
           `)
+  })
+})
+
+describe('--cors', () => {
+  it('receives a default value if not set', async () => {
+    expect.assertions(1)
+
+    const argv = ['', '', ...getRequiredArgs()]
+    const args = await parseArgv(argv)
+    expect(args.cors).toStrictEqual(CORS_DEFAULT)
+  })
+
+  it.each([
+    ['t', true],
+    ['y', true],
+    ['true', true],
+    ['1', true],
+    ['false', false],
+    ['0', false],
+  ])('is casted to boolean', async (input, expected) => {
+    expect.assertions(1)
+
+    const args = await parseArgv([
+      '',
+      '',
+      ...getRequiredArgs(),
+      '--cors',
+      input,
+    ])
+    expect(args.cors).toStrictEqual(expected)
   })
 })

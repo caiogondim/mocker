@@ -14,6 +14,7 @@ const Logger = require('./shared/logger')
 const { bold, dim, green, yellow, red } = require('./shared/logger/format')
 const { MockManager } = require('./mock-manager')
 const { Origin } = require('./origin')
+const clone = require('./shared/clone')
 const { delay, throttle, pipeline, rewindable } = require('./shared/stream')
 const createId = require('./shared/create-id')
 const {
@@ -258,7 +259,7 @@ class Mocker {
         logger.info(
           `system has ${bold(numCpus)} CPU${
             numCpus > 1 ? 's' : ''
-          }. spawning ${bold(args.workers)} worker${
+          }, spawning ${bold(args.workers)} worker${
             args.workers > 1 ? 's' : ''
           }`
         )
@@ -370,6 +371,7 @@ class Mocker {
    * @param {http.ServerResponse} response
    * @returns {Promise<void>}
    */
+  // eslint-disable-next-line complexity
   async _server(request, response) {
     const { _args: args } = this
     const connectionId = createId()
@@ -393,6 +395,11 @@ class Mocker {
     }
 
     const requestRewindable = rewindable(request)
+
+    if (args.cors && request.method === 'OPTIONS') {
+      this._handleCors(requestRewindable, response, connectionId)
+      return
+    }
 
     try {
       switch (args.mode) {
@@ -537,6 +544,32 @@ class Mocker {
   }
 
   /**
+   *@private
+   *@param {http.IncomingMessage} request
+   *@param {http.ServerResponse} response
+   *@param {string} connectionId
+   *@returns {Promise<void>}
+   */
+  async _handleCors(request, response, connectionId) {
+    logger.info(`${dim(connectionId)} 👈 ${formatStatusCode(200)} CORS`)
+
+    response.setHeader(
+      'access-control-allow-origin',
+      `${request.headers.origin}`
+    )
+    response.setHeader('Access-Control-Allow-Credentials', 'true')
+    response.setHeader(
+      'Access-Control-Allow-Methods',
+      'PUT, GET, POST, DELETE, OPTIONS'
+    )
+    response.setHeader(
+      'Access-Control-Allow-Headers',
+      'Content-Type, x-cf-source-id, x-cf-corr-id'
+    )
+    response.end()
+  }
+
+  /**
    * @private
    * @param {http.IncomingMessage & Rewindable} request
    * @param {http.ServerResponse} response
@@ -641,7 +674,7 @@ class Mocker {
         response.setHeader(key, value)
       }
 
-      this._overwriteResponseHeaders(response)
+      this._overwriteResponseHeaders(response, request.headers)
 
       await pipeline(
         mockedResponse,
@@ -675,7 +708,8 @@ class Mocker {
     connectionId
   ) {
     const { _args: args, _origin: origin } = this
-    const { headers, method = undefined, url = '' } = clientToProxyRequest
+    const { method = undefined, url = '' } = clientToProxyRequest
+    const requestHeaders = clone(clientToProxyRequest.headers)
 
     proxyToClientResponse.setHeader('x-nyt-mocker-request-id', connectionId)
     proxyToClientResponse.setHeader('x-nyt-mocker-response-from', 'Origin')
@@ -683,7 +717,7 @@ class Mocker {
     const [proxyToOriginRequest, originToProxyResponsePromise] =
       await origin.request({
         url,
-        headers,
+        headers: requestHeaders,
         method,
       })
 
@@ -700,7 +734,7 @@ class Mocker {
     }
 
     copyResponseAttrs(originToProxyResponse, proxyToClientResponse)
-    this._overwriteResponseHeaders(proxyToClientResponse)
+    this._overwriteResponseHeaders(proxyToClientResponse, requestHeaders)
 
     await this._writeMockIfOk(
       clientToProxyRequest,
@@ -725,9 +759,10 @@ class Mocker {
   /**
    * @private
    * @param {http.ServerResponse} response
+   * @param {Headers} requestHeaders
    * @returns {void}
    */
-  _overwriteResponseHeaders(response) {
+  _overwriteResponseHeaders(response, requestHeaders) {
     const { _args: args } = this
 
     for (const [key, value] of Object.entries(args.overwriteResponseHeaders)) {
@@ -736,6 +771,13 @@ class Mocker {
       } else {
         response.setHeader(key, value)
       }
+    }
+
+    if (args.cors) {
+      response.setHeader(
+        'access-control-allow-origin',
+        `${requestHeaders.origin}`
+      )
     }
   }
 

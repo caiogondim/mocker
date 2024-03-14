@@ -1,5 +1,6 @@
 /** @typedef {import('../shared/http/types').Headers} Headers */
 
+const clone = require('../shared/clone')
 const { createRequest } = require('../shared/http')
 
 class Origin {
@@ -44,20 +45,21 @@ class Origin {
       _retries: retries,
       _overwriteRequestHeaders: overwriteRequestHeaders,
     } = this
+    const headersCopy = clone(headers)
     const absoluteUrl = this._getAbsolutetUrl(url)
 
     // Overwriting request headers before creating the request
     for (const [key, value] of Object.entries(overwriteRequestHeaders)) {
       if (value === null || value === undefined) {
-        delete headers[key]
+        delete headersCopy[key]
       } else {
-        headers[key] = value
+        headersCopy[key] = value
       }
     }
 
     const [request, responsePromise] = await createRequest({
       url: absoluteUrl,
-      headers,
+      headers: headersCopy,
       method,
       retries,
     })
