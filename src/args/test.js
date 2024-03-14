@@ -23,10 +23,10 @@ describe('behavior', () => {
 
     const argv2 = ['', '', ...getRequiredArgs(), '--foo', 'bar']
     await expect(parseArgv(argv2)).rejects.toMatchInlineSnapshot(`
-            [TypeError: [1mTypeError[22m[0m: invalid arg
-            [32mExpected[89m[0m one of ["--origin", "--port", "--delay", "--throttle", "--update", "--mode", "--workers", "--responsesDir", "--folder", "--cache", "--logging", "--mockKeys", "--redactedHeaders", "--retries", "--overwriteResponseHeaders", "--overwriteRequestHeaders"]
-            [31mReceived[89m[0m "--foo"]
-          `)
+      [TypeError: [1mTypeError[22m[0m: invalid arg
+      [32mExpected[89m[0m one of ["--origin", "--port", "--delay", "--throttle", "--update", "--mode", "--workers", "--responsesDir", "--folder", "--cache", "--logging", "--mockKeys", "--redactedHeaders", "--retries", "--overwriteResponseHeaders", "--overwriteRequestHeaders", "--cors"]
+      [31mReceived[89m[0m "--foo"]
+    `)
   })
 
   it('throws an error if argv doesnt respect the `--key value` pattern', async () => {
