@@ -62,7 +62,8 @@ class Logger {
       return false
     }
 
-    this._console.warn(...[yellow('warn'), ...args])
+    // @ts-expect-error
+    this._console.warn(yellow('warn'), ...args)
 
     return true
   }
@@ -83,7 +84,8 @@ class Logger {
       return false
     }
 
-    this._console.error(...[red('erro'), ...args])
+    // @ts-expect-error
+    this._console.error(red('erro'), ...args)
 
     return true
   }
@@ -97,7 +99,8 @@ class Logger {
       return false
     }
 
-    this._console.log(...[blue('info'), ...args])
+    // @ts-expect-error
+    this._console.log(blue('info'), ...args)
 
     return true
   }
@@ -111,7 +114,8 @@ class Logger {
       return false
     }
 
-    this._console.log(...[green('succ'), ...args])
+    // @ts-expect-error
+    this._console.log(green('succ'), ...args)
 
     return true
   }

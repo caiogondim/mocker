@@ -17,4 +17,5 @@ export type Args = Readonly<{
   redactedHeaders: Headers;
   overwriteResponseHeaders: Headers;
   overwriteRequestHeaders: Headers;
+  cors: boolean;
 }>;
