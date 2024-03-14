@@ -125,3 +125,11 @@ JSON of HTTP response headers to be overwritten with passed values.
 
 JSON of HTTP request headers to be overwritten with passed values. The new
 headers will be used on the request to origin.
+
+`--cors`
+
+- Required: `false`
+- Default: `false`
+
+Send CORS headers between client and proxy. Helpful in case origin is also
+sending CORS headers.
