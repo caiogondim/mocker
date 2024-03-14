@@ -84,7 +84,10 @@ async function uncompressBody(buffer, algorithm) {
 function parseBody(bodyBuffer, request, connectionId) {
   let body = bodyBuffer.toString()
   const headers = getHeaders(request)
-  if ((safeGet(headers, ['content-type']) ?? '').includes('application/json')) {
+  const headerContentType = /** @type {string} */ (
+    headers?.['content-type'] ?? ''
+  )
+  if (headerContentType.includes('application/json')) {
     try {
       body = JSON.parse(body)
     } catch (error) {
@@ -210,9 +213,9 @@ class MockManager {
     const fileJson = JSON.parse(fileContent.toString('utf8'))
 
     if (
-      (
-        safeGet(fileJson, ['response', 'headers', 'content-type']) ?? ''
-      ).includes('application/json')
+      (fileJson.response.headers?.['content-type'] ?? '').includes(
+        'application/json'
+      )
     ) {
       fileJson.response.body = JSON.stringify(fileJson.response.body)
     }
@@ -345,9 +348,9 @@ class MockManager {
         const fileJson = JSON.parse(fileContent.toString('utf8'))
 
         if (
-          (
-            safeGet(fileJson, ['response', 'headers', 'content-type']) ?? ''
-          ).includes('application/json')
+          (fileJson.response.headers?.['content-type'] ?? '').includes(
+            'application/json'
+          )
         ) {
           fileJson.response.body = JSON.stringify(fileJson.response.body)
         }
@@ -365,9 +368,9 @@ class MockManager {
         mockedResponse.end(fileJson.response.body)
 
         if (
-          (
-            safeGet(fileJson, ['request', 'headers', 'content-type']) ?? ''
-          ).includes('application/json')
+          (fileJson.request.headers?.['content-type'] ?? '').includes(
+            'application/json'
+          )
         ) {
           fileJson.request.body = JSON.stringify(fileJson.request.body)
         }
