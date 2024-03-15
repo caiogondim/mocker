@@ -1,7 +1,7 @@
 ## Usage
 
 ```bash
-yarn start --origin http://the-server-to-be-mocked --responsesDir ./responses/samizdat --mode read-write
+yarn start --origin http://example.com --responsesDir ./responses/example-com --mode read-write
 ```
 
 ## Options
@@ -9,7 +9,7 @@ yarn start --origin http://the-server-to-be-mocked --responsesDir ./responses/sa
 `--origin`
 
 - Required: `true`
-- e.g.: `--origin https://samizdat-graphql.example.com`
+- e.g.: `--origin https://graphql.example.com`
 
 `--responsesDir`
 

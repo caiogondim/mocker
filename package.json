@@ -1,7 +1,7 @@
 {
   "name": "mocker",
   "version": "2.4.0",
-  "description": "HTTP(S) mock server for Samizdat and other external services",
+  "description": "HTTP mock server for development and stable E2E tests",
   "main": "src/index.js",
   "scripts": {
     "test": "yarn lint && yarn type-check && yarn jest",
