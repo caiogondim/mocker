@@ -11,7 +11,7 @@ vault login -method=github
 1. Start mocker as a proxy to Samizdat
 
 ```bash
-yarn dev --origin https://samizdat-graphql.nytimes.com --mode read-write --redactedHeaders "{ \"nyt-token\": \"$(vault read -field=token nytm/wf-user-secrets/secret/vi/samizdat-tokens-0.0.5/SAMIZDAT_TOKEN_0_0_5_PRD)\" }" --logging verbose --responsesDir './responses/samizdat' --workers 1 --cache false --mockKeys url,method,body.operationName,body.variables --port 8733 --retries 3 --overwriteResponseHeaders '{ "Access-Control-Allow-Origin": "http://localhost:3000", "Access-Control-Allow-Credentials": true, "Access-Control-Allow-Headers": "Origin, Content-Type, Accept, nyt-app-type, nyt-app-version, nyt-token", "Access-Control-Expose-Headers": "x-nyt-country, x-nyt-region, x-nyt-continent" }' --overwriteRequestHeaders '{ "host": null, "referer": null, "if-modified-since": null }'
+yarn dev --origin https://samizdat-graphql.example.com --mode read-write --redactedHeaders "{ \"nyt-token\": \"$(vault read -field=token nytm/wf-user-secrets/secret/vi/samizdat-tokens-0.0.5/SAMIZDAT_TOKEN_0_0_5_PRD)\" }" --logging verbose --responsesDir './responses/samizdat' --workers 1 --cache false --mockKeys url,method,body.operationName,body.variables --port 8733 --retries 3 --overwriteResponseHeaders '{ "Access-Control-Allow-Origin": "http://localhost:3000", "Access-Control-Allow-Credentials": true, "Access-Control-Allow-Headers": "Origin, Content-Type, Accept, nyt-app-type, nyt-app-version, nyt-token", "Access-Control-Expose-Headers": "x-nyt-country, x-nyt-region, x-nyt-continent" }' --overwriteRequestHeaders '{ "host": null, "referer": null, "if-modified-since": null }'
 ```
 
 2. Start VI

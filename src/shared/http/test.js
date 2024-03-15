@@ -19,7 +19,7 @@ describe('isHeaders()', () => {
 
   it('returns true if input has a valid shape', () => {
     expect.assertions(1)
-    expect(isHeaders({ host: 'nytimes.com', 'content-length': 123 })).toBe(true)
+    expect(isHeaders({ host: 'example.com', 'content-length': 123 })).toBe(true)
   })
 })
 
@@ -30,7 +30,7 @@ describe('getHeaders()', () => {
     // Given I have a request
     const headers = { a: 1, b: 2, c: 3 }
     const mockedRequest = new MockedRequest({
-      url: 'http://nytimes.com/example',
+      url: 'http://example.com/example',
       headers,
     })
 

@@ -12,7 +12,7 @@ const {
 } = require('./index')
 
 function getRequiredArgs() {
-  return ['--origin', 'https://nytimes.com', '--responsesDir', 'src/']
+  return ['--origin', 'https://example.com', '--responsesDir', 'src/']
 }
 
 describe('behavior', () => {
@@ -251,7 +251,7 @@ describe('--mode', () => {
       '',
       '',
       '--origin',
-      'https://nytimes.com',
+      'https://example.com',
       '--mode',
       'lorem-ipsum',
     ]
@@ -340,7 +340,7 @@ describe('--update', () => {
       '',
       '',
       '--origin',
-      'https://nytimes.com',
+      'https://example.com',
       '--update',
       'lorem-ipsum',
     ]
@@ -402,7 +402,7 @@ describe('--responsesDir', () => {
       '',
       '',
       '--origin',
-      'https://nytimes.com',
+      'https://example.com',
       '--responsesDir',
       'src/',
     ]
@@ -415,7 +415,7 @@ describe('--responsesDir', () => {
       '',
       '',
       '--origin',
-      'https://nytimes.com',
+      'https://example.com',
       '--responsesDir',
       'non-existing-folder',
     ]
@@ -861,12 +861,12 @@ describe('--overwriteResponseHeaders', () => {
       '',
       ...getRequiredArgs(),
       '--overwriteResponseHeaders',
-      '{"content-type": "application/json", "host": "nytimes.com"}',
+      '{"content-type": "application/json", "host": "example.com"}',
     ]
     const args = await parseArgv(argv)
     expect(args.overwriteResponseHeaders).toStrictEqual({
       'content-type': 'application/json',
-      host: 'nytimes.com',
+      host: 'example.com',
     })
   })
 
@@ -987,12 +987,12 @@ describe('--overwriteRequestHeaders', () => {
       '',
       ...getRequiredArgs(),
       '--overwriteRequestHeaders',
-      '{"content-type": "application/json", "host": "nytimes.com"}',
+      '{"content-type": "application/json", "host": "example.com"}',
     ]
     const args = await parseArgv(argv)
     expect(args.overwriteRequestHeaders).toStrictEqual({
       'content-type': 'application/json',
-      host: 'nytimes.com',
+      host: 'example.com',
     })
   })
 

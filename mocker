@@ -41,7 +41,7 @@ function printHelp() {
   )
   logger.log(
     table(
-      [`  --origin <URL>`, `Origin base URL ${dim(`[e.g.: "http://vi.nytimes.com:3000"]`)}`],
+      [`  --origin <URL>`, `Origin base URL ${dim(`[e.g.: "http://vi.example.com:3000"]`)}`],
       [`  --responsesDir <path>`, `Path to mocked responses directory ${dim(`[e.g.: "./path/to/responses"]`)}`],
       [
         `  [--update <update>]`,
@@ -118,10 +118,10 @@ function printHelp() {
   logger.log(
     stripMargin(`
       |${bold('USAGE')}
-      |  mocker --origin http://nytimes.com --responsesDir ~/Desktop
-      |  mocker --origin http://nytimes.com --responsesDir ~/Desktop --mockKeys url,method,body.variables.id
-      |  mocker --origin http://nytimes.com --responsesDir ~/Desktop --mode read-write --workers 4
-      |  mocker --origin http://nytimes.com --responsesDir ~/Desktop --update startup --workers 4`)
+      |  mocker --origin http://example.com --responsesDir ~/Desktop
+      |  mocker --origin http://example.com --responsesDir ~/Desktop --mockKeys url,method,body.variables.id
+      |  mocker --origin http://example.com --responsesDir ~/Desktop --mode read-write --workers 4
+      |  mocker --origin http://example.com --responsesDir ~/Desktop --update startup --workers 4`)
   )
   logger.log(
     stripMargin(`

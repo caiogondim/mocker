@@ -273,7 +273,7 @@ describe('mockManager.prototype.clear', () => {
 
     const request2 = rewindable(
       new MockedRequest({
-        url: 'http://nytimes.com',
+        url: 'http://example.com',
         method: 'GET',
       })
     )
@@ -501,7 +501,7 @@ describe('mockManager.prototype.getAll', () => {
     for (let i = 0; i < 5; i += 1) {
       const request = rewindable(
         createMockedRequest({
-          url: `http://example-${i}.nytimes.com`,
+          url: `http://${i}.example.com`,
           headers: {
             'nyt-token': i,
             // Since we don't have `foo` on `redactedHeaders`, it should error

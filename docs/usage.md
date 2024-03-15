@@ -9,7 +9,7 @@ yarn start --origin http://the-server-to-be-mocked --responsesDir ./responses/sa
 `--origin`
 
 - Required: `true`
-- e.g.: `--origin https://samizdat-graphql.nytimes.com`
+- e.g.: `--origin https://samizdat-graphql.example.com`
 
 `--responsesDir`
 

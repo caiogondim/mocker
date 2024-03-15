@@ -29,7 +29,7 @@ describe('redactHeaders', () => {
     const headers1 = {
       'nyt-token': '[REDACTED]',
       foo: '[REDACTED]',
-      host: 'nytimes.com',
+      host: 'example.com',
     }
     const redactedHeaders1 = { 'nyt-token': '12341234', foo: 'ipsum' }
     expect(
@@ -43,7 +43,7 @@ describe('redactHeaders', () => {
     const headers2 = {
       'nyt-token': '12341234',
       foo: 'ipsum',
-      host: 'nytimes.com',
+      host: 'example.com',
     }
     const redactedHeaders2 = { 'nyt-token': '12341234' }
     expect(
@@ -61,7 +61,7 @@ describe('unredactHeaders', () => {
     const headers = {
       'nyt-token': '[REDACTED]',
       foo: '[REDACTED]',
-      host: 'nytimes.com',
+      host: 'example.com',
     }
     const redactedHeaders = { 'nyt-token': '12341234' }
     expect(() => unredactHeaders(headers, redactedHeaders)).toThrow(
@@ -74,13 +74,13 @@ describe('unredactHeaders', () => {
     const headers = {
       'nyt-token': '[REDACTED]',
       foo: '[REDACTED]',
-      host: 'nytimes.com',
+      host: 'example.com',
     }
     const redactedHeaders = { 'nyt-token': '12341234', foo: 'ipsum' }
     expect(unredactHeaders(headers, redactedHeaders)).toStrictEqual({
       'nyt-token': '12341234',
       foo: 'ipsum',
-      host: 'nytimes.com',
+      host: 'example.com',
     })
   })
 
@@ -89,7 +89,7 @@ describe('unredactHeaders', () => {
     const input = {
       'nyt-token': '[REDACTED]',
       foo: '[REDACTED]',
-      host: 'nytimes.com',
+      host: 'example.com',
     }
     const inputSnapshot = JSON.stringify(input)
     const redactedHeaders = { 'nyt-token': '12341234', foo: 'ipsum' }
@@ -105,7 +105,7 @@ describe('unredactHeaders', () => {
     const headers1 = {
       'nyt-token': '[REDACTED]',
       foo: '[REDACTED]',
-      host: 'nytimes.com',
+      host: 'example.com',
     }
     const redactedHeaders1 = { 'nyt-token': '12341234', foo: 'ipsum' }
     expect(
@@ -119,7 +119,7 @@ describe('unredactHeaders', () => {
     const headers2 = {
       'nyt-token': '12341234',
       foo: 'ipsum',
-      host: 'nytimes.com',
+      host: 'example.com',
     }
     const redactedHeaders2 = { 'nyt-token': '12341234' }
     expect(
