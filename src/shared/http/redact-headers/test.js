@@ -27,11 +27,11 @@ describe('redactHeaders', () => {
 
     // f(g(x)) === x
     const headers1 = {
-      'nyt-token': '[REDACTED]',
+      'example-token': '[REDACTED]',
       foo: '[REDACTED]',
       host: 'example.com',
     }
-    const redactedHeaders1 = { 'nyt-token': '12341234', foo: 'ipsum' }
+    const redactedHeaders1 = { 'example-token': '12341234', foo: 'ipsum' }
     expect(
       redactHeaders(
         unredactHeaders(headers1, redactedHeaders1),
@@ -41,11 +41,11 @@ describe('redactHeaders', () => {
 
     // g(f(x)) === x
     const headers2 = {
-      'nyt-token': '12341234',
+      'example-token': '12341234',
       foo: 'ipsum',
       host: 'example.com',
     }
-    const redactedHeaders2 = { 'nyt-token': '12341234' }
+    const redactedHeaders2 = { 'example-token': '12341234' }
     expect(
       unredactHeaders(
         redactHeaders(headers2, redactedHeaders2),
@@ -59,11 +59,11 @@ describe('unredactHeaders', () => {
   it('throws an error in case the redacted secret is not available in the secrets map', () => {
     expect.assertions(1)
     const headers = {
-      'nyt-token': '[REDACTED]',
+      'example-token': '[REDACTED]',
       foo: '[REDACTED]',
       host: 'example.com',
     }
-    const redactedHeaders = { 'nyt-token': '12341234' }
+    const redactedHeaders = { 'example-token': '12341234' }
     expect(() => unredactHeaders(headers, redactedHeaders)).toThrow(
       SecretNotFoundError
     )
@@ -72,13 +72,13 @@ describe('unredactHeaders', () => {
   it('unredacts secrets from headers', async () => {
     expect.assertions(1)
     const headers = {
-      'nyt-token': '[REDACTED]',
+      'example-token': '[REDACTED]',
       foo: '[REDACTED]',
       host: 'example.com',
     }
-    const redactedHeaders = { 'nyt-token': '12341234', foo: 'ipsum' }
+    const redactedHeaders = { 'example-token': '12341234', foo: 'ipsum' }
     expect(unredactHeaders(headers, redactedHeaders)).toStrictEqual({
-      'nyt-token': '12341234',
+      'example-token': '12341234',
       foo: 'ipsum',
       host: 'example.com',
     })
@@ -87,12 +87,12 @@ describe('unredactHeaders', () => {
   it('does not modify the input', () => {
     expect.assertions(2)
     const input = {
-      'nyt-token': '[REDACTED]',
+      'example-token': '[REDACTED]',
       foo: '[REDACTED]',
       host: 'example.com',
     }
     const inputSnapshot = JSON.stringify(input)
-    const redactedHeaders = { 'nyt-token': '12341234', foo: 'ipsum' }
+    const redactedHeaders = { 'example-token': '12341234', foo: 'ipsum' }
     const output = unredactHeaders(input, redactedHeaders)
     expect(output).not.toBe(input)
     expect(JSON.stringify(input)).toStrictEqual(inputSnapshot)
@@ -103,11 +103,11 @@ describe('unredactHeaders', () => {
 
     // f(g(x)) === x
     const headers1 = {
-      'nyt-token': '[REDACTED]',
+      'example-token': '[REDACTED]',
       foo: '[REDACTED]',
       host: 'example.com',
     }
-    const redactedHeaders1 = { 'nyt-token': '12341234', foo: 'ipsum' }
+    const redactedHeaders1 = { 'example-token': '12341234', foo: 'ipsum' }
     expect(
       redactHeaders(
         unredactHeaders(headers1, redactedHeaders1),
@@ -117,11 +117,11 @@ describe('unredactHeaders', () => {
 
     // g(f(x)) === x
     const headers2 = {
-      'nyt-token': '12341234',
+      'example-token': '12341234',
       foo: 'ipsum',
       host: 'example.com',
     }
-    const redactedHeaders2 = { 'nyt-token': '12341234' }
+    const redactedHeaders2 = { 'example-token': '12341234' }
     expect(
       unredactHeaders(
         redactHeaders(headers2, redactedHeaders2),

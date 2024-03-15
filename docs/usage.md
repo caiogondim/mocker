@@ -37,7 +37,7 @@ JSON, using a dot notation: `--mockKeys url,method,body.prop1.prop2`
 
 - Required: `false`
 - Default: `{}`
-- Example: `{ "nyt-token": null }`
+- Example: `{ "example-token": null }`
 
 Header names to be considered secret and be removed before saving the mock file
 or logging.

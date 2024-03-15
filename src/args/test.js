@@ -737,11 +737,11 @@ describe('--redactedHeaders', () => {
       '',
       ...getRequiredArgs(),
       '--redactedHeaders',
-      '{"nyt-token": null}',
+      '{"example-token": null}',
     ]
     const args = await parseArgv(argv)
     expect(args.redactedHeaders).toStrictEqual({
-      'nyt-token': null,
+      'example-token': null,
     })
   })
 
