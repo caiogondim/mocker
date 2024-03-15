@@ -582,7 +582,7 @@ describe('--cache', () => {
   })
 
   // Cache featured was removed.
-  // @see https://github.com/nytimes/mocker/blob/main/docs/deprecations.md#003
+  // @see https://github.com/caiogondim/mocker/blob/main/docs/deprecations.md#003
   it('is always false', async () => {
     expect.assertions(8)
 

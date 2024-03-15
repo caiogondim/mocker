@@ -126,7 +126,7 @@ function printHelp() {
   logger.log(
     stripMargin(`
       |${bold('DOCS')}
-      |  https://github.com/nytimes/mocker/tree/main/docs`)
+      |  https://github.com/caiogondim/mocker/tree/main/docs`)
   )
 }
 

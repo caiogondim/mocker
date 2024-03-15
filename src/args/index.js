@@ -166,7 +166,7 @@ function getMode(argvMap) {
       logger.warn(
         `Argument ${bold(`--mode pass-through`)} was renamed to ${bold(
           `--mode pass`
-        )}\n     Deprecation #002: https://github.com/nytimes/mocker/blob/main/docs/deprecations.md#002`
+        )}\n     Deprecation #002: https://github.com/caiogondim/mocker/blob/main/docs/deprecations.md#002`
       )
       logger.forceLog = originalForceLog
     }
@@ -489,7 +489,7 @@ async function getResponsesDir(argvMap) {
     logger.warn(
       `Argument ${bold(`--folder`)} was renamed to ${bold(
         `--responsesDir`
-      )}\n     Deprecation #001: https://github.com/nytimes/mocker/blob/main/docs/deprecations.md`
+      )}\n     Deprecation #001: https://github.com/caiogondim/mocker/blob/main/docs/deprecations.md`
     )
     logger.forceLog = originalForceLog
   }
@@ -546,7 +546,7 @@ function getCache(argvMap) {
     logger.warn(
       `Argument ${bold(
         `--cache`
-      )} was removed\n     Deprecation #003: https://github.com/nytimes/mocker/blob/main/docs/deprecations.md`
+      )} was removed\n     Deprecation #003: https://github.com/caiogondim/mocker/blob/main/docs/deprecations.md`
     )
     logger.forceLog = originalForceLog
   }
