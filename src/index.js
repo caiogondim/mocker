@@ -376,7 +376,7 @@ class Mocker {
     const { _args: args } = this
     const connectionId = createId()
 
-    response.setHeader('x-powered-by', 'NYT Mocker')
+    response.setHeader('x-powered-by', 'mocker')
 
     logger.info(
       `${dim(connectionId)} 👉 ${bold(request.method)} ${bold(request.url)}`
