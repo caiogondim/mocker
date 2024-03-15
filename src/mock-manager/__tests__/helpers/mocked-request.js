@@ -2,7 +2,7 @@ const MockedRequest = require('../../mocked-request')
 
 function createMockedRequest(opts = {}) {
   const defaults = {
-    url: 'http://nytimes.com',
+    url: 'http://example.com',
     method: 'GET',
   }
 

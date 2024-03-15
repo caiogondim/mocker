@@ -79,9 +79,9 @@ function copyResponseAttrs(responseSource, responseTarget) {
 async function respondNotFound(response, connectionId) {
   logger.info(`${dim(connectionId)} 👈 ${formatStatusCode(404)}`)
 
-  response.setHeader('x-nyt-mocker-request-id', connectionId)
-  response.setHeader('x-nyt-mocker-response-from', 'Mock')
-  response.setHeader('x-nyt-mocker-mock-path', 'Not Found')
+  response.setHeader('x-mocker-request-id', connectionId)
+  response.setHeader('x-mocker-response-from', 'Mock')
+  response.setHeader('x-mocker-mock-path', 'Not Found')
   response.writeHead(404)
   response.end()
 }
@@ -376,7 +376,7 @@ class Mocker {
     const { _args: args } = this
     const connectionId = createId()
 
-    response.setHeader('x-powered-by', 'NYT Mocker')
+    response.setHeader('x-powered-by', 'mocker')
 
     logger.info(
       `${dim(connectionId)} 👉 ${bold(request.method)} ${bold(request.url)}`
@@ -664,9 +664,9 @@ class Mocker {
       )
 
       response.statusCode = mockedResponse.statusCode
-      response.setHeader('x-nyt-mocker-mock-path', mockPath)
-      response.setHeader('x-nyt-mocker-response-from', 'Mock')
-      response.setHeader('x-nyt-mocker-request-id', connectionId)
+      response.setHeader('x-mocker-mock-path', mockPath)
+      response.setHeader('x-mocker-response-from', 'Mock')
+      response.setHeader('x-mocker-request-id', connectionId)
       for (const [key, value] of Object.entries(mockedResponse.headers)) {
         if (value === null || value === undefined) {
           continue
@@ -711,8 +711,8 @@ class Mocker {
     const { method = undefined, url = '' } = clientToProxyRequest
     const requestHeaders = clone(clientToProxyRequest.headers)
 
-    proxyToClientResponse.setHeader('x-nyt-mocker-request-id', connectionId)
-    proxyToClientResponse.setHeader('x-nyt-mocker-response-from', 'Origin')
+    proxyToClientResponse.setHeader('x-mocker-request-id', connectionId)
+    proxyToClientResponse.setHeader('x-mocker-response-from', 'Origin')
 
     const [proxyToOriginRequest, originToProxyResponsePromise] =
       await origin.request({

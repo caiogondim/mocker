@@ -2,7 +2,7 @@
 
 ## How do I know if a given URL was served from disk or from origin?
 
-Check for the `x-nyt-mocker-response-from` HTTP header. It will have the `mock`
+Check for the `x-mocker-response-from` HTTP header. It will have the `mock`
 value if the response was created from a file, or `origin` if it comes from
 origin.
 
@@ -13,7 +13,7 @@ origin.
 For responses created from a mocked response file, it will have the following
 HTTP header:
 
-- `x-nyt-mocker-mock-path: /path/to/the/mocked/response.json`
+- `x-mocker-mock-path: /path/to/the/mocked/response.json`
 
 <img src="./img/faq/mocker-http-header-mock-path.png" />
 
@@ -57,7 +57,7 @@ argument. Let's say our `mockKeys` are `method,url`. In that case we could
 calculate the file name with the below command.
 
 ```bash
-echo "$(echo 'GET http://nytimes.com' | shasum --algorithm 256 | cut -c 1-64).json" | pbcopy
+echo "$(echo 'GET http://example.com' | shasum --algorithm 256 | cut -c 1-64).json" | pbcopy
 ```
 
 2. Create a file with that name
@@ -79,51 +79,3 @@ pbpaste | xargs touch
 ```
 
 4. Replay the request
-
-## How to update the mocked responses used by VI on the CI?
-
-1. Delete old mocks
-
-```
-cd tools/mocker
-rm ./responses/samizdat/*
-```
-
-2. Start mocker and set Samizdat production as origin
-
-```
-cd tools/mocker
-yarn start --origin https://samizdat-graphql.nytimes.com --mode read-write --logging verbose --responsesDir './responses/samizdat' --workers 4 --cache false --mockKeys url,method,body --port 8733
-```
-
-3. Start VI and set the Samizdat URL to mocker
-
-```
-vault login -method=github token=$([ -z "$VAULT_AUTH_GITHUB_TOKEN" ] && cat $HOME/.config/vault/github || echo "$VAULT_AUTH_GITHUB_TOKEN")
-DISABLE_PERSISTED_QUERIES=true SAMIZDAT_TOKEN=$(vault read -field=token nytm/wf-user-secrets/secret/vi/samizdat-tokens-0.0.5/SAMIZDAT_TOKEN_0_0_5_PRD) GQL_HOST_SERVER=http://localhost:8733 GQL_HOST_CLIENT=http://localhost:8733 SAMIZDAT_PROXY_ENABLED=true yarn dev
-```
-
-4. Run e2e tests for every device
-
-```bash
-cd e2e/
-yarn
-WDIO_BASE_URL=http://vi.nytimes.com:3000 yarn e2e-mobile
-WDIO_BASE_URL=http://vi.nytimes.com:3000 yarn e2e-tablet
-WDIO_BASE_URL=http://vi.nytimes.com:3000 yarn e2e-tabletlarge
-WDIO_BASE_URL=http://vi.nytimes.com:3000 yarn e2e-desktop
-```
-
-5. Run `./tools/http-status-check`
-
-```bash
-./tools/http-status-code/index.js --baseUrl http://vi.nytimes.com:3000 --urlsPath ./tools/http-status-code/urls/vi.txt --retries 3
-```
-
-## Does it work with HTTPS?
-
-TL;DR: no.
-
-Connections between client and mocker is done through HTTP only. Connections
-between mocker and origin can either be HTTPS or HTTP. If there is a use case
-for HTTPS support on mocker, let us know.

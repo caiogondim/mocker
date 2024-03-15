@@ -1,7 +1,7 @@
 ## Usage
 
 ```bash
-yarn start --origin http://the-server-to-be-mocked --responsesDir ./responses/samizdat --mode read-write
+yarn start --origin http://example.com --responsesDir ./responses/example-com --mode read-write
 ```
 
 ## Options
@@ -9,12 +9,12 @@ yarn start --origin http://the-server-to-be-mocked --responsesDir ./responses/sa
 `--origin`
 
 - Required: `true`
-- e.g.: `--origin https://samizdat-graphql.nytimes.com`
+- e.g.: `--origin https://graphql.example.com`
 
 `--responsesDir`
 
 - Required: `true`
-- e.g.: `--responsesDir ~/Desktop`
+- e.g.: `--responsesDir /path/to/folder`
 
 Path to read/write mocked responses.
 
@@ -37,7 +37,7 @@ JSON, using a dot notation: `--mockKeys url,method,body.prop1.prop2`
 
 - Required: `false`
 - Default: `{}`
-- Example: `{ "nyt-token": null }`
+- Example: `{ "example-token": null }`
 
 Header names to be considered secret and be removed before saving the mock file
 or logging.

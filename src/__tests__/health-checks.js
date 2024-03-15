@@ -10,7 +10,7 @@ describe('health checks endpoints', () => {
 
     // Given a mocker instance pointing to an origin that doesn't exist
     const origin =
-      'https://non-existent-url-7bb5346fa5452600a876d24b98695404fa0c46ae.nytimes.com'
+      'https://non-existent-url-7bb5346fa5452600a876d24b98695404fa0c46ae.example.com'
     const port = await getPort()
     const mocker = await createMocker({
       port,
@@ -43,7 +43,7 @@ describe('health checks endpoints', () => {
 
     // Given a mocker instance pointing to an origin that doesn't exist
     const origin =
-      'https://non-existent-url-7bb5346fa5452600a876d24b98695404fa0c46ae.nytimes.com'
+      'https://non-existent-url-7bb5346fa5452600a876d24b98695404fa0c46ae.example.com'
     const port = await getPort()
     const mocker = await createMocker({
       port,

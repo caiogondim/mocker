@@ -12,7 +12,7 @@ const {
 } = require('./index')
 
 function getRequiredArgs() {
-  return ['--origin', 'https://nytimes.com', '--responsesDir', 'src/']
+  return ['--origin', 'https://example.com', '--responsesDir', 'src/']
 }
 
 describe('behavior', () => {
@@ -251,7 +251,7 @@ describe('--mode', () => {
       '',
       '',
       '--origin',
-      'https://nytimes.com',
+      'https://example.com',
       '--mode',
       'lorem-ipsum',
     ]
@@ -340,7 +340,7 @@ describe('--update', () => {
       '',
       '',
       '--origin',
-      'https://nytimes.com',
+      'https://example.com',
       '--update',
       'lorem-ipsum',
     ]
@@ -402,7 +402,7 @@ describe('--responsesDir', () => {
       '',
       '',
       '--origin',
-      'https://nytimes.com',
+      'https://example.com',
       '--responsesDir',
       'src/',
     ]
@@ -415,7 +415,7 @@ describe('--responsesDir', () => {
       '',
       '',
       '--origin',
-      'https://nytimes.com',
+      'https://example.com',
       '--responsesDir',
       'non-existing-folder',
     ]
@@ -582,7 +582,7 @@ describe('--cache', () => {
   })
 
   // Cache featured was removed.
-  // @see https://github.com/nytimes/mocker/blob/main/docs/deprecations.md#003
+  // @see https://github.com/caiogondim/mocker/blob/main/docs/deprecations.md#003
   it('is always false', async () => {
     expect.assertions(8)
 
@@ -737,11 +737,11 @@ describe('--redactedHeaders', () => {
       '',
       ...getRequiredArgs(),
       '--redactedHeaders',
-      '{"nyt-token": null}',
+      '{"example-token": null}',
     ]
     const args = await parseArgv(argv)
     expect(args.redactedHeaders).toStrictEqual({
-      'nyt-token': null,
+      'example-token': null,
     })
   })
 
@@ -861,12 +861,12 @@ describe('--overwriteResponseHeaders', () => {
       '',
       ...getRequiredArgs(),
       '--overwriteResponseHeaders',
-      '{"content-type": "application/json", "host": "nytimes.com"}',
+      '{"content-type": "application/json", "host": "example.com"}',
     ]
     const args = await parseArgv(argv)
     expect(args.overwriteResponseHeaders).toStrictEqual({
       'content-type': 'application/json',
-      host: 'nytimes.com',
+      host: 'example.com',
     })
   })
 
@@ -987,12 +987,12 @@ describe('--overwriteRequestHeaders', () => {
       '',
       ...getRequiredArgs(),
       '--overwriteRequestHeaders',
-      '{"content-type": "application/json", "host": "nytimes.com"}',
+      '{"content-type": "application/json", "host": "example.com"}',
     ]
     const args = await parseArgv(argv)
     expect(args.overwriteRequestHeaders).toStrictEqual({
       'content-type': 'application/json',
-      host: 'nytimes.com',
+      host: 'example.com',
     })
   })
 

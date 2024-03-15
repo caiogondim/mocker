@@ -68,7 +68,7 @@ describe('mockManager.prototype.get', () => {
     expect.assertions(1)
 
     const mockManager = await createMockManager({
-      redactedHeaders: { 'nyt-token': 1234 },
+      redactedHeaders: { 'example-token': 1234 },
     })
 
     const request1 = rewindable(createMockedRequest())
@@ -76,7 +76,7 @@ describe('mockManager.prototype.get', () => {
     const response = rewindable(
       createMockedResponse({
         headers: {
-          'nyt-token': 5678,
+          'example-token': 5678,
           'content-type': 'application/json',
         },
       })
@@ -86,14 +86,14 @@ describe('mockManager.prototype.get', () => {
 
     const { mockedResponse } = await mockManager.get({ request: request1 })
 
-    expect(mockedResponse.headers['nyt-token']).toBe(1234)
+    expect(mockedResponse.headers['example-token']).toBe(1234)
   })
 
   it('throws an error in case it cant unredact all secrets', async () => {
     expect.assertions(1)
 
     const mockManager = await createMockManager({
-      redactedHeaders: { 'nyt-token': 1234 },
+      redactedHeaders: { 'example-token': 1234 },
     })
 
     const request = rewindable(createMockedRequest())
@@ -102,7 +102,7 @@ describe('mockManager.prototype.get', () => {
       // Creating a response with a '[REDACTED]' headers that is not present on `redactedHeaders`
       createMockedResponse({
         headers: {
-          'nyt-token': 5678,
+          'example-token': 5678,
           foo: '[REDACTED]',
           'content-type': 'application/json',
         },
@@ -273,7 +273,7 @@ describe('mockManager.prototype.clear', () => {
 
     const request2 = rewindable(
       new MockedRequest({
-        url: 'http://nytimes.com',
+        url: 'http://example.com',
         method: 'GET',
       })
     )
@@ -446,7 +446,7 @@ describe('mockManager.prototype.getAll', () => {
     expect.assertions(2)
 
     const mockManager = await createMockManager({
-      redactedHeaders: { 'nyt-token': 1234 },
+      redactedHeaders: { 'example-token': 1234 },
     })
 
     //
@@ -460,7 +460,7 @@ describe('mockManager.prototype.getAll', () => {
       const response = rewindable(
         createMockedResponse({
           headers: {
-            'nyt-token': i,
+            'example-token': i,
             'content-type': 'application/json',
           },
         })
@@ -480,9 +480,9 @@ describe('mockManager.prototype.getAll', () => {
         throw new Error('mockedResponse shouldnt be `null`')
       }
 
-      // mockedResponse nyt-token header should have the same value as passed on
+      // mockedResponse example-token header should have the same value as passed on
       // `redactedHeaders`
-      expect(mockedResponse.headers['nyt-token']).toBe(1234)
+      expect(mockedResponse.headers['example-token']).toBe(1234)
       expect(error).toBeNull()
     }
   })
@@ -491,7 +491,7 @@ describe('mockManager.prototype.getAll', () => {
     expect.assertions(20)
 
     const mockManager = await createMockManager({
-      redactedHeaders: { 'nyt-token': 1234 },
+      redactedHeaders: { 'example-token': 1234 },
     })
 
     //
@@ -501,9 +501,9 @@ describe('mockManager.prototype.getAll', () => {
     for (let i = 0; i < 5; i += 1) {
       const request = rewindable(
         createMockedRequest({
-          url: `http://example-${i}.nytimes.com`,
+          url: `http://${i}.example.com`,
           headers: {
-            'nyt-token': i,
+            'example-token': i,
             // Since we don't have `foo` on `redactedHeaders`, it should error
             // when it tries to unredact this secret.
             foo: '[REDACTED]',
