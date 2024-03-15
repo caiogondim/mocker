@@ -277,7 +277,7 @@ describe(`mode = 'pass-read'`, () => {
         request1.end()
         const response1 = await response1Promise
 
-        expect(`${i} ${response1.headers['x-nyt-mocker-response-from']}`).toBe(
+        expect(`${i} ${response1.headers['x-mocker-response-from']}`).toBe(
           `${i} Origin`
         )
       }
@@ -333,7 +333,7 @@ describe(`mode = 'pass-read'`, () => {
       request1.end()
       const response1 = await response1Promise
 
-      expect(response1.headers['x-nyt-mocker-response-from']).toBe(`Origin`)
+      expect(response1.headers['x-mocker-response-from']).toBe(`Origin`)
 
       // Now we fire a request to `mocker2` with `mode: 'pass-read` to confirm
       // it is getting a response from origin
@@ -344,7 +344,7 @@ describe(`mode = 'pass-read'`, () => {
       request2.end()
       const response2 = await response2Promise
 
-      expect(response2.headers['x-nyt-mocker-response-from']).toBe(`Origin`)
+      expect(response2.headers['x-mocker-response-from']).toBe(`Origin`)
 
       // Turning off the origin server to test a request without origin being available
       await closeServer(originServer)
@@ -358,7 +358,7 @@ describe(`mode = 'pass-read'`, () => {
       request3.end()
       const response3 = await response3Promise
 
-      expect(response3.headers['x-nyt-mocker-response-from']).toBe(`Mock`)
+      expect(response3.headers['x-mocker-response-from']).toBe(`Mock`)
     } finally {
       await closeServer(mocker1)
       await closeServer(mocker2)
@@ -418,7 +418,7 @@ describe(`mode = 'pass-read'`, () => {
       request1.end()
       const response1 = await response1Promise
 
-      expect(response1.headers['x-nyt-mocker-response-from']).toBe(`Origin`)
+      expect(response1.headers['x-mocker-response-from']).toBe(`Origin`)
 
       // Now we fire a request to `mocker2` with `mode: 'pass-read` to confirm
       // it is getting a response from origin
@@ -429,7 +429,7 @@ describe(`mode = 'pass-read'`, () => {
       request2.end()
       const response2 = await response2Promise
 
-      expect(response2.headers['x-nyt-mocker-response-from']).toBe(`Origin`)
+      expect(response2.headers['x-mocker-response-from']).toBe(`Origin`)
 
       // Forcing origin to return 500
       shouldOriginReturn500 = true
@@ -443,7 +443,7 @@ describe(`mode = 'pass-read'`, () => {
       request3.end()
       const response3 = await response3Promise
 
-      expect(response3.headers['x-nyt-mocker-response-from']).toBe(`Mock`)
+      expect(response3.headers['x-mocker-response-from']).toBe(`Mock`)
     } finally {
       await closeServer(mocker1)
       await closeServer(mocker2)
@@ -477,7 +477,7 @@ describe(`mode = 'pass-read'`, () => {
       const response = await responsePromise
 
       expect(response.statusCode).toBe(404)
-      expect(response.headers['x-nyt-mocker-mock-path']).toBe(`Not Found`)
+      expect(response.headers['x-mocker-mock-path']).toBe(`Not Found`)
     } finally {
       await closeServer(mocker)
     }

@@ -2,7 +2,7 @@
 
 ## How do I know if a given URL was served from disk or from origin?
 
-Check for the `x-nyt-mocker-response-from` HTTP header. It will have the `mock`
+Check for the `x-mocker-response-from` HTTP header. It will have the `mock`
 value if the response was created from a file, or `origin` if it comes from
 origin.
 
@@ -13,7 +13,7 @@ origin.
 For responses created from a mocked response file, it will have the following
 HTTP header:
 
-- `x-nyt-mocker-mock-path: /path/to/the/mocked/response.json`
+- `x-mocker-mock-path: /path/to/the/mocked/response.json`
 
 <img src="./img/faq/mocker-http-header-mock-path.png" />
 

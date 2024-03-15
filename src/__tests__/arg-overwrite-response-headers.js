@@ -105,7 +105,7 @@ describe('args.overwriteResponseHeaders', () => {
       const response1 = await response1Promise
 
       expect(response1.headers['content-type']).toStrictEqual(contentType)
-      expect(response1.headers['x-nyt-mocker-response-from']).toBe('Origin')
+      expect(response1.headers['x-mocker-response-from']).toBe('Origin')
 
       //
       // Mocked response: client <-> proxy
@@ -119,7 +119,7 @@ describe('args.overwriteResponseHeaders', () => {
       const response2 = await response2Promise
 
       expect(response2.headers['content-type']).toStrictEqual(contentType)
-      expect(response2.headers['x-nyt-mocker-response-from']).toBe('Mock')
+      expect(response2.headers['x-mocker-response-from']).toBe('Mock')
     } finally {
       await closeServer(mocker)
       await closeServer(mathServer)
