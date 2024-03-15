@@ -118,10 +118,10 @@ function printHelp() {
   logger.log(
     stripMargin(`
       |${bold('USAGE')}
-      |  mocker --origin http://example.com --responsesDir ~/Desktop
-      |  mocker --origin http://example.com --responsesDir ~/Desktop --mockKeys url,method,body.variables.id
-      |  mocker --origin http://example.com --responsesDir ~/Desktop --mode read-write --workers 4
-      |  mocker --origin http://example.com --responsesDir ~/Desktop --update startup --workers 4`)
+      |  mocker --origin http://example.com --responsesDir /path/to/folder
+      |  mocker --origin http://example.com --responsesDir /path/to/folder --mockKeys url,method,body.variables.id
+      |  mocker --origin http://example.com --responsesDir /path/to/folder --mode read-write --workers 4
+      |  mocker --origin http://example.com --responsesDir /path/to/folder --update startup --workers 4`)
   )
   logger.log(
     stripMargin(`

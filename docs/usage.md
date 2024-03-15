@@ -14,7 +14,7 @@ yarn start --origin http://the-server-to-be-mocked --responsesDir ./responses/sa
 `--responsesDir`
 
 - Required: `true`
-- e.g.: `--responsesDir ~/Desktop`
+- e.g.: `--responsesDir /path/to/folder`
 
 Path to read/write mocked responses.
 
