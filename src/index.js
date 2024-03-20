@@ -37,6 +37,8 @@ class OriginResponseError extends Error {
 
 const terminationSignals = ['SIGHUP', 'SIGINT', 'SIGTERM']
 
+const nonFatalErrors = ['ENOTFOUND']
+
 /**
  * @param {http.IncomingMessage} responseSource
  * @param {http.ServerResponse} responseTarget
@@ -462,6 +464,11 @@ class Mocker {
       response.end()
 
       logger.info(`${dim(connectionId)} 👈 ${formatStatusCode(500)}`)
+
+      const errorCode = Reflect.get(error || {}, 'code')
+      if (nonFatalErrors.includes(errorCode)) {
+        return
+      }
 
       throw error
     }
