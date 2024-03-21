@@ -25,7 +25,7 @@ describe('behavior', () => {
     const argv2 = ['', '', ...getRequiredArgs(), '--foo', 'bar']
     await expect(parseArgv(argv2)).rejects.toMatchInlineSnapshot(`
       [TypeError: [1mTypeError[22m[0m: invalid arg
-      [32mExpected[89m[0m one of ["--origin", "--port", "--delay", "--throttle", "--update", "--mode", "--workers", "--responsesDir", "--folder", "--cache", "--logging", "--mockKeys", "--redactedHeaders", "--retries", "--overwriteResponseHeaders", "--overwriteRequestHeaders", "--cors"]
+      [32mExpected[89m[0m one of ["--origin", "--port", "--delay", "--throttle", "--update", "--mode", "--workers", "--responsesDir", "--logging", "--mockKeys", "--redactedHeaders", "--retries", "--overwriteResponseHeaders", "--overwriteRequestHeaders", "--cors"]
       [31mReceived[89m[0m "--foo"]
     `)
   })
@@ -257,58 +257,10 @@ describe('--mode', () => {
     ]
     // @ts-ignore
     await expect(parseArgv(argv)).rejects.toMatchInlineSnapshot(`
-            [TypeError: [1mTypeError[22m[0m: invalid --mode
-            [32mExpected[89m[0m one of ["read", "write", "read-write", "pass-through", "pass", "read-pass", "pass-read"]
-            [31mReceived[89m[0m "lorem-ipsum"]
-          `)
-  })
-
-  it(`prints warning in case --mode pass-through is used`, async () => {
-    expect.assertions(1)
-
-    const argv = [
-      '',
-      '',
-      ...getRequiredArgs(),
-      '--mode',
-      'pass-through',
-      '--logging',
-      'verbose',
-    ]
-    const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation()
-    const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation()
-    await parseArgv(argv)
-    try {
-      // eslint-disable-next-line no-console
-      expect(console.warn).toHaveBeenCalledTimes(1)
-    } finally {
-      consoleLogSpy.mockRestore()
-      consoleWarnSpy.mockRestore()
-    }
-  })
-
-  it(`doesn't print warning in case --mode pass-through is used but warn logging is not allowed`, async () => {
-    expect.assertions(1)
-
-    const argv = [
-      '',
-      '',
-      ...getRequiredArgs(),
-      '--cache',
-      'true',
-      '--logging',
-      'error',
-    ]
-    const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation()
-    const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation()
-    await parseArgv(argv)
-    try {
-      // eslint-disable-next-line no-console
-      expect(console.warn).toHaveBeenCalledTimes(0)
-    } finally {
-      consoleLogSpy.mockRestore()
-      consoleWarnSpy.mockRestore()
-    }
+      [TypeError: [1mTypeError[22m[0m: invalid --mode
+      [32mExpected[89m[0m one of ["read", "write", "read-write", "pass", "read-pass", "pass-read"]
+      [31mReceived[89m[0m "lorem-ipsum"]
+    `)
   })
 })
 
@@ -434,72 +386,6 @@ describe('--responsesDir', () => {
 
     expect(path.isAbsolute(args.responsesDir)).toBe(true)
   })
-
-  it('accepts deprecated `--folder` as an alias', async () => {
-    expect.assertions(1)
-
-    const argv = ['', '', ...getRequiredArgs(), '--folder', 'src']
-    const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation()
-    const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation()
-    const args = await parseArgv(argv)
-
-    try {
-      expect(args.responsesDir.endsWith('/src')).toBe(true)
-    } finally {
-      consoleLogSpy.mockRestore()
-      consoleWarnSpy.mockRestore()
-    }
-  })
-})
-
-describe('--folder', () => {
-  it(`prints warning in case it is used`, async () => {
-    expect.assertions(1)
-
-    const argv = [
-      '',
-      '',
-      ...getRequiredArgs(),
-      '--folder',
-      'src/',
-      '--logging',
-      'warn',
-    ]
-    const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation()
-    const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation()
-    await parseArgv(argv)
-    try {
-      // eslint-disable-next-line no-console
-      expect(console.warn).toHaveBeenCalledTimes(1)
-    } finally {
-      consoleLogSpy.mockRestore()
-      consoleWarnSpy.mockRestore()
-    }
-  })
-
-  it(`doesn't print warning in case it is used but warn logging is not allowed`, async () => {
-    expect.assertions(1)
-
-    const argv = [
-      '',
-      '',
-      ...getRequiredArgs(),
-      '--folder',
-      'src/',
-      '--logging',
-      'error',
-    ]
-    const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation()
-    const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation()
-    await parseArgv(argv)
-    try {
-      // eslint-disable-next-line no-console
-      expect(console.warn).toHaveBeenCalledTimes(0)
-    } finally {
-      consoleLogSpy.mockRestore()
-      consoleWarnSpy.mockRestore()
-    }
-  })
 })
 
 describe('--logging', () => {
@@ -529,86 +415,6 @@ describe('--logging', () => {
     for (const validValue of LOGGING_VALID_VALUES) {
       const argv = ['', '', ...getRequiredArgs(), '--logging', validValue]
       await expect(parseArgv(argv)).resolves.not.toThrow(TypeError)
-    }
-  })
-})
-
-describe('--cache', () => {
-  it(`prints warning in case it is used`, async () => {
-    expect.assertions(1)
-
-    const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation()
-
-    const argv = [
-      '',
-      '',
-      ...getRequiredArgs(),
-      '--cache',
-      'true',
-      '--logging',
-      'verbose',
-    ]
-    await parseArgv(argv)
-    try {
-      // eslint-disable-next-line no-console
-      expect(console.warn).toHaveBeenCalledTimes(1)
-    } finally {
-      consoleWarnSpy.mockRestore()
-    }
-  })
-
-  it(`doesn't print warning in case it is used but warn logging is not allowed`, async () => {
-    expect.assertions(1)
-
-    const argv = [
-      '',
-      '',
-      ...getRequiredArgs(),
-      '--cache',
-      'true',
-      '--logging',
-      'error',
-    ]
-    const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation()
-    const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation()
-    await parseArgv(argv)
-    try {
-      // eslint-disable-next-line no-console
-      expect(console.warn).toHaveBeenCalledTimes(0)
-    } finally {
-      consoleLogSpy.mockRestore()
-      consoleWarnSpy.mockRestore()
-    }
-  })
-
-  // Cache featured was removed.
-  // @see https://github.com/caiogondim/mocker/blob/main/docs/deprecations.md#003
-  it('is always false', async () => {
-    expect.assertions(8)
-
-    const inputValues = [
-      '1',
-      'true',
-      '{}',
-      'false',
-      '123123',
-      '0',
-      'false',
-      'null',
-    ]
-
-    // Prevents deprecation message from being printed
-    const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation()
-
-    try {
-      for (const inputValue of inputValues) {
-        const argv = ['', '', ...getRequiredArgs(), '--cache', inputValue]
-        const args = await parseArgv(argv)
-
-        expect(typeof args.cache).toBe('boolean')
-      }
-    } finally {
-      consoleWarnSpy.mockRestore()
     }
   })
 })

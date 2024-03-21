@@ -33,7 +33,6 @@ async function getCommonArgs() {
     logging,
     delay: 0,
     throttle: Infinity,
-    cache: false,
     retries: 0,
     workers: 1,
     redactedHeaders: {},

@@ -2,24 +2,20 @@
 /** @typedef {import('../shared/http').Headers} Headers */
 /** @typedef {Map<string, string>} ArgvMap */
 
-const cluster = require('node:cluster')
 const path = require('path')
 const { promises: fs } = require('fs')
 const stringToBoolean = require('../shared/string-to-boolean')
 const Logger = require('../shared/logger')
 const { prettifyError } = require('../shared/logger/pretty-error')
-const { bold, stringify } = require('../shared/logger/format')
+const { stringify } = require('../shared/logger/format')
 const getConstructorName = require('../shared/get-constructor-name')
 const isPortTaken = require('../shared/is-port-taken')
-
-const logger = new Logger()
 
 /** @type {Readonly<string[]>} */
 const MODE_VALID_VALUES = [
   'read',
   'write',
   'read-write',
-  'pass-through',
   'pass',
   'read-pass',
   'pass-read',
@@ -43,7 +39,6 @@ const PORT_DEFAULT = 8273
 const DELAY_DEFAULT = 0
 const THROTTLE_DEFAULT = Infinity
 const WORKERS_DEFAULT = 1
-const CACHE_DEFAULT = false
 const LOGGING_DEFAULT = 'verbose'
 /** @type {Args['redactedHeaders']} */
 const REDACTED_HEADERS_DEFAULT = {}
@@ -53,16 +48,6 @@ const OVERWRITE_RESPONSE_HEADERS_DEFAULT = {}
 /** @type {Args['overwriteRequestHeaders']} */
 const OVERWRITE_REQUEST_HEADERS_DEFAULT = {}
 const CORS_DEFAULT = false
-
-/**
- * @param {string} logging
- * @returns {boolean}
- */
-function shouldWarnDeprecation(logging) {
-  // Type definition for cluster module is broken
-  // @ts-expect-error
-  return cluster.isPrimary && (logging === 'warn' || logging === 'verbose')
-}
 
 /**
  * @param {string[]} argv
@@ -100,8 +85,6 @@ function validateArgvKeys(argv) {
     '--mode',
     '--workers',
     '--responsesDir',
-    '--folder',
-    '--cache',
     '--logging',
     '--mockKeys',
     '--redactedHeaders',
@@ -155,22 +138,6 @@ function isArgsMode(mode) {
  */
 function getMode(argvMap) {
   let mode = argvMap.get('mode') ?? MODE_DEFAULT
-  const logging = argvMap.get('logging') ?? LOGGING_DEFAULT
-
-  if (mode === 'pass-through') {
-    mode = 'pass'
-
-    if (shouldWarnDeprecation(logging)) {
-      const originalForceLog = logger.forceLog
-      logger.forceLog = true
-      logger.warn(
-        `Argument ${bold(`--mode pass-through`)} was renamed to ${bold(
-          `--mode pass`
-        )}\n     Deprecation #002: https://github.com/caiogondim/mocker/blob/main/docs/deprecations.md#002`
-      )
-      logger.forceLog = originalForceLog
-    }
-  }
 
   if (!isArgsMode(mode)) {
     throw prettifyError({
@@ -473,35 +440,21 @@ function getThrottle(argvMap) {
  * @returns {Promise<Args['responsesDir']>}
  */
 async function getResponsesDir(argvMap) {
-  const logging = argvMap.get('logging') ?? LOGGING_DEFAULT
-  const folder = argvMap.get('folder') ?? ''
   const responsesDir = argvMap.get('responsesDir') ?? ''
-  const normalizedResponsesDir = responsesDir ? responsesDir : folder
   const error = prettifyError({
     error: new TypeError(`invalid --responsesDir`),
     expected: `a valid folder path`,
-    received: stringify(normalizedResponsesDir),
+    received: stringify(responsesDir),
   })
 
-  if (folder && shouldWarnDeprecation(logging)) {
-    const originalForceLog = logger.forceLog
-    logger.forceLog = true
-    logger.warn(
-      `Argument ${bold(`--folder`)} was renamed to ${bold(
-        `--responsesDir`
-      )}\n     Deprecation #001: https://github.com/caiogondim/mocker/blob/main/docs/deprecations.md`
-    )
-    logger.forceLog = originalForceLog
-  }
-
-  if (normalizedResponsesDir === '') {
+  if (responsesDir === '') {
     throw error
   }
 
-  const resolvedPath = path.resolve(normalizedResponsesDir)
+  const resolvedPath = path.resolve(responsesDir)
 
   try {
-    await fs.access(responsesDir || folder)
+    await fs.access(responsesDir)
   } catch (_) {
     throw error
   }
@@ -530,28 +483,6 @@ function getWorkers(argvMap) {
   }
 
   return workers
-}
-
-/**
- * @param {ArgvMap} argvMap
- * @returns {Args['cache']}
- */
-function getCache(argvMap) {
-  const logging = argvMap.get('logging') ?? LOGGING_DEFAULT
-  const cache = stringToBoolean(argvMap.get('cache') ?? `${CACHE_DEFAULT}`)
-
-  if (cache === true && shouldWarnDeprecation(logging)) {
-    const originalForceLog = logger.forceLog
-    logger.forceLog = true
-    logger.warn(
-      `Argument ${bold(
-        `--cache`
-      )} was removed\n     Deprecation #003: https://github.com/caiogondim/mocker/blob/main/docs/deprecations.md`
-    )
-    logger.forceLog = originalForceLog
-  }
-
-  return CACHE_DEFAULT
 }
 
 /**
@@ -632,7 +563,7 @@ function validateHeadersType(headers, customTypeError) {
 
 /**
  * @param {ArgvMap} argvMap
- * @returns {Args['cache']}
+ * @returns {Args['cors']}
  */
 function getCors(argvMap) {
   const cors = stringToBoolean(argvMap.get('cors') ?? `${CORS_DEFAULT}`)
@@ -661,7 +592,6 @@ async function parseArgv(argv) {
   const throttle = getThrottle(argvMap)
   const responsesDir = await getResponsesDir(argvMap)
   const workers = getWorkers(argvMap)
-  const cache = getCache(argvMap)
   const mockKeys = getMockKeys(argvMap)
   const retries = getRetries(argvMap)
   const redactedHeaders = getRedactedHeaders(argvMap)
@@ -679,7 +609,6 @@ async function parseArgv(argv) {
     throttle,
     responsesDir,
     workers,
-    cache,
     logging,
     mockKeys,
     redactedHeaders,
@@ -700,7 +629,6 @@ module.exports = {
   UPDATE_DEFAULT,
   THROTTLE_DEFAULT,
   WORKERS_DEFAULT,
-  CACHE_DEFAULT,
   LOGGING_DEFAULT,
   MOCK_KEYS_DEFAULT,
   MODE_VALID_VALUES,

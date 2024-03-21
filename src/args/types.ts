@@ -10,7 +10,6 @@ export type Args = Readonly<{
   update: 'off' | 'startup' | 'only';
   responsesDir: string;
   workers: number;
-  cache: boolean;
   logging: LoggerLevels;
   mockKeys: Set<string>;
   retries: number;

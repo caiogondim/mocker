@@ -10,7 +10,6 @@ const {
   MODE_DEFAULT,
   UPDATE_DEFAULT,
   WORKERS_DEFAULT,
-  CACHE_DEFAULT,
   MOCK_KEYS_DEFAULT,
   MODE_VALID_VALUES,
   UPDATE_VALID_VALUES,
@@ -51,7 +50,7 @@ function printHelp() {
       ],
       [
         `  [--mode <mode>]`,
-        `One of: ${stringify(MODE_VALID_VALUES.filter(mode => mode !== 'pass-through'))} ${dim(
+        `One of: ${stringify(MODE_VALID_VALUES)} ${dim(
           `${dim(`[default: ${stringify(MODE_DEFAULT)}]`)}`
         )}`,
       ],

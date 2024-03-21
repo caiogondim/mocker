@@ -13,21 +13,18 @@ class Origin {
   constructor({ host, retries = 0, overwriteRequestHeaders = {} }) {
     /**
      * @private
-     *
      * @readonly
      */
     this._host = host
 
     /**
      * @private
-     *
      * @readonly
      */
     this._retries = retries
 
     /**
      * @private
-     *
      * @readonly
      */
     this._overwriteRequestHeaders = overwriteRequestHeaders
