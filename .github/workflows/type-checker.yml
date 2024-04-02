@@ -22,4 +22,4 @@ jobs:
       - name: Install dependencies
         run: yarn install --immutable
       - name: Run type checker
-        run: yarn type-checker
+        run: yarn type-check
