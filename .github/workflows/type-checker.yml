@@ -1,4 +1,4 @@
-name: Test
+name: Type Checker
 
 on:
   push:
@@ -21,5 +21,5 @@ jobs:
           cache: 'yarn'
       - name: Install dependencies
         run: yarn install --immutable
-      - name: Run tests
-        run: yarn jest
+      - name: Run type checker
+        run: yarn type-checker
