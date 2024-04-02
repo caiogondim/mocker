@@ -8,4 +8,17 @@ It records HTTP interactions in a file-system so they can be later replayed duri
 
 Mocker is implemented in JavaScript, it has zero dependencies, and can be used either as a command-line tool or as a library.
 
+## Installation
+
+```bash
+brew tap caiogondim/tap
+brew install mocker
+```
+
+## Usage
+
+```bash
+mocker --help
+```
+
 More info on [docs](./docs).
