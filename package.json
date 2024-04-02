@@ -11,7 +11,7 @@
     "dev": "NODE_OPTIONS='--max-http-header-size=1000000 --unhandled-rejections=strict' node --watch-path=./src mocker",
     "jest": "NODE_OPTIONS='--max-old-space-size=4000' NODE_ENV=test jest --collectCoverageFrom='./src/**/*.js'",
     "type-check": "tsc --p './tsconfig.json'",
-    "fmt": "prettier --print-width 80 --prose-wrap always --write 'src/**/*.js' 'docs/**/*.md' 'tools/**/*.js' './*.json' './*.js' './*.md' './*.yml'",
+    "fmt": "prettier --print-width 80 --prose-wrap always --write './**/*.{js,md,yml,json}' --ignore-path .gitignore",
     "fmt:check": "prettier --check './**/*.{js,md,yml,json}' --ignore-path .gitignore",
     "lint": "eslint --ext '.js' --ext '.json' --report-unused-disable-directives ."
   },
@@ -41,7 +41,9 @@
   },
   "bin": "./mocker",
   "jest": {
-    "testPathIgnorePatterns": ["__tests__/helpers/"],
+    "testPathIgnorePatterns": [
+      "__tests__/helpers/"
+    ],
     "coverageThreshold": {
       "global": {
         "branches": 78.14
