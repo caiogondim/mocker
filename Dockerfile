@@ -1,4 +1,4 @@
-FROM node:15.14.0-alpine3.12
+FROM node:20-alpine3.18
 ARG username=node
 ENV \
   APP_HOME=/home/${username}/mocker \
