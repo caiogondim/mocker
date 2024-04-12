@@ -14,7 +14,7 @@ class SecretNotFoundError extends Error {
  * @returns {Headers}
  */
 function redactHeaders(headers, redactedHeaders) {
-  const headersClone = structuredClone(headers)
+  const headersClone = global.structuredClone(headers)
 
   for (const key of Object.keys(redactedHeaders)) {
     if (key in headers) {
@@ -31,7 +31,7 @@ function redactHeaders(headers, redactedHeaders) {
  * @returns {Headers}
  */
 function unredactHeaders(headers, redactedHeaders) {
-  const headersClone = structuredClone(headers)
+  const headersClone = global.structuredClone(headers)
 
   for (const [key, value] of Object.entries(headersClone)) {
     if (value !== '[REDACTED]') continue

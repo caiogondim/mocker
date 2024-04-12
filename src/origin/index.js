@@ -41,7 +41,7 @@ class Origin {
       _retries: retries,
       _overwriteRequestHeaders: overwriteRequestHeaders,
     } = this
-    const headersCopy = structuredClone(headers)
+    const headersCopy = global.structuredClone(headers)
     const absoluteUrl = this._getAbsolutetUrl(url)
 
     // Overwriting request headers before creating the request

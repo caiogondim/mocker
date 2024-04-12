@@ -715,7 +715,7 @@ class Mocker {
   ) {
     const { _args: args, _origin: origin } = this
     const { method = undefined, url = '' } = clientToProxyRequest
-    const requestHeaders = structuredClone(clientToProxyRequest.headers)
+    const requestHeaders = global.structuredClone(clientToProxyRequest.headers)
 
     proxyToClientResponse.setHeader('x-mocker-request-id', connectionId)
     proxyToClientResponse.setHeader('x-mocker-response-from', 'Origin')
