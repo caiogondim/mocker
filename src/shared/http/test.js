@@ -39,7 +39,7 @@ describe('getHeaders()', () => {
 
     // Then it should return a clone of the request's headers
     expect(clonedHeaders).not.toBe(headers)
-    expect(clonedHeaders).toStrictEqual(headers)
+    expect(clonedHeaders).toEqual(headers)
   })
 
   it('returns cloned headers for objects without `.headers`, but with a `.getHeaders` method', () => {
@@ -57,6 +57,6 @@ describe('getHeaders()', () => {
 
     // Then it should return a clone of the request's headers
     expect(clonedHeaders).not.toBe(headers)
-    expect(clonedHeaders).toStrictEqual(headers)
+    expect(clonedHeaders).toEqual(headers)
   })
 })

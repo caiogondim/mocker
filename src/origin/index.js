@@ -1,6 +1,5 @@
 /** @typedef {import('../shared/http/types').Headers} Headers */
 
-const clone = require('../shared/clone')
 const { createRequest } = require('../shared/http')
 
 class Origin {
@@ -42,7 +41,7 @@ class Origin {
       _retries: retries,
       _overwriteRequestHeaders: overwriteRequestHeaders,
     } = this
-    const headersCopy = clone(headers)
+    const headersCopy = global.structuredClone(headers)
     const absoluteUrl = this._getAbsolutetUrl(url)
 
     // Overwriting request headers before creating the request

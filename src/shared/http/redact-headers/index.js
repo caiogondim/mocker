@@ -1,7 +1,5 @@
 /** @typedef {import('../types').Headers} Headers */
 
-const clone = require('../../clone')
-
 class SecretNotFoundError extends Error {
   /** @param {string} message */
   constructor(message) {
@@ -16,7 +14,7 @@ class SecretNotFoundError extends Error {
  * @returns {Headers}
  */
 function redactHeaders(headers, redactedHeaders) {
-  const headersClone = clone(headers)
+  const headersClone = global.structuredClone(headers)
 
   for (const key of Object.keys(redactedHeaders)) {
     if (key in headers) {
@@ -33,7 +31,7 @@ function redactHeaders(headers, redactedHeaders) {
  * @returns {Headers}
  */
 function unredactHeaders(headers, redactedHeaders) {
-  const headersClone = clone(headers)
+  const headersClone = global.structuredClone(headers)
 
   for (const [key, value] of Object.entries(headersClone)) {
     if (value !== '[REDACTED]') continue
