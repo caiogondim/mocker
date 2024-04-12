@@ -37,7 +37,7 @@ class OriginResponseError extends Error {
 
 const terminationSignals = ['SIGHUP', 'SIGINT', 'SIGTERM']
 
-const nonFatalErrors = ['ENOTFOUND']
+const nonFatalErrors = ['ENOTFOUND', 'ERR_TLS_CERT_ALTNAME_INVALID']
 
 /**
  * @param {http.IncomingMessage} responseSource
