@@ -6,13 +6,12 @@ const {
   LOGGING_DEFAULT,
   LOGGING_VALID_VALUES,
   OVERWRITE_RESPONSE_HEADERS_DEFAULT,
-  OVERWRITE_REQUEST_HEADERS_DEFAULT,
   REDACTED_HEADERS_DEFAULT,
   CORS_DEFAULT,
 } = require('./index')
 
 function getRequiredArgs() {
-  return ['--origin', 'https://example.com', '--responsesDir', 'src/']
+  return ['--origin', 'https://example.com']
 }
 
 describe('behavior', () => {
@@ -72,7 +71,7 @@ describe('--origin', () => {
 
   it('throws an error if not a valid URL', async () => {
     expect.assertions(1)
-    const argv = ['', '', '--origin', 'lorem-ipsum', '--responsesDir', 'src/']
+    const argv = ['', '', '--origin', 'lorem-ipsum']
     await expect(parseArgv(argv)).rejects.toMatchInlineSnapshot(`
             [TypeError: [1mTypeError[22m[0m: invalid --origin
             [32mExpected[89m[0m valid URL
@@ -82,14 +81,7 @@ describe('--origin', () => {
 
   it('throws an error if protocol is not http: or https:', async () => {
     expect.assertions(1)
-    const argv = [
-      '',
-      '',
-      '--origin',
-      'lorem://ipsum.com',
-      '--responsesDir',
-      'src/',
-    ]
+    const argv = ['', '', '--origin', 'lorem://ipsum.com']
     await expect(parseArgv(argv)).rejects.toMatchInlineSnapshot(`
             [TypeError: [1mTypeError[22m[0m: invalid --origin
             [32mExpected[89m[0m URL with HTTP or HTTPS protocol
@@ -348,6 +340,15 @@ describe('--workers', () => {
 })
 
 describe('--responsesDir', () => {
+  it('receives a default value if not set', async () => {
+    expect.assertions(1)
+
+    const argv = ['', '', ...getRequiredArgs()]
+    const args = await parseArgv(argv)
+
+    expect(args.workers).toBe(1)
+  })
+
   it('doesnt throw an error for a valid value', async () => {
     expect.assertions(1)
     const argv = [
@@ -780,9 +781,7 @@ describe('--overwriteRequestHeaders', () => {
     expect.assertions(1)
     const argv = ['', '', ...getRequiredArgs()]
     const args = await parseArgv(argv)
-    expect(args.overwriteRequestHeaders).toStrictEqual(
-      OVERWRITE_REQUEST_HEADERS_DEFAULT
-    )
+    expect(args.overwriteRequestHeaders).toStrictEqual({ host: 'example.com' })
   })
 
   it('parses value to an object', async () => {

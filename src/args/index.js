@@ -30,6 +30,7 @@ const LOGGING_VALID_VALUES = Logger.validLevels
 /** @type {Readonly<RegExp>} */
 const MOCK_KEYS_BODY_REGEX = /^body(?:\.[A-Za-z0-9\-_]+)*$/
 
+const RESPONSES_DIR_DEFAULT = '.'
 /** @type {Args['mode']} */
 const MODE_DEFAULT = 'pass'
 /** @type {Args['update']} */
@@ -45,9 +46,19 @@ const REDACTED_HEADERS_DEFAULT = {}
 const RETRIES_DEFAULT = 0
 /** @type {Args['overwriteResponseHeaders']} */
 const OVERWRITE_RESPONSE_HEADERS_DEFAULT = {}
-/** @type {Args['overwriteRequestHeaders']} */
-const OVERWRITE_REQUEST_HEADERS_DEFAULT = {}
 const CORS_DEFAULT = false
+
+/**
+ * @param {ArgvMap} argvMap
+ */
+function getDefaultOverwriteRequestHeaders(argvMap) {
+  const argvOrigin = argvMap.get('origin') || ''
+  const { host } = new URL(argvOrigin)
+
+  return {
+    host,
+  }
+}
 
 /**
  * @param {string[]} argv
@@ -312,7 +323,7 @@ function getOverwriteRequestHeaders(argvMap) {
   try {
     const overwriteRequestHeaders =
       overwriteRequestHeadersArgv === undefined
-        ? OVERWRITE_RESPONSE_HEADERS_DEFAULT
+        ? getDefaultOverwriteRequestHeaders(argvMap)
         : JSON.parse(overwriteRequestHeadersArgv)
 
     const customTypeError = new TypeError(`invalid --overwriteRequestHeaders`)
@@ -440,7 +451,7 @@ function getThrottle(argvMap) {
  * @returns {Promise<Args['responsesDir']>}
  */
 async function getResponsesDir(argvMap) {
-  const responsesDir = argvMap.get('responsesDir') ?? ''
+  const responsesDir = argvMap.get('responsesDir') ?? RESPONSES_DIR_DEFAULT
   const error = prettifyError({
     error: new TypeError(`invalid --responsesDir`),
     expected: `a valid folder path`,
@@ -623,6 +634,7 @@ async function parseArgv(argv) {
 
 module.exports = {
   parseArgv,
+  RESPONSES_DIR_DEFAULT,
   PORT_DEFAULT,
   DELAY_DEFAULT,
   MODE_DEFAULT,
@@ -638,6 +650,5 @@ module.exports = {
   RETRIES_DEFAULT,
   LOGGING_VALID_VALUES,
   OVERWRITE_RESPONSE_HEADERS_DEFAULT,
-  OVERWRITE_REQUEST_HEADERS_DEFAULT,
   CORS_DEFAULT,
 }

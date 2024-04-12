@@ -4,6 +4,7 @@
 
 const {
   parseArgv,
+  RESPONSES_DIR_DEFAULT,
   PORT_DEFAULT,
   DELAY_DEFAULT,
   THROTTLE_DEFAULT,
@@ -19,7 +20,6 @@ const {
   LOGGING_DEFAULT,
   LOGGING_VALID_VALUES,
   OVERWRITE_RESPONSE_HEADERS_DEFAULT,
-  OVERWRITE_REQUEST_HEADERS_DEFAULT,
 } = require('./src/args')
 const Mocker = require('./src')
 const Logger = require('./src/shared/logger')
@@ -40,8 +40,8 @@ function printHelp() {
   )
   logger.log(
     table(
-      [`  --origin <URL>`, `Origin base URL ${dim(`[e.g.: "http://vi.example.com:3000"]`)}`],
-      [`  --responsesDir <path>`, `Path to mocked responses directory ${dim(`[e.g.: "./path/to/responses"]`)}`],
+      [`  --origin <URL>`, `Origin base URL ${dim(`[e.g.: "http://example.com"]`)}`],
+      [`  [--responsesDir <path>]`, `Path to mocked responses directory ${dim(`[default: ${stringify(RESPONSES_DIR_DEFAULT)}]`)}`],
       [
         `  [--update <update>]`,
         `One of: ${stringify(UPDATE_VALID_VALUES)} ${dim(
@@ -75,7 +75,7 @@ function printHelp() {
       [
         `  [--overwriteRequestHeaders <JSON>]`,
         `JSON of request headers to be overwritten ${dim(
-          `[default: ${stringify(OVERWRITE_REQUEST_HEADERS_DEFAULT)}]`
+          `[default: ${stringify({ host: 'example.com' })}]`
         )}`,
       ],
       [
