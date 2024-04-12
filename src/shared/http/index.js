@@ -8,7 +8,6 @@
 /** @typedef {import('./types').Headers} Headers */
 
 const getConstructorName = require('../get-constructor-name')
-const clone = require('../clone')
 const createRequest = require('./request')
 const {
   redactHeaders,
@@ -35,11 +34,11 @@ async function getBody(req) {
  */
 function getHeaders(reqOrRes) {
   if ('headers' in reqOrRes) {
-    return clone(reqOrRes.headers)
+    return structuredClone(reqOrRes.headers)
   }
 
   if ('getHeaders' in reqOrRes && typeof reqOrRes.getHeaders === 'function') {
-    return clone(reqOrRes.getHeaders())
+    return structuredClone(reqOrRes.getHeaders())
   }
 
   return {}

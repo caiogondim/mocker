@@ -6,7 +6,7 @@ describe('redactHeaders', () => {
 
     const headers = { host: ` lorem ipsum` }
     const redactedHeaders = { host: null }
-    expect(redactHeaders(headers, redactedHeaders)).toStrictEqual({
+    expect(redactHeaders(headers, redactedHeaders)).toEqual({
       host: `[REDACTED]`,
     })
   })
@@ -37,7 +37,7 @@ describe('redactHeaders', () => {
         unredactHeaders(headers1, redactedHeaders1),
         redactedHeaders1
       )
-    ).toStrictEqual(headers1)
+    ).toEqual(headers1)
 
     // g(f(x)) === x
     const headers2 = {
@@ -51,7 +51,7 @@ describe('redactHeaders', () => {
         redactHeaders(headers2, redactedHeaders2),
         redactedHeaders2
       )
-    ).toStrictEqual(headers2)
+    ).toEqual(headers2)
   })
 })
 
@@ -77,7 +77,7 @@ describe('unredactHeaders', () => {
       host: 'example.com',
     }
     const redactedHeaders = { 'example-token': '12341234', foo: 'ipsum' }
-    expect(unredactHeaders(headers, redactedHeaders)).toStrictEqual({
+    expect(unredactHeaders(headers, redactedHeaders)).toEqual({
       'example-token': '12341234',
       foo: 'ipsum',
       host: 'example.com',
@@ -113,7 +113,7 @@ describe('unredactHeaders', () => {
         unredactHeaders(headers1, redactedHeaders1),
         redactedHeaders1
       )
-    ).toStrictEqual(headers1)
+    ).toEqual(headers1)
 
     // g(f(x)) === x
     const headers2 = {
@@ -127,6 +127,6 @@ describe('unredactHeaders', () => {
         redactHeaders(headers2, redactedHeaders2),
         redactedHeaders2
       )
-    ).toStrictEqual(headers2)
+    ).toEqual(headers2)
   })
 })

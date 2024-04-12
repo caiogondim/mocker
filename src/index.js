@@ -14,7 +14,6 @@ const Logger = require('./shared/logger')
 const { bold, dim, green, yellow, red } = require('./shared/logger/format')
 const { MockManager } = require('./mock-manager')
 const { Origin } = require('./origin')
-const clone = require('./shared/clone')
 const { delay, throttle, pipeline, rewindable } = require('./shared/stream')
 const createId = require('./shared/create-id')
 const {
@@ -716,7 +715,7 @@ class Mocker {
   ) {
     const { _args: args, _origin: origin } = this
     const { method = undefined, url = '' } = clientToProxyRequest
-    const requestHeaders = clone(clientToProxyRequest.headers)
+    const requestHeaders = structuredClone(clientToProxyRequest.headers)
 
     proxyToClientResponse.setHeader('x-mocker-request-id', connectionId)
     proxyToClientResponse.setHeader('x-mocker-response-from', 'Origin')
