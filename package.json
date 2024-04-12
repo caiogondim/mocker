@@ -1,6 +1,6 @@
 {
   "name": "mocker",
-  "version": "2.4.0",
+  "version": "1.1.0",
   "description": "HTTP mock server for development and stable E2E tests",
   "main": "src/index.js",
   "scripts": {
