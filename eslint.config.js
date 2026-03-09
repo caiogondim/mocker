@@ -2,8 +2,6 @@ import js from '@eslint/js'
 import tseslint from 'typescript-eslint'
 import nodePlugin from 'eslint-plugin-n'
 
-
-
 export default [
   { ignores: ['node_modules/', 'out/'] },
 
@@ -74,5 +72,4 @@ export default [
       },
     },
   },
-
 ]

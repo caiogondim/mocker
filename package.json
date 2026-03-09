@@ -23,7 +23,6 @@
     "@types/jest": "^30",
     "@types/node": "^24",
     "eslint": "^10.0.3",
-
     "eslint-plugin-n": "^17.24.0",
     "jest": "^30.2.0",
     "memfs": "^4.7.7",
