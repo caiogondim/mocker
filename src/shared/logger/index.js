@@ -17,7 +17,7 @@ import { isPrettyError } from './pretty-error/index.js'
 export const validLevels = ['silent', 'error', 'warn', 'verbose']
 
 /** @type {LoggerLevels} */
-let level = 'silent' // eslint-disable-line jest/require-hook
+let level = 'silent'
 
 /** @returns {LoggerLevels} */
 export function getLevel() {
@@ -48,9 +48,7 @@ function createLogger({
   function _shouldLog(method) {
     if (forceLog) return true
 
-    return (
-      validLevels.indexOf(method) <= validLevels.indexOf(getLevel())
-    )
+    return validLevels.indexOf(method) <= validLevels.indexOf(getLevel())
   }
 
   /**

@@ -14,7 +14,7 @@ describe('rewindable', () => {
     stream.write('3')
     stream.end()
     await expect(values(stream)).resolves.toStrictEqual(
-      await values(rewindableStream.rewind())
+      await values(rewindableStream.rewind()),
     )
   })
 
@@ -99,7 +99,7 @@ describe('rewindable', () => {
 
     // The we try to decorate the consumed stream, which should throw an error.
     expect(() => rewindable(stream)).toThrow(
-      new Error('Stream is not readable')
+      new Error('Stream is not readable'),
     )
   })
 

@@ -1,4 +1,4 @@
-import getPort from 'get-port'
+import getPort from './helpers/get-port.js'
 import { createMocker } from './helpers/mocker.js'
 import { createRequest, getBody } from '../shared/http/index.js'
 import { closeServer } from './helpers/async-http-server.js'

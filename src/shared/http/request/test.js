@@ -1,4 +1,4 @@
-import getPort from 'get-port'
+import getPort from '../../../__tests__/helpers/get-port.js'
 import { createServer as createDuplicateRequestServer } from '../../../../tools/duplicate-request-server/index.js'
 import { createServer as createFlakyServer } from '../../../../tools/flaky-server/index.js'
 import createBackoff from '../../backoff/index.js'
@@ -39,7 +39,7 @@ describe('createRequest', () => {
     await expect(
       createRequest({
         url: `http://localhost:${port}`,
-      })
+      }),
     ).rejects.toThrow(``)
   })
 

@@ -9,7 +9,7 @@
 //
 
 import http from 'node:http'
-import getPort from 'get-port'
+import getPort from './helpers/get-port.js'
 import { createMocker } from './helpers/mocker.js'
 import { createServer as createHeaderEchoServer } from '../../tools/request-header-on-response-body-server/index.js'
 import { createServer as createStatusCodeServer } from '../../tools/status-code-server/index.js'
@@ -35,7 +35,7 @@ function createEchoServer() {
         url: req.url,
         headers: req.headers,
         body,
-      })
+      }),
     )
   })
 
@@ -43,12 +43,12 @@ function createEchoServer() {
     /** @param {number} port */
     listen(port) {
       return new Promise((resolve) => {
-        server.listen(port, resolve)
+        server.listen(port, () => resolve(undefined))
       })
     },
     close() {
       return new Promise((resolve, reject) => {
-        server.close((error) => (error ? reject(error) : resolve()))
+        server.close((error) => (error ? reject(error) : resolve(undefined)))
       })
     },
     get listening() {
@@ -56,7 +56,6 @@ function createEchoServer() {
     },
   }
 }
-
 
 describe('proxy headers', () => {
   /**
@@ -199,7 +198,6 @@ describe('proxy headers', () => {
   })
 })
 
-
 describe('HTTP method forwarding', () => {
   it.each(['GET', 'POST', 'PUT', 'DELETE', 'PATCH'])(
     'forwards %s method to origin',
@@ -231,7 +229,7 @@ describe('HTTP method forwarding', () => {
         await mocker.close()
         await origin.close()
       }
-    }
+    },
   )
 
   it('forwards HEAD method and returns no body', async () => {
@@ -265,7 +263,6 @@ describe('HTTP method forwarding', () => {
     }
   })
 })
-
 
 describe('request body integrity', () => {
   it('forwards JSON body intact', async () => {
@@ -400,7 +397,6 @@ describe('request body integrity', () => {
   })
 })
 
-
 describe('status code forwarding', () => {
   it.each([200, 201, 204, 301, 302, 400, 401, 403, 404, 500, 502, 503])(
     'relays %i status code from origin',
@@ -432,10 +428,9 @@ describe('status code forwarding', () => {
         await mocker.close()
         await origin.close()
       }
-    }
+    },
   )
 })
-
 
 describe('end-to-end header forwarding', () => {
   it('forwards custom headers to origin', async () => {
@@ -540,7 +535,6 @@ describe('end-to-end header forwarding', () => {
   })
 })
 
-
 describe('URL path and query string forwarding', () => {
   it('forwards path segments to origin', async () => {
     expect.assertions(1)
@@ -632,7 +626,6 @@ describe('URL path and query string forwarding', () => {
     }
   })
 })
-
 
 describe('content-encoding pass-through', () => {
   it('forwards gzip-encoded response from origin', async () => {

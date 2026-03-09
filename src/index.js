@@ -49,7 +49,7 @@ function copyResponseAttrs(responseSource, responseTarget) {
   const headers = {}
 
   for (const [headerKey, headerValue] of Object.entries(
-    getHeaders(responseSource)
+    getHeaders(responseSource),
   )) {
     if (typeof headerValue === 'undefined') {
       continue
@@ -110,8 +110,8 @@ function handleLiveAndReadinessConnection(request, response, connectionId) {
 
   logger.info(
     `${dim(connectionId)} 👈 ${formatStatusCode(
-      statusCode
-    )} serving health check from mocker`
+      statusCode,
+    )} serving health check from mocker`,
   )
 
   response.writeHead(statusCode)
@@ -199,7 +199,7 @@ class Mocker {
             return `- ${bold(entry[0])}: ${JSON.stringify(
               redactHeaders(entry[1], args.redactedHeaders),
               null,
-              2
+              2,
             )}`
           }
 
@@ -228,8 +228,8 @@ class Mocker {
       if (process.env.NODE_ENV === 'test') {
         logger.info(
           `started on port ${bold(port)}, with pid ${bold(
-            process.pid
-          )}, and proxying ${bold(args.origin)}`
+            process.pid,
+          )}, and proxying ${bold(args.origin)}`,
         )
         this.#httpServer = http
           .createServer(this.#server.bind(this))
@@ -237,8 +237,8 @@ class Mocker {
       } else if (cluster.isPrimary) {
         logger.info(
           `started on port ${bold(port)}, with pid ${bold(
-            process.pid
-          )}, and proxying ${bold(args.origin)}`
+            process.pid,
+          )}, and proxying ${bold(args.origin)}`,
         )
 
         const numCpus = os.cpus().length
@@ -247,7 +247,7 @@ class Mocker {
             numCpus > 1 ? 's' : ''
           }, spawning ${bold(args.workers)} worker${
             args.workers > 1 ? 's' : ''
-          }`
+          }`,
         )
 
         for (let i = 0; i < args.workers; i += 1) {
@@ -346,7 +346,7 @@ class Mocker {
     response.setHeader('x-powered-by', 'mocker')
 
     logger.info(
-      `${dim(connectionId)} 👉 ${bold(request.method)} ${bold(request.url)}`
+      `${dim(connectionId)} 👉 ${bold(request.method)} ${bold(request.url)}`,
     )
 
     // Implementing live and readiness health checks under "/.well-known/"
@@ -374,7 +374,7 @@ class Mocker {
           await this.#handleConnectionWithReadMode(
             requestRewindable,
             response,
-            connectionId
+            connectionId,
           )
           return
         }
@@ -382,7 +382,7 @@ class Mocker {
           await this.#handleConnectionWithReadWriteMode(
             requestRewindable,
             response,
-            connectionId
+            connectionId,
           )
           return
         }
@@ -390,7 +390,7 @@ class Mocker {
           await this.#handleConnectionWithReadPassMode(
             requestRewindable,
             response,
-            connectionId
+            connectionId,
           )
           return
         }
@@ -399,7 +399,7 @@ class Mocker {
           await this.#respondFromOrigin(
             requestRewindable,
             response,
-            connectionId
+            connectionId,
           )
           return
         }
@@ -407,7 +407,7 @@ class Mocker {
           await this.#handleConnectionWithPassReadMode(
             requestRewindable,
             response,
-            connectionId
+            connectionId,
           )
           return
         }
@@ -453,7 +453,7 @@ class Mocker {
     }
 
     logger.warn(
-      `${dim(connectionId)} mocked response "${mockBasename}" was not found`
+      `${dim(connectionId)} mocked response "${mockBasename}" was not found`,
     )
     await this.#respondFromOrigin(request, response, connectionId)
   }
@@ -479,7 +479,7 @@ class Mocker {
     }
 
     logger.info(
-      `${dim(connectionId)} mocked response "${mockBasename}" was not found`
+      `${dim(connectionId)} mocked response "${mockBasename}" was not found`,
     )
     await this.#respondFromOrigin(request, response, connectionId)
   }
@@ -495,16 +495,16 @@ class Mocker {
 
     response.setHeader(
       'access-control-allow-origin',
-      `${request.headers.origin}`
+      `${request.headers.origin}`,
     )
     response.setHeader('access-control-allow-credentials', 'true')
     response.setHeader(
       'access-control-allow-methods',
-      'PUT, GET, POST, DELETE, OPTIONS'
+      'PUT, GET, POST, DELETE, OPTIONS',
     )
     response.setHeader(
       'access-control-allow-headers',
-      'Content-Type, x-cf-source-id, x-cf-corr-id'
+      'Content-Type, x-cf-source-id, x-cf-corr-id',
     )
     response.end()
   }
@@ -530,7 +530,7 @@ class Mocker {
     }
 
     logger.warn(
-      `${dim(connectionId)} mocked response "${mockBasename}" was not found`
+      `${dim(connectionId)} mocked response "${mockBasename}" was not found`,
     )
     await respondNotFound(response, connectionId)
   }
@@ -571,7 +571,7 @@ class Mocker {
       }
 
       logger.warn(
-        `${dim(connectionId)} mocked response "${mockBasename}" was not found`
+        `${dim(connectionId)} mocked response "${mockBasename}" was not found`,
       )
       await respondNotFound(response, connectionId)
       return
@@ -597,8 +597,8 @@ class Mocker {
 
       logger.info(
         `${dim(connectionId)} 👈 ${formatStatusCode(
-          mockedResponse.statusCode
-        )} serving from mocked response "${mockBasename}"`
+          mockedResponse.statusCode,
+        )} serving from mocked response "${mockBasename}"`,
       )
 
       response.statusCode = mockedResponse.statusCode
@@ -618,12 +618,12 @@ class Mocker {
         mockedResponse,
         delay({ ms: args.delay }),
         throttle({ bps: args.throttle }),
-        response
+        response,
       )
     } catch (error) {
       logger.error(
         `${dim(connectionId)} error reading mocked response from disk.`,
-        error
+        error,
       )
 
       response.writeHead(500)
@@ -642,7 +642,7 @@ class Mocker {
   async #respondFromOrigin(
     clientToProxyRequest,
     proxyToClientResponse,
-    connectionId
+    connectionId,
   ) {
     const args = this.#args
     const origin = this.#origin
@@ -677,20 +677,20 @@ class Mocker {
     await this.#writeMockIfOk(
       clientToProxyRequest,
       originToProxyResponseRewindable,
-      connectionId
+      connectionId,
     )
 
     logger.info(
       `${dim(connectionId)} 👈 ${formatStatusCode(
-        originToProxyResponse.statusCode
-      )} serving from origin`
+        originToProxyResponse.statusCode,
+      )} serving from origin`,
     )
 
     await pipeline(
       originToProxyResponseRewindable.rewind(),
       delay({ ms: args.delay }),
       throttle({ bps: args.throttle }),
-      proxyToClientResponse
+      proxyToClientResponse,
     )
   }
 
@@ -713,7 +713,7 @@ class Mocker {
     if (args.cors) {
       response.setHeader(
         'access-control-allow-origin',
-        `${requestHeaders.origin}`
+        `${requestHeaders.origin}`,
       )
     }
   }
@@ -743,7 +743,7 @@ class Mocker {
         })
         const mockBasename = path.basename(mockPath)
         logger.info(
-          `${dim(connectionId)} mock for request created on "${mockBasename}"`
+          `${dim(connectionId)} mock for request created on "${mockBasename}"`,
         )
       } catch (error) {
         logger.error(`${dim(connectionId)} error while saving mock`, error)
@@ -751,10 +751,10 @@ class Mocker {
     } else {
       logger.warn(
         `${dim(
-          connectionId
+          connectionId,
         )} not saving response from origin since status code is not ${formatStatusCode(
-          200
-        )} but ${formatStatusCode(response.statusCode)}`
+          200,
+        )} but ${formatStatusCode(response.statusCode)}`,
       )
     }
   }
@@ -824,8 +824,8 @@ class Mocker {
         } else {
           logger.warn(
             `${dim(progress())} ${bold(
-              mockBasename
-            )} request to origin errored. mock was not modified`
+              mockBasename,
+            )} request to origin errored. mock was not modified`,
           )
         }
       } catch (error_) {
@@ -833,19 +833,19 @@ class Mocker {
           logger.warn(
             `${dim(progress())} ${bold(mockBasename)} ${
               error_.message
-            }. mock was not modified`
+            }. mock was not modified`,
           )
         } else if (error_ && Reflect.get(error_, 'code') === 'EACCES') {
           logger.warn(
             `${dim(progress())} ${bold(
-              mockBasename
-            )} file is read-only. mock was not modified`
+              mockBasename,
+            )} file is read-only. mock was not modified`,
           )
         } else {
           logger.warn(
             `${dim(progress())} ${bold(
-              mockBasename
-            )} error while updating mock. mock was not modified`
+              mockBasename,
+            )} error while updating mock. mock was not modified`,
           )
         }
       }

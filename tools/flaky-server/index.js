@@ -2,7 +2,6 @@
 
 import http from 'node:http'
 import { pipeline } from 'node:stream/promises'
-import { fileURLToPath } from 'node:url'
 
 /** @returns {AsyncHttpServer} */
 function createServer() {
@@ -48,7 +47,7 @@ function createServer() {
 }
 
 // @ts-ignore
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (process.argv[1] === import.meta.filename) {
   const port = Number(process.argv[2])
   const server = createServer()
   server.listen(port)

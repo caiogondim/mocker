@@ -5,7 +5,10 @@
 import path from 'node:path'
 import { promises as fs } from 'node:fs'
 import stringToBoolean from '../shared/string-to-boolean/index.js'
-import createLogger, { validLevels as loggerValidLevels, setLevel as setLoggerLevel } from '../shared/logger/index.js'
+import {
+  validLevels as loggerValidLevels,
+  setLevel as setLoggerLevel,
+} from '../shared/logger/index.js'
 import { prettifyError } from '../shared/logger/pretty-error/index.js'
 import { stringify } from '../shared/logger/format/index.js'
 import getConstructorName from '../shared/get-constructor-name/index.js'
@@ -562,7 +565,7 @@ function validateHeadersType(headers, customTypeError) {
           if (getConstructorName(arrValue) !== 'String') {
             throw prettyError
           }
-        }
+        },
       )
       continue
     }

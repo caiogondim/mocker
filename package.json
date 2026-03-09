@@ -14,28 +14,23 @@
     "type-check": "tsc --p './tsconfig.json'",
     "fmt": "prettier --print-width 80 --prose-wrap always --write './**/*.{js,md,yml,json}' --ignore-path .gitignore",
     "fmt:check": "prettier --check './**/*.{js,md,yml,json}' --ignore-path .gitignore",
-    "lint": "eslint --ext '.js' --ext '.json' --report-unused-disable-directives ."
+    "lint": "eslint --report-unused-disable-directives ."
   },
   "license": "UNLICENSED",
   "private": true,
   "devDependencies": {
+    "@eslint/js": "^9.39.4",
     "@types/jest": "^30",
     "@types/node": "^24",
-    "@typescript-eslint/parser": "^7.1.1",
-    "eslint": "^8.57.0",
-    "eslint-config-prettier": "^9.1.0",
-    "eslint-plugin-import": "^2.29.1",
-    "eslint-plugin-jest": "^27.9.0",
-    "eslint-plugin-jest-formatting": "^3.1.0",
-    "eslint-plugin-json": "^3.1.0",
-    "eslint-plugin-node": "^11.1.0",
-    "eslint-plugin-prettier": "^4",
-    "eslint-plugin-sort-class-members": "^1.20.0",
-    "get-port": "5.1.1",
+    "eslint": "^9.39.4",
+    "eslint-plugin-json": "^4.0.1",
+    "eslint-plugin-n": "^17.24.0",
+    "eslint-plugin-sort-class-members": "^1.21.0",
     "jest": "^30.2.0",
     "memfs": "^4.7.7",
-    "prettier": "2.8.8",
-    "typescript": "5.3.3"
+    "prettier": "^3.8.1",
+    "typescript": "^5.8",
+    "typescript-eslint": "^8.57.0"
   },
   "engines": {
     "node": ">=24"
@@ -51,6 +46,8 @@
       }
     },
     "injectGlobals": true,
-    "setupFiles": ["./jest.setup.js"]
+    "setupFiles": [
+      "./jest.setup.js"
+    ]
   }
 }

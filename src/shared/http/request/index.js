@@ -17,7 +17,7 @@ function getNativeRequest(protocol) {
     return https.request
   }
   throw new TypeError(
-    `Only http: or https: protocols are supported. '${protocol}' was passed.`
+    `Only http: or https: protocols are supported. '${protocol}' was passed.`,
   )
 }
 
@@ -121,7 +121,7 @@ async function createRequestWithRetry({
       retries,
       backoff,
       onRetry: () => (numOfTries += 1),
-    }
+    },
   )
 
   //
@@ -163,14 +163,11 @@ async function createRequestWithRetry({
   // Creates a deferred (a Promise that can be resolved/rejected from the outside)
   //
 
-  // eslint-disable-next-line no-unused-vars
-  let resolveResponse = (/** @type {any} */ value) => {}
-  // eslint-disable-next-line no-unused-vars
-  let rejectResponse = (/** @type {any} */ value) => {}
-  const responseWithRetryPromise = new Promise((resolve_, reject_) => {
-    resolveResponse = resolve_
-    rejectResponse = reject_
-  })
+  const {
+    resolve: resolveResponse,
+    reject: rejectResponse,
+    promise: responseWithRetryPromise,
+  } = Promise.withResolvers()
 
   //
   // Retry loop

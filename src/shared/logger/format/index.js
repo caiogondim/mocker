@@ -1,65 +1,35 @@
 /** @typedef {import('../../types.js').Json} Json */
 
-// @see https://blog.bitsrc.io/coloring-your-terminal-using-nodejs-eb647d4af2a2
+import { styleText } from 'node:util'
 
-import supportsColorFn from '../supports-color/index.js'
-
-const supportsColor = supportsColorFn()
-
-const reset = '\x1b[0m'
-
-/**
- * @param {any} str
- * @returns {string}
- */
+/** @param {any} str @returns {string} */
 function bold(str) {
-  if (!supportsColor) return str
-  return `\x1b[1m${str}\x1b[22m${reset}`
+  return styleText('bold', String(str))
 }
 
-/**
- * @param {any} str
- * @returns {string}
- */
+/** @param {any} str @returns {string} */
 function red(str) {
-  if (!supportsColor) return str
-  return `\x1b[31m${str}\x1b[89m${reset}`
+  return styleText('red', String(str))
 }
 
-/**
- * @param {any} str
- * @returns {string}
- */
+/** @param {any} str @returns {string} */
 function blue(str) {
-  if (!supportsColor) return str
-  return `\x1b[34m${str}\x1b[89m${reset}`
+  return styleText('blue', String(str))
 }
 
-/**
- * @param {any} str
- * @returns {string}
- */
+/** @param {any} str @returns {string} */
 function yellow(str) {
-  if (!supportsColor) return str
-  return `\x1b[33m${str}\x1b[89m${reset}`
+  return styleText('yellow', String(str))
 }
 
-/**
- * @param {any} str
- * @returns {string}
- */
+/** @param {any} str @returns {string} */
 function green(str) {
-  if (!supportsColor) return str
-  return `\x1b[32m${str}\x1b[89m${reset}`
+  return styleText('green', String(str))
 }
 
-/**
- * @param {any} str
- * @returns {string}
- */
+/** @param {any} str @returns {string} */
 function dim(str) {
-  if (!supportsColor) return str
-  return `\x1b[2m${str}\x1b[22m${reset}`
+  return styleText('dim', String(str))
 }
 
 /**
@@ -95,7 +65,7 @@ function table(...data) {
       const datumWithoutFormatingCode = datum.replace(/\u001b\[[0-9]+m/g, '')
       maxWidths[i] = Math.max(
         maxWidths[i] || 0,
-        datumWithoutFormatingCode.length
+        datumWithoutFormatingCode.length,
       )
     }
   }
@@ -144,7 +114,7 @@ function stringify(x) {
   }
 
   return addSpaceBetweenArrayElements(
-    JSON.stringify(mapToJsonStringifiableType(x))
+    JSON.stringify(mapToJsonStringifiableType(x)),
   )
 }
 

@@ -1,4 +1,4 @@
-import getPort from 'get-port'
+import getPort from '../__tests__/helpers/get-port.js'
 import { createOrigin } from './index.js'
 import { getBody } from '../shared/http/index.js'
 import { createServer as createRequestHeaderOnResponseBodyServer } from '../../tools/request-header-on-response-body-server/index.js'

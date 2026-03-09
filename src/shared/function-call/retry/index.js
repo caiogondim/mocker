@@ -16,7 +16,7 @@ async function retry(
     shouldRetry = () => false,
     onRetry = () => {},
     backoff = createBackoff(),
-  } = {}
+  } = {},
 ) {
   let response
 

@@ -58,7 +58,7 @@ function isHeaders(x) {
     const valueConstructorName = getConstructorName(value)
     if (
       ['String', 'Number', 'Undefined', 'Null', 'Boolean'].includes(
-        valueConstructorName
+        valueConstructorName,
       )
     ) {
       continue

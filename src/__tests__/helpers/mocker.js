@@ -1,7 +1,7 @@
 /** @typedef {import('../../args/types.js').Args} Args */
 /** @typedef {import('../../shared/types.js').FsLike} FsLike */
 
-import getPort from 'get-port'
+import getPort from './get-port.js'
 import { Volume, createFsFromVolume } from 'memfs'
 import Mocker from '../../index.js'
 

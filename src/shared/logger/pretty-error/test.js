@@ -14,15 +14,15 @@ describe('prettifyError()', () => {
     })
     expect(decoratedError.message).toMatch(/.*Error.*/g)
     expect(decoratedError.message).toMatch(
-      new RegExp(`.*Expected.*${expected}`)
+      new RegExp(`.*Expected.*${expected}`),
     )
     expect(decoratedError.message).toMatch(
-      new RegExp(`.*Received.*${received}`)
+      new RegExp(`.*Received.*${received}`),
     )
     expect(decoratedError.message).toMatchInlineSnapshot(`
-      "[1mError[22m[0m: lorem ipsum
-      [32mExpected[89m[0m dolor sit
-      [31mReceived[89m[0m amet consectetur"
+      "Error: lorem ipsum
+      Expected dolor sit
+      Received amet consectetur"
     `)
   })
 
@@ -41,10 +41,10 @@ describe('prettifyError()', () => {
     })
     expect(decoratedError.message).toMatch(new RegExp(`.*Hint.*${hint}`))
     expect(decoratedError.message).toMatchInlineSnapshot(`
-      "[1mError[22m[0m: lorem ipsum
-      [32mExpected[89m[0m dolor sit
-      [31mReceived[89m[0m amet consectetur
-      [33mHint[89m[0m adipiscing elit"
+      "Error: lorem ipsum
+      Expected dolor sit
+      Received amet consectetur
+      Hint adipiscing elit"
     `)
   })
 })

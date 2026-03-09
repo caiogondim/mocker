@@ -37,14 +37,14 @@ describe('retry', () => {
     //
 
     await expect(retry(createThrowUntilN(3), { backoff })).resolves.toBe(
-      'lorem'
+      'lorem',
     )
   })
 
   it('retries up to `retries`', async () => {
     expect.assertions(1)
     await expect(
-      retry(createThrowUntilN(3), { retries: 2, backoff })
+      retry(createThrowUntilN(3), { retries: 2, backoff }),
     ).rejects.toThrow(Error)
   })
 
@@ -70,7 +70,7 @@ describe('retry', () => {
     }
 
     await expect(
-      retry(numberGenerator, { shouldRetry, backoff })
+      retry(numberGenerator, { shouldRetry, backoff }),
     ).resolves.toBe(2)
   })
 

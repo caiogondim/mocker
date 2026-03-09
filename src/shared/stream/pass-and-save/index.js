@@ -2,14 +2,7 @@ import { Transform } from 'node:stream'
 
 /** @returns {[Transform, Promise<Buffer[]>]} */
 function createPassAndSave() {
-  /** @type {function(any): void} */
-  let resolve
-  /** @type {function(any): void} */
-  let reject
-  const contentPromise = new Promise((resolve_, reject_) => {
-    resolve = resolve_
-    reject = reject_
-  })
+  const { resolve, reject, promise: contentPromise } = Promise.withResolvers()
   /** @type {Buffer[]} */
   const chunks = []
 

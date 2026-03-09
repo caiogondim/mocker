@@ -1,4 +1,4 @@
-import getPort from 'get-port'
+import getPort from './helpers/get-port.js'
 import { createMocker, createMemFs } from './helpers/mocker.js'
 import { createServer as createTimeServer } from '../../tools/time-server/index.js'
 import { createServer as createStatusCodeServer } from '../../tools/status-code-server/index.js'
@@ -74,7 +74,7 @@ describe('args.update', () => {
     try {
       expect(response2.headers['x-mocker-response-from']).toBe('Mock')
       expect(Number(response2Body)).toBeGreaterThanOrEqual(
-        Number(response1Body)
+        Number(response1Body),
       )
     } finally {
       await mocker2.close()
@@ -131,13 +131,13 @@ describe('args.update', () => {
       // Then it should update the mocked response on disk
       const files = await fs.promises.readdir(responsesDir)
       const fileContentBuffer = await fs.promises.readFile(
-        `${responsesDir}/${files[0]}`
+        `${responsesDir}/${files[0]}`,
       )
       const fileContentJson = JSON.parse(fileContentBuffer.toString())
       const response2Body = fileContentJson.response.body
 
       expect(Number(response2Body)).toBeGreaterThanOrEqual(
-        Number(response1Body)
+        Number(response1Body),
       )
     } finally {
       await timeServer.close()
@@ -180,7 +180,7 @@ describe('args.update', () => {
       // Then it should fail since `startup: 'only'` only updates all mocked
       // responses, and doesn't start the server.
       await expect(() => createRequestThunk()).rejects.toMatchInlineSnapshot(
-        `[AggregateError]`
+        `[AggregateError]`,
       )
     } finally {
       await timeServer.close()
@@ -345,7 +345,7 @@ describe('args.update', () => {
     // Verify the mock on disk has the header redacted
     const files = await fs.promises.readdir(responsesDir)
     const mockContent = JSON.parse(
-      (await fs.promises.readFile(`${responsesDir}/${files[0]}`)).toString()
+      (await fs.promises.readFile(`${responsesDir}/${files[0]}`)).toString(),
     )
     expect(mockContent.request.headers.authorization).toBe('[REDACTED]')
   })
@@ -382,7 +382,9 @@ describe('args.update', () => {
 
     // Read mock before update
     const files = await fs.promises.readdir(responsesDir)
-    const mockBefore = (await fs.promises.readFile(`${responsesDir}/${files[0]}`)).toString()
+    const mockBefore = (
+      await fs.promises.readFile(`${responsesDir}/${files[0]}`)
+    ).toString()
 
     // Start mocker with update:'startup' but WITHOUT providing the redacted secret
     // This should trigger SecretNotFoundError and preserve the mock
@@ -398,7 +400,9 @@ describe('args.update', () => {
     await mocker2.listen()
 
     try {
-      const mockAfter = (await fs.promises.readFile(`${responsesDir}/${files[0]}`)).toString()
+      const mockAfter = (
+        await fs.promises.readFile(`${responsesDir}/${files[0]}`)
+      ).toString()
       expect(mockAfter).toBe(mockBefore)
     } finally {
       await mocker2.close()

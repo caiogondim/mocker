@@ -35,8 +35,8 @@ describe('redactHeaders', () => {
     expect(
       redactHeaders(
         unredactHeaders(headers1, redactedHeaders1),
-        redactedHeaders1
-      )
+        redactedHeaders1,
+      ),
     ).toEqual(headers1)
 
     // g(f(x)) === x
@@ -49,8 +49,8 @@ describe('redactHeaders', () => {
     expect(
       unredactHeaders(
         redactHeaders(headers2, redactedHeaders2),
-        redactedHeaders2
-      )
+        redactedHeaders2,
+      ),
     ).toEqual(headers2)
   })
 })
@@ -65,7 +65,7 @@ describe('unredactHeaders', () => {
     }
     const redactedHeaders = { 'example-token': '12341234' }
     expect(() => unredactHeaders(headers, redactedHeaders)).toThrow(
-      SecretNotFoundError
+      SecretNotFoundError,
     )
   })
 
@@ -111,8 +111,8 @@ describe('unredactHeaders', () => {
     expect(
       redactHeaders(
         unredactHeaders(headers1, redactedHeaders1),
-        redactedHeaders1
-      )
+        redactedHeaders1,
+      ),
     ).toEqual(headers1)
 
     // g(f(x)) === x
@@ -125,8 +125,8 @@ describe('unredactHeaders', () => {
     expect(
       unredactHeaders(
         redactHeaders(headers2, redactedHeaders2),
-        redactedHeaders2
-      )
+        redactedHeaders2,
+      ),
     ).toEqual(headers2)
   })
 })

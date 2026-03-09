@@ -1,4 +1,4 @@
-import getPort from 'get-port'
+import getPort from './helpers/get-port.js'
 import { createMocker, createMemFs } from './helpers/mocker.js'
 import { closeServer, createServer } from './helpers/async-http-server.js'
 import { createServer as createMathServer } from '../../tools/math-server/index.js'
@@ -278,7 +278,7 @@ describe(`mode = 'pass-read'`, () => {
         const response1 = await response1Promise
 
         expect(`${i} ${response1.headers['x-mocker-response-from']}`).toBe(
-          `${i} Origin`
+          `${i} Origin`,
         )
       }
     } finally {
@@ -373,7 +373,6 @@ describe(`mode = 'pass-read'`, () => {
     const originPort = await getPort()
     let shouldOriginReturn500 = false
     const originServer = createServer(async (req, res) => {
-      // eslint-disable-next-line jest/no-conditional-in-test
       const statusCode = shouldOriginReturn500 ? 500 : 200
       res.writeHead(statusCode, {})
       res.end()

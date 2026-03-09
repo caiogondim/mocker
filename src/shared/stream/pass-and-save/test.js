@@ -21,7 +21,7 @@ describe('passAndSave', () => {
           output.push(chunk.toString('utf8'))
           callback(null, chunk)
         },
-      })
+      }),
     )
     const val = (await valPromise).reduce((prev, cur) => `${prev}${cur}`, '')
 
@@ -46,7 +46,7 @@ describe('passAndSave', () => {
           output.push(chunk.toString('utf8'))
           callback(null, chunk)
         },
-      })
+      }),
     )
 
     expect(output.join('')).toStrictEqual(input.join(''))

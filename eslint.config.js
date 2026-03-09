@@ -1,0 +1,103 @@
+import js from '@eslint/js'
+import tseslint from 'typescript-eslint'
+import nodePlugin from 'eslint-plugin-n'
+import sortClassMembers from 'eslint-plugin-sort-class-members'
+import jsonPlugin from 'eslint-plugin-json'
+
+export default [
+  { ignores: ['node_modules/', 'out/'] },
+
+  js.configs.recommended,
+  nodePlugin.configs['flat/recommended-module'],
+
+  // TypeScript parser for JS files (checkJs in tsconfig)
+  {
+    files: ['**/*.js'],
+    languageOptions: {
+      ...tseslint.configs.base.languageOptions,
+      ecmaVersion: 2024,
+      sourceType: 'module',
+      globals: {
+        console: 'readonly',
+        process: 'readonly',
+        setTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearTimeout: 'readonly',
+        clearInterval: 'readonly',
+        URL: 'readonly',
+        Buffer: 'readonly',
+        globalThis: 'readonly',
+      },
+    },
+    plugins: {
+      'sort-class-members': sortClassMembers,
+    },
+    rules: {
+      // Class member ordering
+      'sort-class-members/sort-class-members': [
+        'error',
+        {
+          order: [
+            '[static-properties]',
+            '[static-methods]',
+            '[properties]',
+            '[conventional-private-properties]',
+            'constructor',
+            '[methods]',
+            '[conventional-private-methods]',
+          ],
+          accessorPairPositioning: 'getThenSet',
+        },
+      ],
+
+      // Variables
+      'no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
+      ],
+
+      // Style
+      'no-lonely-if': 'error',
+      'no-nested-ternary': 'error',
+      'max-nested-callbacks': ['error', { max: 3 }],
+      'prefer-spread': 'error',
+      'no-console': 'error',
+      complexity: ['error', 10],
+
+      // Node.js
+      'n/no-unpublished-import': 'off',
+      'n/no-extraneous-import': 'off',
+      'n/no-unsupported-features/es-syntax': 'off',
+      'n/no-path-concat': 'error',
+      'n/callback-return': 'error',
+      'n/no-sync': 'error',
+      'n/prefer-promises/dns': 'error',
+      'n/prefer-promises/fs': 'error',
+      'n/prefer-global/url-search-params': 'error',
+      'n/no-missing-import': 'off',
+    },
+  },
+
+  // Jest test files — allow Jest globals
+  {
+    files: ['**/__tests__/**/*.js', '**/test.js', 'jest.setup.js'],
+    languageOptions: {
+      globals: {
+        describe: 'readonly',
+        it: 'readonly',
+        expect: 'readonly',
+        beforeEach: 'readonly',
+        afterEach: 'readonly',
+        beforeAll: 'readonly',
+        afterAll: 'readonly',
+        jest: 'readonly',
+      },
+    },
+  },
+
+  // JSON files
+  {
+    files: ['**/*.json'],
+    ...jsonPlugin.configs['recommended'],
+  },
+]

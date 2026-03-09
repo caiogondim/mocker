@@ -52,7 +52,7 @@ describe('mockManager.get', () => {
           'content-length': 7,
           'content-type': 'application/json',
         },
-      })
+      }),
     )
     response.end('{"a":1}')
     await mockManager.set({ request: request1, response })
@@ -79,7 +79,7 @@ describe('mockManager.get', () => {
           'example-token': 5678,
           'content-type': 'application/json',
         },
-      })
+      }),
     )
     response.end('{"a":1}')
     await mockManager.set({ request: request1, response })
@@ -106,13 +106,13 @@ describe('mockManager.get', () => {
           foo: '[REDACTED]',
           'content-type': 'application/json',
         },
-      })
+      }),
     )
     response.end('{"a":1}')
     await mockManager.set({ request, response })
 
     await expect(mockManager.get({ request })).rejects.toThrow(
-      SecretNotFoundError
+      SecretNotFoundError,
     )
   })
 })
@@ -179,7 +179,7 @@ describe('mockManager.has', () => {
     const request1 = rewindable(
       createMockedRequest({
         headers: { 'content-type': 'application/json' },
-      })
+      }),
     )
     request1.end('{"lorem": {"ipsum": 7}, "dolor": 3}')
 
@@ -195,7 +195,7 @@ describe('mockManager.has', () => {
     const request2 = rewindable(
       createMockedRequest({
         headers: { 'content-type': 'application/json' },
-      })
+      }),
     )
     request2.end('{"lorem": {"ipsum": 7}}')
 
@@ -226,7 +226,7 @@ describe('mockManager.has', () => {
     const request1 = rewindable(
       createMockedRequest({
         headers: { 'content-type': 'application/json' },
-      })
+      }),
     )
     request1.end('{"lorem": {"ipsum": 7, "dolor": 3, "amet": 4}}')
 
@@ -240,7 +240,7 @@ describe('mockManager.has', () => {
     const request2 = rewindable(
       createMockedRequest({
         headers: { 'content-type': 'application/json' },
-      })
+      }),
     )
     request2.end('{"lorem": {"ipsum": 7, "dolor": 3}}')
 
@@ -275,7 +275,7 @@ describe('mockManager.clear', () => {
       new MockedRequest({
         url: 'http://example.com',
         method: 'GET',
-      })
+      }),
     )
     request2.end()
 
@@ -321,7 +321,7 @@ describe('mockManager.set', () => {
         fault: () => {
           throw new Error()
         },
-      })
+      }),
     ).rejects.toThrow(Error)
 
     const { hasMock: hasMock2 } = await mockManager.has({ request })
@@ -376,7 +376,7 @@ describe('mockManager.set', () => {
         fault: () => {
           throw new CustomError({ code: 'EACCES' })
         },
-      })
+      }),
     ).rejects.toThrow(Error)
 
     const { hasMock: hasMock2 } = await mockManager.has({ request: request2 })
@@ -402,14 +402,14 @@ describe('mockManager.getAll', () => {
       const request = rewindable(
         createMockedRequest({
           headers: { 'content-type': 'application/json; charset=utf-8' },
-        })
+        }),
       )
       request.end(`{"a": { "b": {"c": 1}}}`)
 
       const response = rewindable(
         createMockedResponse({
           headers: { 'content-type': 'application/json; charset=utf-8' },
-        })
+        }),
       )
       response.end(`{"a":1, "b": 2, "c": { "d": 3, "e": 4 }}`)
 
@@ -424,7 +424,6 @@ describe('mockManager.getAll', () => {
       mockedRequest,
       mockedResponse,
     } of mockManager.getAll()) {
-      // eslint-disable-next-line jest/no-conditional-in-test
       if (mockedRequest === null || mockedResponse === null) {
         throw new Error('mockedRequest/mockedResponse shouldnt be `null`')
       }
@@ -463,7 +462,7 @@ describe('mockManager.getAll', () => {
             'example-token': i,
             'content-type': 'application/json',
           },
-        })
+        }),
       )
       response.end(`{"a":${i}}`)
 
@@ -475,7 +474,6 @@ describe('mockManager.getAll', () => {
     //
 
     for await (const { mockedResponse, error } of mockManager.getAll()) {
-      // eslint-disable-next-line jest/no-conditional-in-test
       if (mockedResponse === null) {
         throw new Error('mockedResponse shouldnt be `null`')
       }
@@ -509,7 +507,7 @@ describe('mockManager.getAll', () => {
             foo: '[REDACTED]',
             'content-type': 'application/json',
           },
-        })
+        }),
       )
       request.end()
       const response = rewindable(createMockedResponse())

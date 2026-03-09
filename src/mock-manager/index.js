@@ -36,7 +36,7 @@ const RESPONSE_FILE_REGEX = /\.json$/
  * @returns {string}
  */
 function sha256(input) {
-  return crypto.createHash('sha256').update(input).digest('hex')
+  return crypto.hash('sha256', input, 'hex')
 }
 
 /**
@@ -90,13 +90,13 @@ function parseBody(bodyBuffer, request, connectionId) {
   if (headerContentType.includes('application/json')) {
     try {
       body = JSON.parse(body)
-    } catch (error) {
+    } catch (_error) {
       // If we can't parse the request body to a JS object, we keep it as a
       // string
       logger.warn(
         `${dim(
-          connectionId
-        )} error trying to parse response body. serving as is.`
+          connectionId,
+        )} error trying to parse response body. serving as is.`,
       )
     }
   }
@@ -153,7 +153,7 @@ async function requestToMockPath(
   request,
   connectionId,
   responsesDir,
-  mockKeys
+  mockKeys,
 ) {
   const reqBody = await getBody(request.rewind())
   const body = parseBody(reqBody, request, connectionId)
@@ -209,7 +209,7 @@ function createMockManager({
       request,
       connectionId,
       responsesDir,
-      mockKeys
+      mockKeys,
     )
     try {
       await fsPromises.access(mockPath)
@@ -230,14 +230,14 @@ function createMockManager({
       request,
       connectionId,
       responsesDir,
-      mockKeys
+      mockKeys,
     )
     const fileContent = await fsPromises.readFile(filePath)
     const fileJson = JSON.parse(fileContent.toString('utf8'))
 
     if (
       (fileJson.response.headers?.['content-type'] ?? '').includes(
-        'application/json'
+        'application/json',
       )
     ) {
       fileJson.response.body = JSON.stringify(fileJson.response.body)
@@ -279,7 +279,7 @@ function createMockManager({
       request,
       connectionId,
       responsesDir,
-      mockKeys
+      mockKeys,
     )
     const reqBodyBuffer = await getBody(request.rewind())
     const resBodyBuffer = await getBody(response.rewind())
@@ -304,7 +304,7 @@ function createMockManager({
     const compressionAlgorithm = `${fileContent.response.headers['content-encoding']}`
     const resBodyUncompressedBuffer = await uncompressBody(
       resBodyBuffer,
-      compressionAlgorithm
+      compressionAlgorithm,
     )
     const resBody = parseBody(resBodyUncompressedBuffer, response, connectionId)
     fileContent.response.body = resBody
@@ -312,11 +312,11 @@ function createMockManager({
     // Now is safe to sanitize the request and response
     fileContent.response.headers = sanitizeResponseHeaders(
       fileContent.response.headers,
-      redactedHeaders
+      redactedHeaders,
     )
     fileContent.request.headers = sanitizeRequestHeaders(
       fileContent.request.headers,
-      redactedHeaders
+      redactedHeaders,
     )
 
     const fileContentSerialized = JSON.stringify(fileContent, null, 2)
@@ -324,7 +324,7 @@ function createMockManager({
     try {
       await pipeline(
         Readable.from(fileContentSerialized),
-        createWriteStream(filePath, { autoClose: true })
+        createWriteStream(filePath, { autoClose: true }),
       )
       fault()
     } catch (error) {
@@ -362,6 +362,7 @@ function createMockManager({
    *   mockedRequest: (MockedRequest & Rewindable) | null
    * }>}
    */
+  // eslint-disable-next-line complexity
   async function* getAll() {
     const files = // @ts-ignore memfs typing mismatch
       /** @type {string[]} */ (await fsPromises.readdir(responsesDir))
@@ -377,7 +378,7 @@ function createMockManager({
 
         if (
           (fileJson.response.headers?.['content-type'] ?? '').includes(
-            'application/json'
+            'application/json',
           )
         ) {
           fileJson.response.body = JSON.stringify(fileJson.response.body)
@@ -388,16 +389,16 @@ function createMockManager({
             statusCode: fileJson.response.statusCode,
             headers: unredactHeaders(
               fileJson.response.headers,
-              redactedHeaders
+              redactedHeaders,
             ),
             url: fileJson.request.url || '',
-          })
+          }),
         )
         mockedResponse.end(fileJson.response.body)
 
         if (
           (fileJson.request.headers?.['content-type'] ?? '').includes(
-            'application/json'
+            'application/json',
           )
         ) {
           fileJson.request.body = JSON.stringify(fileJson.request.body)
@@ -408,7 +409,7 @@ function createMockManager({
             url: fileJson.request.url,
             headers: unredactHeaders(fileJson.request.headers, redactedHeaders),
             method: fileJson.request.method,
-          })
+          }),
         )
         mockedRequest.end(fileJson.request.body)
 

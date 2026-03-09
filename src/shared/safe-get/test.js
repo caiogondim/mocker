@@ -20,7 +20,7 @@ describe('safeGet', () => {
     }
     expect(safeGet(obj, ['lorem', 'ipsum', 'dolor', 'sit'])).toBe(7)
     expect(safeGet(obj, ['lorem', 'ipsum', 'dolor'])).toBe(
-      obj.lorem.ipsum.dolor
+      obj.lorem.ipsum.dolor,
     )
   })
 
@@ -38,10 +38,10 @@ describe('safeGet', () => {
     expect(safeGet(obj, ['lorem', 'quijotest'])).toBeUndefined()
     expect(safeGet(obj, ['lorem', 'ipsum', 'dolor', 'sit'])).toBeUndefined()
     expect(
-      safeGet(obj, ['lorem', 'ipsum', 'dolor', 'sit', 'amet'])
+      safeGet(obj, ['lorem', 'ipsum', 'dolor', 'sit', 'amet']),
     ).toBeUndefined()
     expect(safeGet(obj, ['lorem', 'ipsum', 'dolor'])).toBe(
-      obj.lorem.ipsum.dolor
+      obj.lorem.ipsum.dolor,
     )
   })
 
