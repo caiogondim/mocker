@@ -1,11 +1,9 @@
-const getPort = require('get-port')
-const { createOrigin } = require('.')
-const { getBody } = require('../shared/http')
-const {
-  createServer: createRequestHeaderOnResponseBodyServer,
-} = require('../../tools/request-header-on-response-body-server')
-const { createServer: createFlakyServer } = require('../../tools/flaky-server')
-const { createServer: createMathServer } = require('../../tools/math-server')
+import getPort from 'get-port'
+import { createOrigin } from './index.js'
+import { getBody } from '../shared/http/index.js'
+import { createServer as createRequestHeaderOnResponseBodyServer } from '../../tools/request-header-on-response-body-server/index.js'
+import { createServer as createFlakyServer } from '../../tools/flaky-server/index.js'
+import { createServer as createMathServer } from '../../tools/math-server/index.js'
 
 describe('origin', () => {
   describe('request()', () => {

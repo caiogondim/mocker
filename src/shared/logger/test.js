@@ -1,6 +1,6 @@
-/** @typedef {import('./index').Console} Console */
+/** @typedef {import('./index.js').Console} Console */
 
-const createLogger = require('.')
+import createLogger from './index.js'
 
 /** @type {Console} */
 const consoleMock = {

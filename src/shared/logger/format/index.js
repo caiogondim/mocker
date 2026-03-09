@@ -1,8 +1,10 @@
-/** @typedef {import('../../types').Json} Json */
+/** @typedef {import('../../types.js').Json} Json */
 
 // @see https://blog.bitsrc.io/coloring-your-terminal-using-nodejs-eb647d4af2a2
 
-const supportsColor = require('../supports-color')()
+import supportsColorFn from '../supports-color/index.js'
+
+const supportsColor = supportsColorFn()
 
 const reset = '\x1b[0m'
 
@@ -146,14 +148,4 @@ function stringify(x) {
   )
 }
 
-module.exports = {
-  bold,
-  red,
-  blue,
-  yellow,
-  green,
-  stripMargin,
-  table,
-  dim,
-  stringify,
-}
+export { bold, red, blue, yellow, green, stripMargin, table, dim, stringify }

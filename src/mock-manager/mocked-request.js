@@ -1,6 +1,6 @@
-/** @typedef {import('../shared/http').Headers} Headers */
+/** @typedef {import('../shared/http/types.js').Headers} Headers */
 
-const { Transform } = require('node:stream')
+import { Transform } from 'node:stream'
 
 class MockedRequest extends Transform {
   /**
@@ -33,4 +33,4 @@ class MockedRequest extends Transform {
   }
 }
 
-module.exports = MockedRequest
+export default MockedRequest

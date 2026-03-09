@@ -1,4 +1,4 @@
-const { stringify } = require('.')
+import { stringify } from './index.js'
 
 describe('stringify', () => {
   // Regression test for https://github.com/caiogondim/mocker/issues/37

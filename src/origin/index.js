@@ -1,6 +1,6 @@
-/** @typedef {import('../shared/http/types').Headers} Headers */
+/** @typedef {import('../shared/http/types.js').Headers} Headers */
 
-const { createRequest } = require('../shared/http')
+import { createRequest } from '../shared/http/index.js'
 
 /**
  * @param {Object} options
@@ -52,4 +52,4 @@ function createOrigin({ host, retries = 0, overwriteRequestHeaders = {} }) {
   return { request }
 }
 
-module.exports = { createOrigin }
+export { createOrigin }

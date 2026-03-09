@@ -1,6 +1,6 @@
-/** @typedef {import('../../shared/types').AsyncHttpServer} AsyncHttpServer */
+/** @typedef {import('../../shared/types.js').AsyncHttpServer} AsyncHttpServer */
 
-const http = require('node:http')
+import http from 'node:http'
 
 /**
  * @param {AsyncHttpServer} server
@@ -46,4 +46,4 @@ function createServer(connectionHandler) {
   }
 }
 
-module.exports = { closeServer, createServer }
+export { closeServer, createServer }

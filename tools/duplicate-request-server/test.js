@@ -1,6 +1,6 @@
-const getPort = require('get-port')
-const { createServer, createPayload } = require('.')
-const { createRequest, getBody } = require('../../src/shared/http')
+import getPort from 'get-port'
+import { createServer, createPayload } from './index.js'
+import { createRequest, getBody } from '../../src/shared/http/index.js'
 
 describe('duplicate-request-server', () => {
   it('responds with double the payload passed on request', async () => {

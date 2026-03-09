@@ -1,5 +1,5 @@
-import { Json } from '../shared/types';
-import { Headers } from '../shared/http';
+import { Json } from '../shared/types.js';
+import { Headers } from '../shared/http/index.js';
 
 export type MockFile = {
   request: {

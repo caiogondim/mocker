@@ -1,4 +1,4 @@
-const queueCalls = require('./index')
+import queueCalls from './index.js'
 
 describe('queue', () => {
   it('enqueues calls to decorated function', async () => {

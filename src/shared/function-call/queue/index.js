@@ -43,4 +43,4 @@ function queueCalls(fn) {
   return decoratedFn
 }
 
-module.exports = queueCalls
+export default queueCalls

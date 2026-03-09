@@ -1,6 +1,6 @@
-const { Readable, Transform } = require('node:stream')
-const pipeline = require('../pipeline')
-const createPassAndSave = require('.')
+import { Readable, Transform } from 'node:stream'
+import pipeline from '../pipeline/index.js'
+import createPassAndSave from './index.js'
 
 describe('passAndSave', () => {
   it('returns a promise with for accumulated buffers from stream', async () => {

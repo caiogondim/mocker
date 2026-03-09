@@ -1,4 +1,4 @@
-const { prettifyError, isPrettyError } = require('./index')
+import { prettifyError, isPrettyError } from './index.js'
 
 describe('prettifyError()', () => {
   it('decorates error with a better message', () => {

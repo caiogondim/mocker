@@ -1,6 +1,6 @@
-const { Readable, Transform, PassThrough } = require('node:stream')
-const pipeline = require('../pipeline')
-const throttle = require('.')
+import { Readable, Transform, PassThrough } from 'node:stream'
+import pipeline from '../pipeline/index.js'
+import throttle from './index.js'
 
 describe('throttle', () => {
   it('throttles its readable stream', async () => {

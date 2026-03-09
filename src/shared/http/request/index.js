@@ -1,9 +1,9 @@
-/** @typedef {import('../types').RequestWrite} RequestWrite */
+/** @typedef {import('../types.js').RequestWrite} RequestWrite */
 
-const http = require('node:http')
-const https = require('node:https')
-const createBackoff = require('../../backoff')
-const retry = require('../../function-call/retry')
+import http from 'node:http'
+import https from 'node:https'
+import createBackoff from '../../backoff/index.js'
+import retry from '../../function-call/retry/index.js'
 
 /**
  * @param {string} protocol
@@ -226,4 +226,4 @@ async function createRequestWithRetry({
   return [request, responseWithRetryPromise]
 }
 
-module.exports = createRequestWithRetry
+export default createRequestWithRetry

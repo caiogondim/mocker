@@ -1,4 +1,4 @@
-const createBackoff = require('../../backoff')
+import createBackoff from '../../backoff/index.js'
 
 /**
  * @param {function(): Promise<any>} asyncThunk
@@ -41,4 +41,4 @@ async function retry(
   return response
 }
 
-module.exports = retry
+export default retry

@@ -25,4 +25,4 @@ function safeGet(obj, props) {
   return safeGet(deeperObj, restProps)
 }
 
-module.exports = safeGet
+export default safeGet

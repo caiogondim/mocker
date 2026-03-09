@@ -1,4 +1,4 @@
-const createId = require('.')
+import createId from './index.js'
 
 describe('createId', () => {
   it('creates a valid UUID', () => {

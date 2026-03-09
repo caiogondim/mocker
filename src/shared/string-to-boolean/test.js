@@ -1,4 +1,4 @@
-const stringToBoolean = require('.')
+import stringToBoolean from './index.js'
 
 describe('stringToBoolean', () => {
   it('returns true for strings with truthy meaning', () => {

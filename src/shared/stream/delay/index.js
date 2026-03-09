@@ -1,5 +1,5 @@
-const { PassThrough, Transform } = require('node:stream')
-const sleep = require('../../sleep')
+import { PassThrough, Transform } from 'node:stream'
+import sleep from '../../sleep/index.js'
 
 /**
  * Adds an artifical delay to a stream pipeline.
@@ -38,4 +38,4 @@ function delay({ ms }) {
   return stream
 }
 
-module.exports = delay
+export default delay

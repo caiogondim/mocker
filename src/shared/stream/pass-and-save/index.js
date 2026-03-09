@@ -1,4 +1,4 @@
-const { Transform } = require('node:stream')
+import { Transform } from 'node:stream'
 
 /** @returns {[Transform, Promise<Buffer[]>]} */
 function createPassAndSave() {
@@ -33,4 +33,4 @@ function createPassAndSave() {
   return [stream, contentPromise]
 }
 
-module.exports = createPassAndSave
+export default createPassAndSave

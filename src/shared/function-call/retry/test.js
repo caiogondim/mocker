@@ -1,5 +1,5 @@
-const sleep = require('../../sleep')
-const retry = require('.')
+import sleep from '../../sleep/index.js'
+import retry from './index.js'
 
 async function backoff() {}
 

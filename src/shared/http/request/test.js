@@ -1,14 +1,10 @@
-const getPort = require('get-port')
-const {
-  createServer: createDuplicateRequestServer,
-} = require('../../../../tools/duplicate-request-server')
-const {
-  createServer: createFlakyServer,
-} = require('../../../../tools/flaky-server')
-const createBackoff = require('../../backoff')
-const sleep = require('../../sleep')
-const { getBody } = require('..')
-const createRequest = require('.')
+import getPort from 'get-port'
+import { createServer as createDuplicateRequestServer } from '../../../../tools/duplicate-request-server/index.js'
+import { createServer as createFlakyServer } from '../../../../tools/flaky-server/index.js'
+import createBackoff from '../../backoff/index.js'
+import sleep from '../../sleep/index.js'
+import { getBody } from '../index.js'
+import createRequest from './index.js'
 
 describe('createRequest', () => {
   it('makes a request and receives a response', async () => {

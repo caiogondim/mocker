@@ -8,4 +8,4 @@ function stringToBoolean(str) {
   )
 }
 
-module.exports = stringToBoolean
+export default stringToBoolean

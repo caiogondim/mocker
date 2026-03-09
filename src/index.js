@@ -1,28 +1,29 @@
-/** @typedef {import('./args').Args} Args */
-/** @typedef {import('./shared/types').AsyncHttpServer} AsyncHttpServer */
-/** @typedef {import('./shared/types').FsLike} FsLike */
-/** @typedef {import('./shared/stream/rewindable/types').Rewindable} Rewindable */
-/** @typedef {import('./shared/http').Headers} Headers */
-/** @typedef {import('./mock-manager/mocked-request')} MockedRequest */
+/** @typedef {import('./args/index.js').Args} Args */
+/** @typedef {import('./shared/types.js').AsyncHttpServer} AsyncHttpServer */
+/** @typedef {import('./shared/types.js').FsLike} FsLike */
+/** @typedef {import('./shared/stream/rewindable/types.js').Rewindable} Rewindable */
+/** @typedef {import('./shared/http/index.js').Headers} Headers */
+/** @typedef {InstanceType<import('./mock-manager/mocked-request.js')["default"]>} MockedRequest */
 
-const path = require('node:path')
-const http = require('node:http')
-const cluster = require('node:cluster')
-const os = require('node:os')
-const packageJson = require('../package.json')
-const createLogger = require('./shared/logger')
-const { bold, dim, green, yellow, red } = require('./shared/logger/format')
-const { createMockManager } = require('./mock-manager')
-const { createOrigin } = require('./origin')
-const { delay, throttle, pipeline, rewindable } = require('./shared/stream')
-const createId = require('./shared/create-id')
-const {
+import path from 'node:path'
+import http from 'node:http'
+import cluster from 'node:cluster'
+import os from 'node:os'
+import { createRequire } from 'node:module'
+import createLogger from './shared/logger/index.js'
+import { bold, dim, green, yellow, red } from './shared/logger/format/index.js'
+import { createMockManager } from './mock-manager/index.js'
+import { createOrigin } from './origin/index.js'
+import { delay, throttle, pipeline, rewindable } from './shared/stream/index.js'
+import createId from './shared/create-id/index.js'
+import {
   getHeaders,
   redactHeaders,
   isHeaders,
   SecretNotFoundError,
-} = require('./shared/http')
+} from './shared/http/index.js'
 
+const packageJson = createRequire(import.meta.url)('../package.json')
 const logger = createLogger()
 const closingMockerText = '\r  \nclosing mocker 👋'
 
@@ -212,8 +213,6 @@ class Mocker {
         .join('\n')}\n`
     }
 
-    // Type definition for cluster module is broken
-    // @ts-expect-error
     if (cluster.isPrimary) {
       logger.log(printStartMessage())
 
@@ -240,8 +239,6 @@ class Mocker {
         this.#httpServer = http
           .createServer(this.#server.bind(this))
           .listen(port, resolve)
-        // Type definition for cluster module is broken
-        // @ts-expect-error
       } else if (cluster.isPrimary) {
         logger.info(
           `started on port ${bold(port)}, with pid ${bold(
@@ -259,35 +256,23 @@ class Mocker {
         )
 
         for (let i = 0; i < args.workers; i += 1) {
-          // Type definition for cluster module is broken
-          // @ts-expect-error
           cluster.fork()
         }
 
-        // Type definition for cluster module is broken
-        // @ts-expect-error
         cluster.on('online', (worker) => {
           logger.info(`worker pid ${bold(worker.process.pid)} started`)
         })
 
-        // Type definition for cluster module is broken
-        // @ts-expect-error
         cluster.on('exit', (worker) => {
           if (!state.isClosing) {
             logger.warn(`worker pid ${bold(worker.process.pid)} died`)
 
-            // Type definition for cluster module is broken
-            // @ts-expect-error
             cluster.fork()
           }
         })
 
-        // Type definition for cluster module is broken
-        // @ts-expect-error
         cluster.on('listening', resolve)
 
-        // Type definition for cluster module is broken
-        // @ts-expect-error
       } else if (cluster.isWorker) {
         this.#httpServer = http
           .createServer(this.#server.bind(this))
@@ -309,12 +294,8 @@ class Mocker {
 
     this.#removeListeners()
 
-    // Type definition for cluster module is broken
-    // @ts-expect-error
     if (process.env.NODE_ENV !== 'test' && cluster.isPrimary) {
       return new Promise((resolve) => {
-        // Type definition for cluster module is broken
-        // @ts-expect-error
         cluster.disconnect(resolve)
       })
     }
@@ -907,4 +888,4 @@ class Mocker {
   }
 }
 
-module.exports = Mocker
+export default Mocker

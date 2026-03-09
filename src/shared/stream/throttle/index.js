@@ -1,4 +1,4 @@
-const { Transform, PassThrough } = require('node:stream')
+import { Transform, PassThrough } from 'node:stream'
 
 // https://en.wikipedia.org/wiki/Token_bucket
 class TokenBucket {
@@ -104,4 +104,4 @@ function throttle({ bps }) {
   return stream
 }
 
-module.exports = throttle
+export default throttle

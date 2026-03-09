@@ -1,4 +1,4 @@
-const { green, red, bold, yellow, stripMargin } = require('../format')
+import { green, red, bold, yellow, stripMargin } from '../format/index.js'
 
 const prettyErrorSymbol = Symbol('pretty-error')
 
@@ -46,4 +46,4 @@ function prettifyError({ error, expected, received, hint = '' }) {
   return proxy
 }
 
-module.exports = { isPrettyError, prettifyError }
+export { isPrettyError, prettifyError }

@@ -2,6 +2,7 @@
   "name": "mocker",
   "version": "1.1.0",
   "description": "HTTP mock server for development and stable E2E tests",
+  "type": "module",
   "main": "src/index.js",
   "scripts": {
     "test": "npm run lint && npm run type-check && npm run jest",
@@ -9,7 +10,7 @@
     "dev:httpbin": "node --watch-path=./src mocker --responsesDir ./responses/httpbin --origin http://httpbin.org --logging verbose --mode read-write",
     "dev:vi": "./scripts/dev-vi",
     "dev": "NODE_OPTIONS='--max-http-header-size=1000000 --unhandled-rejections=strict' node --watch-path=./src mocker",
-    "jest": "NODE_OPTIONS='--max-old-space-size=4000' NODE_ENV=test jest --collectCoverageFrom='./src/**/*.js'",
+    "jest": "NODE_OPTIONS='--max-old-space-size=4000 --experimental-vm-modules' NODE_ENV=test jest --collectCoverageFrom='./src/**/*.js'",
     "type-check": "tsc --p './tsconfig.json'",
     "fmt": "prettier --print-width 80 --prose-wrap always --write './**/*.{js,md,yml,json}' --ignore-path .gitignore",
     "fmt:check": "prettier --check './**/*.{js,md,yml,json}' --ignore-path .gitignore",
@@ -18,7 +19,7 @@
   "license": "UNLICENSED",
   "private": true,
   "devDependencies": {
-    "@types/jest": "^29.5.12",
+    "@types/jest": "^30",
     "@types/node": "^24",
     "@typescript-eslint/parser": "^7.1.1",
     "eslint": "^8.57.0",
@@ -31,7 +32,7 @@
     "eslint-plugin-prettier": "^4",
     "eslint-plugin-sort-class-members": "^1.20.0",
     "get-port": "5.1.1",
-    "jest": "^29.7.0",
+    "jest": "^30.2.0",
     "memfs": "^4.7.7",
     "prettier": "2.8.8",
     "typescript": "5.3.3"
@@ -48,6 +49,8 @@
       "global": {
         "branches": 78.14
       }
-    }
+    },
+    "injectGlobals": true,
+    "setupFiles": ["./jest.setup.js"]
   }
 }

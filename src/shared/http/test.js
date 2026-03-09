@@ -1,5 +1,5 @@
-const MockedRequest = require('../../mock-manager/mocked-request')
-const { isHeaders, getHeaders } = require('.')
+import MockedRequest from '../../mock-manager/mocked-request.js'
+import { isHeaders, getHeaders } from './index.js'
 
 describe('isHeaders()', () => {
   it('returns false if input is not an object', () => {

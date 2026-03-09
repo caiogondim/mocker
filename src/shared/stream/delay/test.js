@@ -1,6 +1,6 @@
-const { Readable, Transform, PassThrough } = require('node:stream')
-const pipeline = require('../pipeline')
-const delay = require('.')
+import { Readable, Transform, PassThrough } from 'node:stream'
+import pipeline from '../pipeline/index.js'
+import delay from './index.js'
 
 describe('delay', () => {
   it('delays the start of its readable stream', async () => {

@@ -1,4 +1,4 @@
-const sleep = require('../sleep')
+import sleep from '../sleep/index.js'
 
 /**
  * @param {Object} options
@@ -14,4 +14,4 @@ function createBackoff({ max = 30000, initial = 1000 } = {}) {
   }
 }
 
-module.exports = createBackoff
+export default createBackoff

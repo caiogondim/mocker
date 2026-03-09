@@ -1,4 +1,4 @@
-const createBackoff = require('.')
+import createBackoff from './index.js'
 
 jest.useFakeTimers()
 jest.spyOn(global, 'setTimeout')

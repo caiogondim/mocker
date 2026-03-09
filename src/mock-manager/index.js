@@ -1,31 +1,31 @@
-/** @typedef {import('../shared/types').FsLike} FsLike */
-/** @typedef {import('../shared/types').HttpIncomingMessage} HttpIncomingMessage */
-/** @typedef {import('../shared/types').HttpServerResponse} HttpServerResponse */
-/** @typedef {import('./types').MockFile} MockFile */
-/** @typedef {import('./types').RequestFile} RequestFile */
-/** @typedef {import('../args/types').Args} Args */
-/** @typedef {import('../shared/http').Headers} Headers */
-/** @typedef {import('../shared/stream/rewindable/types').Rewindable} Rewindable */
-/** @typedef {import('../shared/types').Json} Json */
+/** @typedef {import('../shared/types.js').FsLike} FsLike */
+/** @typedef {import('../shared/types.js').HttpIncomingMessage} HttpIncomingMessage */
+/** @typedef {import('../shared/types.js').HttpServerResponse} HttpServerResponse */
+/** @typedef {import('./types.js').MockFile} MockFile */
+/** @typedef {import('./types.js').RequestFile} RequestFile */
+/** @typedef {import('../args/types.js').Args} Args */
+/** @typedef {import('../shared/http/types.js').Headers} Headers */
+/** @typedef {import('../shared/stream/rewindable/types.js').Rewindable} Rewindable */
+/** @typedef {import('../shared/types.js').Json} Json */
 
-const path = require('node:path')
-const nativeFs = require('node:fs')
-const zlib = require('node:zlib')
-const { Readable } = require('node:stream')
-const crypto = require('node:crypto')
-const { promisify } = require('node:util')
-const MockedResponse = require('./mocked-response')
-const {
+import path from 'node:path'
+import nativeFs from 'node:fs'
+import zlib from 'node:zlib'
+import { Readable } from 'node:stream'
+import crypto from 'node:crypto'
+import { promisify } from 'node:util'
+import MockedResponse from './mocked-response.js'
+import {
   getBody,
   getHeaders,
   redactHeaders,
   unredactHeaders,
-} = require('../shared/http')
-const { pipeline, rewindable } = require('../shared/stream')
-const createLogger = require('../shared/logger')
-const { dim } = require('../shared/logger/format')
-const safeGet = require('../shared/safe-get')
-const MockedRequest = require('./mocked-request')
+} from '../shared/http/index.js'
+import { pipeline, rewindable } from '../shared/stream/index.js'
+import createLogger from '../shared/logger/index.js'
+import { dim } from '../shared/logger/format/index.js'
+import safeGet from '../shared/safe-get/index.js'
+import MockedRequest from './mocked-request.js'
 
 const logger = createLogger()
 
@@ -455,4 +455,4 @@ function createMockManager({
   return { has, get, set, clear, getAll, size }
 }
 
-module.exports = { createMockManager }
+export { createMockManager }

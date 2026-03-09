@@ -1,8 +1,8 @@
-const getPort = require('get-port')
-const { createRequest } = require('../shared/http')
-const { createServer: createMathServer } = require('../../tools/math-server')
-const { closeServer } = require('./helpers/async-http-server')
-const { createMocker } = require('./helpers/mocker')
+import getPort from 'get-port'
+import { createRequest } from '../shared/http/index.js'
+import { createServer as createMathServer } from '../../tools/math-server/index.js'
+import { closeServer } from './helpers/async-http-server.js'
+import { createMocker } from './helpers/mocker.js'
 
 describe('args.overwriteResponseHeaders', () => {
   it('overwrites headers from response coming directly from origin', async () => {

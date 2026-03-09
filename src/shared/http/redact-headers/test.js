@@ -1,4 +1,4 @@
-const { redactHeaders, unredactHeaders, SecretNotFoundError } = require('.')
+import { redactHeaders, unredactHeaders, SecretNotFoundError } from './index.js'
 
 describe('redactHeaders', () => {
   it('redact secrets from headers', () => {

@@ -1,3 +1,3 @@
-const { pipeline } = require('node:stream/promises')
+import { pipeline } from 'node:stream/promises'
 
-module.exports = pipeline
+export default pipeline

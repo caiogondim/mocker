@@ -1,15 +1,15 @@
-/** @typedef {import('./types').Args} Args */
-/** @typedef {import('../shared/http').Headers} Headers */
+/** @typedef {import('./types.js').Args} Args */
+/** @typedef {import('../shared/http/types.js').Headers} Headers */
 /** @typedef {Map<string, string>} ArgvMap */
 
-const path = require('node:path')
-const { promises: fs } = require('node:fs')
-const stringToBoolean = require('../shared/string-to-boolean')
-const createLogger = require('../shared/logger')
-const { prettifyError } = require('../shared/logger/pretty-error')
-const { stringify } = require('../shared/logger/format')
-const getConstructorName = require('../shared/get-constructor-name')
-const isPortTaken = require('../shared/is-port-taken')
+import path from 'node:path'
+import { promises as fs } from 'node:fs'
+import stringToBoolean from '../shared/string-to-boolean/index.js'
+import createLogger from '../shared/logger/index.js'
+import { prettifyError } from '../shared/logger/pretty-error/index.js'
+import { stringify } from '../shared/logger/format/index.js'
+import getConstructorName from '../shared/get-constructor-name/index.js'
+import isPortTaken from '../shared/is-port-taken/index.js'
 
 /** @type {Readonly<string[]>} */
 const MODE_VALID_VALUES = [
@@ -632,7 +632,7 @@ async function parseArgv(argv) {
   return args
 }
 
-module.exports = {
+export {
   parseArgv,
   RESPONSES_DIR_DEFAULT,
   PORT_DEFAULT,

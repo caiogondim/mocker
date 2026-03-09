@@ -1,4 +1,4 @@
-const safeGet = require('.')
+import safeGet from './index.js'
 
 describe('safeGet', () => {
   it('doesnt throw in case a property is queried on an undefined object', () => {

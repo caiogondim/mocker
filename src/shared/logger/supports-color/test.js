@@ -1,4 +1,4 @@
-const supportsColor = require('.')
+import supportsColor from './index.js'
 
 describe('supportsColor', () => {
   it('return true if `FORCE_COLOR` is in env', () => {

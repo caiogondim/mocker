@@ -1,7 +1,7 @@
-const { PassThrough, Readable } = require('node:stream')
-const sleep = require('../../sleep')
-const values = require('../values')
-const rewindable = require('.')
+import { PassThrough, Readable } from 'node:stream'
+import sleep from '../../sleep/index.js'
+import values from '../values/index.js'
+import rewindable from './index.js'
 
 describe('rewindable', () => {
   it('exposes a rewind method that returns a stream that can be consumed from the start', async () => {

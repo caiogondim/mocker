@@ -1,8 +1,8 @@
-const getPort = require('get-port')
-const { createMocker } = require('./helpers/mocker')
-const { createRequest, getBody } = require('../shared/http')
-const { closeServer } = require('./helpers/async-http-server')
-const { createServer: createTimeServer } = require('../../tools/time-server')
+import getPort from 'get-port'
+import { createMocker } from './helpers/mocker.js'
+import { createRequest, getBody } from '../shared/http/index.js'
+import { closeServer } from './helpers/async-http-server.js'
+import { createServer as createTimeServer } from '../../tools/time-server/index.js'
 
 describe('health checks endpoints', () => {
   it('implements /.well-known/live endpoint for live health check', async () => {

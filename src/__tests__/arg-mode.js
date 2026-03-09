@@ -1,9 +1,9 @@
-const getPort = require('get-port')
-const { createMocker, createMemFs } = require('./helpers/mocker')
-const { closeServer, createServer } = require('./helpers/async-http-server')
-const { createServer: createMathServer } = require('../../tools/math-server')
-const { createServer: createTimeServer } = require('../../tools/time-server')
-const { createRequest, getBody } = require('../shared/http')
+import getPort from 'get-port'
+import { createMocker, createMemFs } from './helpers/mocker.js'
+import { closeServer, createServer } from './helpers/async-http-server.js'
+import { createServer as createMathServer } from '../../tools/math-server/index.js'
+import { createServer as createTimeServer } from '../../tools/time-server/index.js'
+import { createRequest, getBody } from '../shared/http/index.js'
 
 describe(`mode = 'pass'`, () => {
   it('works as a pass-through proxy', async () => {

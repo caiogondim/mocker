@@ -1,10 +1,17 @@
 module.exports = {
   root: true,
   env: {
-    es6: true,
+    es2024: true,
     jest: true,
   },
+  globals: {
+    structuredClone: 'readonly',
+  },
   parser: '@typescript-eslint/parser',
+  parserOptions: {
+    sourceType: 'module',
+    ecmaVersion: 2024,
+  },
   plugins: [
     'json',
     'prettier',
@@ -47,9 +54,12 @@ module.exports = {
     'no-continue': 0,
     'no-restricted-syntax': 0,
     'node/no-unpublished-require': 0,
+    'node/no-unpublished-import': 0,
+    'node/no-extraneous-import': 0,
+    'node/no-unsupported-features/es-syntax': 0,
     'node/no-path-concat': 2,
     'node/callback-return': 2,
-    'node/global-require': 2,
+    'node/global-require': 0,
     'node/no-sync': 2,
     'node/prefer-promises/dns': 2,
     'node/prefer-promises/fs': 2,

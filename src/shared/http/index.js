@@ -1,20 +1,20 @@
-/** @typedef {import('stream').Readable} Readable */
-/** @typedef {import('./types').Stream} Stream */
-/** @typedef {import('./types').RequestWrite} RequestWrite */
-/** @typedef {import('../../mock-manager/mocked-request')} MockedRequest */
-/** @typedef {import('../../mock-manager/mocked-response')} MockedResponse */
-/** @typedef {import('../types').HttpIncomingMessage} HttpIncomingMessage */
-/** @typedef {import('../types').HttpServerResponse} HttpServerResponse */
-/** @typedef {import('./types').Headers} Headers */
+/** @typedef {import('node:stream').Readable} Readable */
+/** @typedef {import('./types.js').Stream} Stream */
+/** @typedef {import('./types.js').RequestWrite} RequestWrite */
+/** @typedef {InstanceType<import('../../mock-manager/mocked-request.js')["default"]>} MockedRequest */
+/** @typedef {InstanceType<import('../../mock-manager/mocked-response.js')["default"]>} MockedResponse */
+/** @typedef {import('../types.js').HttpIncomingMessage} HttpIncomingMessage */
+/** @typedef {import('../types.js').HttpServerResponse} HttpServerResponse */
+/** @typedef {import('./types.js').Headers} Headers */
 
-const getConstructorName = require('../get-constructor-name')
-const createRequest = require('./request')
-const {
+import getConstructorName from '../get-constructor-name/index.js'
+import createRequest from './request/index.js'
+import {
   redactHeaders,
   unredactHeaders,
   SecretNotFoundError,
-} = require('./redact-headers')
-const values = require('../stream/values')
+} from './redact-headers/index.js'
+import values from '../stream/values/index.js'
 
 /**
  * @param {Readable} req
@@ -80,7 +80,7 @@ function isHeaders(x) {
   return true
 }
 
-module.exports = {
+export {
   getBody,
   createRequest,
   getHeaders,

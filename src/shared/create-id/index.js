@@ -1,7 +1,7 @@
-const { randomUUID } = require('node:crypto')
+import { randomUUID } from 'node:crypto'
 
 function createId() {
   return randomUUID()
 }
 
-module.exports = createId
+export default createId

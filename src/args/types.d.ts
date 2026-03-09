@@ -1,5 +1,6 @@
-import { Headers } from '../shared/http';
-import { LoggerLevels } from '../shared/logger';
+import { Headers } from '../shared/http/index.js';
+
+type LoggerLevels = 'silent' | 'error' | 'warn' | 'verbose';
 
 export type Args = Readonly<{
   port: number;

@@ -6,8 +6,8 @@
 /** @typedef {{ log: ConsoleMethod; error: ConsoleMethod; warn: ConsoleMethod }} Console */
 /** @typedef {'silent' | 'error' | 'warn' | 'verbose'} LoggerLevels */
 
-const { red, blue, yellow, green } = require('./format')
-const { isPrettyError } = require('./pretty-error')
+import { red, blue, yellow, green } from './format/index.js'
+import { isPrettyError } from './pretty-error/index.js'
 
 /**
  * @type {LoggerLevels[]}
@@ -141,4 +141,4 @@ Object.defineProperty(createLogger, 'level', {
   configurable: true,
 })
 
-module.exports = createLogger
+export default createLogger

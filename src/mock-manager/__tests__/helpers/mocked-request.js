@@ -1,4 +1,4 @@
-const MockedRequest = require('../../mocked-request')
+import MockedRequest from '../../mocked-request.js'
 
 function createMockedRequest(opts = {}) {
   const defaults = {
@@ -9,6 +9,4 @@ function createMockedRequest(opts = {}) {
   return new MockedRequest({ ...defaults, ...opts })
 }
 
-module.exports = {
-  createMockedRequest,
-}
+export { createMockedRequest }

@@ -1,5 +1,5 @@
-const path = require('node:path')
-const {
+import path from 'node:path'
+import {
   parseArgv,
   PORT_DEFAULT,
   RETRIES_DEFAULT,
@@ -8,7 +8,7 @@ const {
   OVERWRITE_RESPONSE_HEADERS_DEFAULT,
   REDACTED_HEADERS_DEFAULT,
   CORS_DEFAULT,
-} = require('./index')
+} from './index.js'
 
 function getRequiredArgs() {
   return ['--origin', 'https://example.com']
@@ -123,27 +123,22 @@ describe('--port', () => {
   it('throws an error if port is already in use', async () => {
     expect.assertions(1)
 
-    // Given I have a port already in use
-    jest.resetModules()
-    jest.doMock('../shared/is-port-taken', () => {
-      return async () => true
-    })
-    // eslint-disable-next-line node/global-require
-    const { parseArgv } = require('./index')
+    // Given I have a port already in use — bind an actual port
+    const net = await import('node:net')
+    const server = net.default.createServer()
+    await new Promise((resolve) => server.listen(0, () => resolve(undefined)))
+    const takenPort = /** @type {import('node:net').AddressInfo} */ (
+      server.address()
+    ).port
 
     // When I call `parserArgv` passing a `--port` that is already in use
-    const argv = ['', '', ...getRequiredArgs(), '--port', `8123`]
-    const parseArgvPromise = parseArgv(argv)
+    const argv = ['', '', ...getRequiredArgs(), '--port', `${takenPort}`]
 
     try {
       // Then it should throw an error
-      await expect(parseArgvPromise).rejects.toMatchInlineSnapshot(`
-              [TypeError: [1mTypeError[22m[0m: invalid --port
-              [32mExpected[89m[0m available port on host
-              [31mReceived[89m[0m 8123]
-            `)
+      await expect(parseArgv(argv)).rejects.toThrow('invalid --port')
     } finally {
-      jest.resetModules()
+      await new Promise((resolve) => server.close(resolve))
     }
   })
 })

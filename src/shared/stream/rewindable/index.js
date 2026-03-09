@@ -1,6 +1,6 @@
-/** @typedef {import('./types').Rewindable} Rewindable */
+/** @typedef {import('./types.js').Rewindable} Rewindable */
 
-const { Readable } = require('node:stream')
+import { Readable } from 'node:stream'
 
 /**
  * @param {Readable} stream
@@ -96,4 +96,4 @@ function rewindable(stream) {
   return Object.setPrototypeOf({ rewind }, stream)
 }
 
-module.exports = rewindable
+export default rewindable

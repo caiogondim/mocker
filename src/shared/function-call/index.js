@@ -1,7 +1,4 @@
-const queue = require('./queue')
-const retry = require('./retry')
+import queue from './queue/index.js'
+import retry from './retry/index.js'
 
-module.exports = {
-  queue,
-  retry,
-}
+export { queue, retry }

@@ -2,7 +2,7 @@
 
 /* eslint-disable no-process-exit */
 
-const {
+import {
   parseArgv,
   RESPONSES_DIR_DEFAULT,
   PORT_DEFAULT,
@@ -20,12 +20,13 @@ const {
   LOGGING_DEFAULT,
   LOGGING_VALID_VALUES,
   OVERWRITE_RESPONSE_HEADERS_DEFAULT,
-} = require('./src/args')
-const Mocker = require('./src')
-const createLogger = require('./src/shared/logger')
-const { bold, stripMargin, table, dim, stringify } = require('./src/shared/logger/format')
-const packageJson = require('./package.json')
+} from './src/args/index.js'
+import Mocker from './src/index.js'
+import createLogger from './src/shared/logger/index.js'
+import { bold, stripMargin, table, dim, stringify } from './src/shared/logger/format/index.js'
+import { createRequire } from 'node:module'
 
+const packageJson = createRequire(import.meta.url)('./package.json')
 const mockKeysDefaultStr = Array.from(MOCK_KEYS_DEFAULT.values()).join(',')
 
 const logger = createLogger({ forceLog: true })

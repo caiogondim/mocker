@@ -1,7 +1,7 @@
-const getPort = require('get-port')
-const { createMocker, createMemFs } = require('./helpers/mocker')
-const { createServer: createTimeServer } = require('../../tools/time-server')
-const { createRequest, getBody } = require('../shared/http')
+import getPort from 'get-port'
+import { createMocker, createMemFs } from './helpers/mocker.js'
+import { createServer as createTimeServer } from '../../tools/time-server/index.js'
+import { createRequest, getBody } from '../shared/http/index.js'
 
 /**
  * @param {number} ms

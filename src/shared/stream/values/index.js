@@ -1,4 +1,4 @@
-/** @typedef {import('../../types').StreamReadable} StreamReadable */
+/** @typedef {import('../../types.js').StreamReadable} StreamReadable */
 
 /**
  * @param {AsyncIterable<any> | Iterable<any>} stream
@@ -13,4 +13,4 @@ async function values(stream) {
   return chunks
 }
 
-module.exports = values
+export default values

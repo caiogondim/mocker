@@ -1,6 +1,6 @@
-const getPort = require('get-port')
-const { createServer: createMathServer } = require('../../../tools/math-server')
-const isPortTaken = require('.')
+import getPort from 'get-port'
+import { createServer as createMathServer } from '../../../tools/math-server/index.js'
+import isPortTaken from './index.js'
 
 describe('isPortTaken', () => {
   it('returns `true` if a port was taken', async () => {

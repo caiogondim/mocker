@@ -1,4 +1,4 @@
-/** @typedef {import('../types').Headers} Headers */
+/** @typedef {import('../types.js').Headers} Headers */
 
 class SecretNotFoundError extends Error {
   /** @param {string} message */
@@ -46,8 +46,4 @@ function unredactHeaders(headers, redactedHeaders) {
   return headersClone
 }
 
-module.exports = {
-  redactHeaders,
-  unredactHeaders,
-  SecretNotFoundError,
-}
+export { redactHeaders, unredactHeaders, SecretNotFoundError }

@@ -1,5 +1,5 @@
-const { Volume, createFsFromVolume } = require('memfs')
-const { createMockManager: createMockManagerFactory } = require('../..')
+import { Volume, createFsFromVolume } from 'memfs'
+import { createMockManager as createMockManagerFactory } from '../../index.js'
 
 async function createMemFs() {
   const responsesDir = '/tmp'
@@ -19,7 +19,4 @@ async function createMockManager(opts = {}) {
   return createMockManagerFactory({ ...defaults, ...opts })
 }
 
-module.exports = {
-  createMemFs,
-  createMockManager,
-}
+export { createMemFs, createMockManager }

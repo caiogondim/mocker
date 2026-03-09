@@ -1,9 +1,9 @@
-/** @typedef {import('../../args/types').Args} Args */
-/** @typedef {import('../../shared/types').FsLike} FsLike */
+/** @typedef {import('../../args/types.js').Args} Args */
+/** @typedef {import('../../shared/types.js').FsLike} FsLike */
 
-const getPort = require('get-port')
-const { Volume, createFsFromVolume } = require('memfs')
-const Mocker = require('../..')
+import getPort from 'get-port'
+import { Volume, createFsFromVolume } from 'memfs'
+import Mocker from '../../index.js'
 
 async function createMemFs() {
   const responsesDir = '/tmp'
@@ -63,7 +63,4 @@ async function createMocker(args = {}) {
   })
 }
 
-module.exports = {
-  createMocker,
-  createMemFs,
-}
+export { createMocker, createMemFs }

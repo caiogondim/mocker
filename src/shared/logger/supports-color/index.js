@@ -84,4 +84,4 @@ function supportsColor({ env = process.env, stream = process.stdout } = {}) {
   return false
 }
 
-module.exports = supportsColor
+export default supportsColor

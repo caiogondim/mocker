@@ -1,6 +1,6 @@
-const getPort = require('get-port')
-const { createServer } = require('.')
-const { createRequest, getBody } = require('../../src/shared/http')
+import getPort from 'get-port'
+import { createServer } from './index.js'
+import { createRequest, getBody } from '../../src/shared/http/index.js'
 
 describe('tools/math-server', () => {
   it('sums a and b query params if operation query param is equal to sum', async () => {

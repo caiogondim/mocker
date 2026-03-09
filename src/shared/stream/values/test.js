@@ -1,6 +1,6 @@
-const { Readable } = require('node:stream')
-const values = require('.')
-const sleep = require('../../sleep')
+import { Readable } from 'node:stream'
+import values from './index.js'
+import sleep from '../../sleep/index.js'
 
 describe('values', () => {
   it('consumes the stream and return an array with all generated values', async () => {

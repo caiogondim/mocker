@@ -1,9 +1,9 @@
-const MockedRequest = require('../mocked-request')
-const { rewindable } = require('../../shared/stream')
-const { getBody, SecretNotFoundError } = require('../../shared/http')
-const { createMockManager } = require('./helpers/mock-manager')
-const { createMockedResponse } = require('./helpers/mocked-response')
-const { createMockedRequest } = require('./helpers/mocked-request')
+import MockedRequest from '../mocked-request.js'
+import { rewindable } from '../../shared/stream/index.js'
+import { getBody, SecretNotFoundError } from '../../shared/http/index.js'
+import { createMockManager } from './helpers/mock-manager.js'
+import { createMockedResponse } from './helpers/mocked-response.js'
+import { createMockedRequest } from './helpers/mocked-request.js'
 
 describe('mockManager.prototype.get', () => {
   it('returns a mocked response from disk for requests', async () => {

@@ -1,9 +1,10 @@
-/** @typedef {import('../../src/shared/types').AsyncHttpServer} AsyncHttpServer */
+/** @typedef {import('../../src/shared/types.js').AsyncHttpServer} AsyncHttpServer */
 
-const http = require('node:http')
-const { createGzip } = require('node:zlib')
-const { pipeline } = require('node:stream/promises')
-const { Readable } = require('node:stream')
+import http from 'node:http'
+import { createGzip } from 'node:zlib'
+import { pipeline } from 'node:stream/promises'
+import { Readable } from 'node:stream'
+import { fileURLToPath } from 'node:url'
 
 /** @returns {AsyncHttpServer} */
 function createServer() {
@@ -58,10 +59,10 @@ function createPayload({ size }) {
 }
 
 // @ts-ignore
-if (require.main === module) {
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const port = Number(process.argv[2])
   const server = createServer()
   server.listen(port)
 }
 
-module.exports = { createServer, createPayload }
+export { createServer, createPayload }

@@ -1,4 +1,4 @@
-const getConstructorName = require('.')
+import getConstructorName from './index.js'
 
 describe('getConstructorName', () => {
   it(`returns the constructor's name as a string`, () => {
