@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it } from 'node:test'
+import assert from 'node:assert/strict'
 import { PassThrough, Readable } from 'node:stream'
 import sleep from '../../sleep/index.js'
 import values from '../values/index.js'
@@ -6,22 +7,19 @@ import rewindable from './index.js'
 
 describe('rewindable', () => {
   it('exposes a rewind method that returns a stream that can be consumed from the start', async () => {
-    expect.assertions(1)
-
     const stream = new PassThrough()
     const rewindableStream = rewindable(stream)
     stream.write('1')
     stream.write('2')
     stream.write('3')
     stream.end()
-    await expect(values(stream)).resolves.toStrictEqual(
+    assert.deepStrictEqual(
+      await values(stream),
       await values(rewindableStream.rewind()),
     )
   })
 
   it('can be rewinded even when stream is not finished', async () => {
-    expect.assertions(1)
-
     const stream = new PassThrough()
     const rewindableStream = rewindable(stream)
     stream.write('1')
@@ -41,12 +39,10 @@ describe('rewindable', () => {
       })(),
     ])
 
-    expect(consumedRewindableStream.join('')).toBe('12345')
+    assert.strictEqual(consumedRewindableStream.join(''), '12345')
   })
 
   it('rewindable stream is a proxy for the original stream', async () => {
-    expect.assertions(4)
-
     const stream = new PassThrough()
     const rewindableStream = rewindable(stream)
     stream.write('1')
@@ -55,18 +51,16 @@ describe('rewindable', () => {
 
     // Check if it's possible to consume the source stream through the proxy.
     const streamRewindableValues = await values(rewindableStream)
-    expect(streamRewindableValues.toString()).toBe('123')
+    assert.strictEqual(streamRewindableValues.toString(), '123')
 
     // Check if it's possible to consume properties from the source object
     // through the proxy.
-    expect(rewindableStream.readableEnded).toBe(true)
-    expect(rewindableStream.readable).toBe(false)
-    expect(typeof rewindableStream.resume).toBe('function')
+    assert.strictEqual(rewindableStream.readableEnded, true)
+    assert.strictEqual(rewindableStream.readable, false)
+    assert.strictEqual(typeof rewindableStream.resume, 'function')
   })
 
   it('can be called N times', async () => {
-    expect.assertions(3)
-
     const stream = new PassThrough()
     const rewindableStream = rewindable(stream)
     stream.write('1')
@@ -74,24 +68,20 @@ describe('rewindable', () => {
     stream.end('3')
 
     // All calls should have the same output
-    expect(`${await values(rewindableStream.rewind())}`).toBe('1,2,3')
-    expect(`${await values(rewindableStream.rewind())}`).toBe('1,2,3')
-    expect(`${await values(rewindableStream.rewind())}`).toBe('1,2,3')
+    assert.strictEqual(`${await values(rewindableStream.rewind())}`, '1,2,3')
+    assert.strictEqual(`${await values(rewindableStream.rewind())}`, '1,2,3')
+    assert.strictEqual(`${await values(rewindableStream.rewind())}`, '1,2,3')
   })
 
   it('works with empty streams', async () => {
-    expect.assertions(1)
-
     const stream = new PassThrough()
     const rewindableStream = rewindable(stream)
     stream.end()
 
-    expect(`${await values(rewindableStream.rewind())}`).toBe('')
+    assert.strictEqual(`${await values(rewindableStream.rewind())}`, '')
   })
 
   it('throws an error in case the stream is already finished', async () => {
-    expect.assertions(1)
-
     const stream = new PassThrough()
     stream.end('')
 
@@ -99,14 +89,12 @@ describe('rewindable', () => {
     await values(stream)
 
     // The we try to decorate the consumed stream, which should throw an error.
-    expect(() => rewindable(stream)).toThrow(
-      new Error('Stream is not readable'),
-    )
+    assert.throws(() => rewindable(stream), {
+      message: 'Stream is not readable',
+    })
   })
 
   it('can be called N times, even before the stream is not finished', async () => {
-    expect.assertions(4)
-
     const stream = new PassThrough()
     const rewindableStream = rewindable(stream)
     stream.write('1')
@@ -124,22 +112,19 @@ describe('rewindable', () => {
 
     for (let i = 0; i < 4; i += 1) {
       const streamValue = streamsValues[i]
-      expect(`${streamValue}`).toBe('1,2,3')
+      assert.strictEqual(`${streamValue}`, '1,2,3')
     }
   })
 
   it('returns a readable stream', async () => {
-    expect.assertions(1)
     const stream = new PassThrough()
     const rewindableStream = rewindable(stream)
-    expect(rewindableStream.rewind().constructor).toStrictEqual(Readable)
+    assert.deepStrictEqual(rewindableStream.rewind().constructor, Readable)
   })
 
   // # Regression test
   //
   it('works if stream ends without a value', async () => {
-    expect.assertions(1)
-
     const stream = new PassThrough()
     const rewindableStream = rewindable(stream)
     stream.write('1')
@@ -162,6 +147,6 @@ describe('rewindable', () => {
       })(),
     ])
 
-    expect(consumedRewindableStream.join('')).toBe('12345')
+    assert.strictEqual(consumedRewindableStream.join(''), '12345')
   })
 })

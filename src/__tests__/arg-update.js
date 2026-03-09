@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it } from 'node:test'
+import assert from 'node:assert/strict'
 import getPort from './helpers/get-port.js'
 import { createMocker, createMemFs } from './helpers/mocker.js'
 import { createServer as createTimeServer } from '../../tools/time-server/index.js'
@@ -10,8 +11,6 @@ import sleep from '../shared/sleep/index.js'
 
 describe('args.update', () => {
   it('updates all mocks with origin in case update=startup', async () => {
-    expect.assertions(2)
-
     // Creates origin server
     const originPort = await getPort()
     const timeServer = createTimeServer()
@@ -66,9 +65,9 @@ describe('args.update', () => {
     const response2Body = `${await getBody(response2)}`
 
     try {
-      expect(response2.headers['x-mocker-response-from']).toBe('Mock')
-      expect(Number(response2Body)).toBeGreaterThanOrEqual(
-        Number(response1Body),
+      assert.strictEqual(response2.headers['x-mocker-response-from'], 'Mock')
+      assert.ok(
+        Number(response2Body) >= Number(response1Body),
       )
     } finally {
       await mocker2.close()
@@ -77,8 +76,6 @@ describe('args.update', () => {
   })
 
   it('updates all mocks with origin in case update=only', async () => {
-    expect.assertions(1)
-
     // Given I have an origin server
     const originPort = await getPort()
     const timeServer = createTimeServer()
@@ -130,8 +127,8 @@ describe('args.update', () => {
       const fileContentJson = JSON.parse(fileContentBuffer.toString())
       const response2Body = fileContentJson.response.body
 
-      expect(Number(response2Body)).toBeGreaterThanOrEqual(
-        Number(response1Body),
+      assert.ok(
+        Number(response2Body) >= Number(response1Body),
       )
     } finally {
       await timeServer.close()
@@ -139,8 +136,6 @@ describe('args.update', () => {
   })
 
   it('terminates process after updating all mocks in case startup=only', async () => {
-    expect.assertions(1)
-
     // Given I have an origin server
     const originPort = await getPort()
     const timeServer = createTimeServer()
@@ -173,17 +168,13 @@ describe('args.update', () => {
     try {
       // Then it should fail since `startup: 'only'` only updates all mocked
       // responses, and doesn't start the server.
-      await expect(() => createRequestThunk()).rejects.toMatchInlineSnapshot(
-        `[AggregateError]`,
-      )
+      await assert.rejects(() => createRequestThunk(), /AggregateError/)
     } finally {
       await timeServer.close()
     }
   })
 
   it('preserves old mock in case origin doesnt return an HTTP 200', async () => {
-    expect.assertions(1)
-
     // Create origin that returns 200
     const originPort = await getPort()
     const timeServer = createTimeServer()
@@ -237,7 +228,7 @@ describe('args.update', () => {
       const mockAfter = (
         await fs.promises.readFile(`${responsesDir}/${files[0]}`)
       ).toString()
-      expect(mockAfter).toBe(mockBefore)
+      assert.strictEqual(mockAfter, mockBefore)
     } finally {
       await mocker2.close()
       await statusCodeServer.close()
@@ -245,8 +236,6 @@ describe('args.update', () => {
   })
 
   it('preserves old mock in case there is an error while updating', async () => {
-    expect.assertions(1)
-
     // Create origin and generate a mock
     const originPort = await getPort()
     const timeServer = createTimeServer()
@@ -299,15 +288,13 @@ describe('args.update', () => {
       const mockAfter = (
         await fs.promises.readFile(`${responsesDir}/${files[0]}`)
       ).toString()
-      expect(mockAfter).toBe(mockBefore)
+      assert.strictEqual(mockAfter, mockBefore)
     } finally {
       await mocker2.close()
     }
   })
 
   it('unredacts secrets on mocks before making a request to origin', async () => {
-    expect.assertions(1)
-
     // Use header echo server as origin — it returns request headers as JSON body
     const originPort = await getPort()
     const headerEchoServer = createHeaderEchoServer()
@@ -341,12 +328,11 @@ describe('args.update', () => {
     const mockContent = JSON.parse(
       (await fs.promises.readFile(`${responsesDir}/${files[0]}`)).toString(),
     )
-    expect(mockContent.request.headers.authorization).toBe('[REDACTED]')
+    assert.strictEqual(mockContent.request.headers.authorization, '[REDACTED]')
+    await headerEchoServer.close()
   })
 
   it('doesnt update mock if it has a redacted secret that is not present on env', async () => {
-    expect.assertions(1)
-
     // Use header echo server as origin
     const originPort = await getPort()
     const headerEchoServer = createHeaderEchoServer()
@@ -397,7 +383,7 @@ describe('args.update', () => {
       const mockAfter = (
         await fs.promises.readFile(`${responsesDir}/${files[0]}`)
       ).toString()
-      expect(mockAfter).toBe(mockBefore)
+      assert.strictEqual(mockAfter, mockBefore)
     } finally {
       await mocker2.close()
       await headerEchoServer.close()
@@ -405,8 +391,6 @@ describe('args.update', () => {
   })
 
   it('retries in case origin returns a non-200', async () => {
-    expect.assertions(1)
-
     // Flaky server returns 200 on every 3rd request, 500 otherwise
     const originPort = await getPort()
     const flakyServer = createFlakyServer()
@@ -435,7 +419,7 @@ describe('args.update', () => {
 
       // The flaky server returns 200 on the 3rd request, so with retries
       // the mocker should eventually get a successful response
-      expect(response1.statusCode).toBe(200)
+      assert.strictEqual(response1.statusCode, 200)
     } finally {
       await mocker.close()
       await flakyServer.close()

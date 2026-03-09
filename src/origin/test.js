@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it } from 'node:test'
+import assert from 'node:assert/strict'
 import getPort from '../__tests__/helpers/get-port.js'
 import { createOrigin } from './index.js'
 import { getBody } from '../shared/http/index.js'
@@ -9,8 +10,6 @@ import { createServer as createMathServer } from '../../tools/math-server/index.
 describe('origin', () => {
   describe('request()', () => {
     it('overwrites request headers defined on `overwriteRequestHeaders` constructor argument', async () => {
-      expect.assertions(3)
-
       const originPort = await getPort()
       const requestHeaderOnResponseBodyServer =
         createRequestHeaderOnResponseBodyServer()
@@ -27,17 +26,15 @@ describe('origin', () => {
       const responseJson = JSON.parse(responseBody)
 
       try {
-        expect(responseJson.host).toBe('dolor')
-        expect(responseJson.lorem).toBe('ipsum')
-        expect(responseJson.dolor).toBe('5')
+        assert.strictEqual(responseJson.host, 'dolor')
+        assert.strictEqual(responseJson.lorem, 'ipsum')
+        assert.strictEqual(responseJson.dolor, '5')
       } finally {
         await requestHeaderOnResponseBodyServer.close()
       }
     })
 
     it(`removes \`via\` header request header if \`overwriteRequestHeaders\` equals to \`{ via: null }\``, async () => {
-      expect.assertions(3)
-
       const originPort = await getPort()
       const requestHeaderOnResponseBodyServer =
         createRequestHeaderOnResponseBodyServer()
@@ -59,17 +56,15 @@ describe('origin', () => {
       const responseJson = JSON.parse(responseBody)
 
       try {
-        expect(responseJson.lorem).toBe('ipsum')
-        expect(responseJson.dolor).toBe('5')
-        expect(responseJson.via).toBeUndefined()
+        assert.strictEqual(responseJson.lorem, 'ipsum')
+        assert.strictEqual(responseJson.dolor, '5')
+        assert.strictEqual(responseJson.via, undefined)
       } finally {
         await requestHeaderOnResponseBodyServer.close()
       }
     })
 
     it('retries requests as defined on `retries` constructor argument', async () => {
-      expect.assertions(2)
-
       // This server always returns a 500 but on every 3rd request.
       const flakyServer = createFlakyServer()
       const originPort = await getPort()
@@ -89,18 +84,16 @@ describe('origin', () => {
 
       try {
         const response = await responsePromise
-        expect(response.statusCode).toBe(200)
+        assert.strictEqual(response.statusCode, 200)
 
         const responseBody = await getBody(response)
-        expect(responseBody.toString()).toBe('lorem ipsum dolor sit amet')
+        assert.strictEqual(responseBody.toString(), 'lorem ipsum dolor sit amet')
       } finally {
         await flakyServer.close()
       }
     })
 
     it('accepts absolute URLs', async () => {
-      expect.assertions(2)
-
       // Given I have a server
       const mathServer = createMathServer()
       const originPort = await getPort()
@@ -118,10 +111,10 @@ describe('origin', () => {
       // Then it should work as it does for relative URLs
       try {
         const response = await responsePromise
-        expect(response.statusCode).toBe(200)
+        assert.strictEqual(response.statusCode, 200)
 
         const responseBody = await getBody(response)
-        expect(responseBody.toString()).toBe('3')
+        assert.strictEqual(responseBody.toString(), '3')
       } finally {
         await mathServer.close()
       }

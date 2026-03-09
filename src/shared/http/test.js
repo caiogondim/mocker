@@ -1,33 +1,29 @@
-import { vi, describe, it, expect } from 'vitest'
+import { describe, it, mock } from 'node:test'
+import assert from 'node:assert/strict'
 import MockedRequest from '../../mock-manager/mocked-request.js'
 import { isHeaders, getHeaders } from './index.js'
 
 describe('isHeaders()', () => {
   it('returns false if input is not an object', () => {
-    expect.assertions(5)
-    expect(isHeaders(1)).toBe(false)
-    expect(isHeaders('lorem')).toBe(false)
-    expect(isHeaders(null)).toBe(false)
-    expect(isHeaders([1, 2, 3])).toBe(false)
-    expect(isHeaders(() => {})).toBe(false)
+    assert.strictEqual(isHeaders(1), false)
+    assert.strictEqual(isHeaders('lorem'), false)
+    assert.strictEqual(isHeaders(null), false)
+    assert.strictEqual(isHeaders([1, 2, 3]), false)
+    assert.strictEqual(isHeaders(() => {}), false)
   })
 
   it('returns false if input is an object but has an invalid shape', () => {
-    expect.assertions(2)
-    expect(isHeaders({ foo: { bar: 2 } })).toBe(false)
-    expect(isHeaders({ foo: () => {} })).toBe(false)
+    assert.strictEqual(isHeaders({ foo: { bar: 2 } }), false)
+    assert.strictEqual(isHeaders({ foo: () => {} }), false)
   })
 
   it('returns true if input has a valid shape', () => {
-    expect.assertions(1)
-    expect(isHeaders({ host: 'example.com', 'content-length': 123 })).toBe(true)
+    assert.strictEqual(isHeaders({ host: 'example.com', 'content-length': 123 }), true)
   })
 })
 
 describe('getHeaders()', () => {
   it('returns cloned headers', () => {
-    expect.assertions(2)
-
     // Given I have a request
     const headers = { a: 1, b: 2, c: 3 }
     const mockedRequest = new MockedRequest({
@@ -39,17 +35,15 @@ describe('getHeaders()', () => {
     const clonedHeaders = getHeaders(mockedRequest)
 
     // Then it should return a clone of the request's headers
-    expect(clonedHeaders).not.toBe(headers)
-    expect(clonedHeaders).toEqual(headers)
+    assert.notStrictEqual(clonedHeaders, headers)
+    assert.deepStrictEqual(clonedHeaders, headers)
   })
 
   it('returns cloned headers for objects without `.headers`, but with a `.getHeaders` method', () => {
-    expect.assertions(2)
-
     // Given I have a request without a `.headers` property, but with a `.getHeaders` method
     const headers = { a: 1, b: 2, c: 3 }
     const request = {
-      getHeaders: vi.fn(() => headers),
+      getHeaders: mock.fn(() => headers),
     }
 
     // When I use `getHeaders()` on it
@@ -57,7 +51,7 @@ describe('getHeaders()', () => {
     const clonedHeaders = getHeaders(request)
 
     // Then it should return a clone of the request's headers
-    expect(clonedHeaders).not.toBe(headers)
-    expect(clonedHeaders).toEqual(headers)
+    assert.notStrictEqual(clonedHeaders, headers)
+    assert.deepStrictEqual(clonedHeaders, headers)
   })
 })

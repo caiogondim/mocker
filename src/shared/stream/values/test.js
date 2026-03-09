@@ -1,12 +1,11 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it } from 'node:test'
+import assert from 'node:assert/strict'
 import { Readable } from 'node:stream'
 import values from './index.js'
 import sleep from '../../sleep/index.js'
 
 describe('values', () => {
   it('consumes the stream and return an array with all generated values', async () => {
-    expect.assertions(1)
-
     const readableStream = new Readable({ read() {} })
     const [readableStreamValues] = await Promise.all([
       values(readableStream),
@@ -19,12 +18,10 @@ describe('values', () => {
         readableStream.push(null)
       })(),
     ])
-    expect(readableStreamValues.map(String)).toStrictEqual(['1', '2', '3'])
+    assert.deepStrictEqual(readableStreamValues.map(String), ['1', '2', '3'])
   })
 
   it('works with async generators', async () => {
-    expect.assertions(1)
-
     /**
      * @param {number} n
      * @yields {Promise<number>}
@@ -39,12 +36,10 @@ describe('values', () => {
     }
 
     const generatorValues = await values(numberGenerator(5))
-    expect(generatorValues).toStrictEqual([0, 1, 2, 3, 4])
+    assert.deepStrictEqual(generatorValues, [0, 1, 2, 3, 4])
   })
 
   it('works with sync generators', async () => {
-    expect.assertions(1)
-
     /**
      * @param {number} n
      * @yields {number}
@@ -58,6 +53,6 @@ describe('values', () => {
     }
 
     const generatorValues = await values(numberGenerator(5))
-    expect(generatorValues).toStrictEqual([0, 1, 2, 3, 4])
+    assert.deepStrictEqual(generatorValues, [0, 1, 2, 3, 4])
   })
 })

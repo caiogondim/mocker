@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it } from 'node:test'
+import assert from 'node:assert/strict'
 import getPort from './helpers/get-port.js'
 import { createRequest } from '../shared/http/index.js'
 import { createServer as createMathServer } from '../../tools/math-server/index.js'
@@ -7,8 +8,6 @@ import { createMocker } from './helpers/mocker.js'
 
 describe('args.overwriteResponseHeaders', () => {
   it('overwrites headers from response coming directly from origin', async () => {
-    expect.assertions(1)
-
     const originPort = await getPort()
     const mathServer = createMathServer()
     await mathServer.listen(originPort)
@@ -32,7 +31,7 @@ describe('args.overwriteResponseHeaders', () => {
     const response1 = await response1Promise
 
     try {
-      expect(response1.headers['content-type']).toStrictEqual(contentType)
+      assert.deepStrictEqual(response1.headers['content-type'], contentType)
     } finally {
       await closeServer(mocker)
       await closeServer(mathServer)
@@ -40,8 +39,6 @@ describe('args.overwriteResponseHeaders', () => {
   })
 
   it('removes header if it has a value of `null`', async () => {
-    expect.assertions(1)
-
     const originPort = await getPort()
     const mathServer = createMathServer()
     await mathServer.listen(originPort)
@@ -68,7 +65,7 @@ describe('args.overwriteResponseHeaders', () => {
 
     try {
       // 'content-type' header should not be present.
-      expect(response1.headers['content-type']).toBeUndefined()
+      assert.strictEqual(response1.headers['content-type'], undefined)
     } finally {
       await closeServer(mathServer)
       await closeServer(mocker)
@@ -76,8 +73,6 @@ describe('args.overwriteResponseHeaders', () => {
   })
 
   it('overwrites headers from response coming from a mock', async () => {
-    expect.assertions(4)
-
     const originPort = await getPort()
     const mathServer = createMathServer()
     await mathServer.listen(originPort)
@@ -105,8 +100,8 @@ describe('args.overwriteResponseHeaders', () => {
       request1.end()
       const response1 = await response1Promise
 
-      expect(response1.headers['content-type']).toStrictEqual(contentType)
-      expect(response1.headers['x-mocker-response-from']).toBe('Origin')
+      assert.deepStrictEqual(response1.headers['content-type'], contentType)
+      assert.strictEqual(response1.headers['x-mocker-response-from'], 'Origin')
 
       //
       // Mocked response: client <-> proxy
@@ -119,8 +114,8 @@ describe('args.overwriteResponseHeaders', () => {
       request2.end()
       const response2 = await response2Promise
 
-      expect(response2.headers['content-type']).toStrictEqual(contentType)
-      expect(response2.headers['x-mocker-response-from']).toBe('Mock')
+      assert.deepStrictEqual(response2.headers['content-type'], contentType)
+      assert.strictEqual(response2.headers['x-mocker-response-from'], 'Mock')
     } finally {
       await closeServer(mocker)
       await closeServer(mathServer)

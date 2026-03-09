@@ -1,10 +1,9 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it } from 'node:test'
+import assert from 'node:assert/strict'
 import queueCalls from './index.js'
 
 describe('queue', () => {
   it('enqueues calls to decorated function', async () => {
-    expect.assertions(10)
-
     let counter = 0
     function count() {
       return new Promise((resolve) => {
@@ -18,15 +17,15 @@ describe('queue', () => {
     //
 
     const promise1 = count()
-    expect(counter).toBe(1)
+    assert.strictEqual(counter, 1)
     const promise2 = count()
-    expect(counter).toBe(2)
+    assert.strictEqual(counter, 2)
     const promise3 = count()
-    expect(counter).toBe(3)
+    assert.strictEqual(counter, 3)
     const promise4 = count()
-    expect(counter).toBe(4)
+    assert.strictEqual(counter, 4)
     await Promise.all([promise1, promise2, promise3, promise4])
-    expect(counter).toBe(4)
+    assert.strictEqual(counter, 4)
 
     //
     // Decorated `count`
@@ -35,20 +34,18 @@ describe('queue', () => {
     counter = 0
     const queuedCount = queueCalls(count)
     const promise5 = queuedCount()
-    expect(counter).toBe(0)
+    assert.strictEqual(counter, 0)
     const promise6 = queuedCount()
-    expect(counter).toBe(0)
+    assert.strictEqual(counter, 0)
     const promise7 = queuedCount()
-    expect(counter).toBe(0)
+    assert.strictEqual(counter, 0)
     const promise8 = queuedCount()
-    expect(counter).toBe(0)
+    assert.strictEqual(counter, 0)
     await Promise.all([promise5, promise6, promise7, promise8])
-    expect(counter).toBe(4)
+    assert.strictEqual(counter, 4)
   })
 
   it('has a function name that describes decorator and encapsulated function names', async () => {
-    expect.assertions(2)
-
     /**
      * @param {number} a
      * @param {number} b
@@ -58,7 +55,7 @@ describe('queue', () => {
       return a + b
     }
 
-    expect(sum.name).toBe('sum')
-    expect(queueCalls(sum).name).toBe('queueCalls(sum)')
+    assert.strictEqual(sum.name, 'sum')
+    assert.strictEqual(queueCalls(sum).name, 'queueCalls(sum)')
   })
 })

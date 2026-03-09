@@ -1,4 +1,5 @@
-import { vi, describe, it, expect } from 'vitest'
+import { describe, it, mock } from 'node:test'
+import assert from 'node:assert/strict'
 import sleep from '../../sleep/index.js'
 import retry from './index.js'
 
@@ -22,36 +23,33 @@ function createThrowUntilN(n) {
 
 describe('retry', () => {
   it('retries if thunk throws error', async () => {
-    expect.assertions(4)
-
     //
     // Test behavior without `retry`
     //
 
     const throwUntil3 = createThrowUntilN(3)
-    await expect(throwUntil3()).rejects.toThrow(Error)
-    await expect(throwUntil3()).rejects.toThrow(Error)
-    await expect(throwUntil3()).resolves.toBe('lorem')
+    await assert.rejects(throwUntil3(), Error)
+    await assert.rejects(throwUntil3(), Error)
+    assert.strictEqual(await throwUntil3(), 'lorem')
 
     //
     // Test behavior with `retry`
     //
 
-    await expect(retry(createThrowUntilN(3), { backoff })).resolves.toBe(
+    assert.strictEqual(
+      await retry(createThrowUntilN(3), { backoff }),
       'lorem',
     )
   })
 
   it('retries up to `retries`', async () => {
-    expect.assertions(1)
-    await expect(
+    await assert.rejects(
       retry(createThrowUntilN(3), { retries: 2, backoff }),
-    ).rejects.toThrow(Error)
+      Error,
+    )
   })
 
   it('retries in case `shouldRetry` returns true', async () => {
-    expect.assertions(1)
-
     function createNumberGenerator() {
       let num = 0
       return async () => {
@@ -70,14 +68,13 @@ describe('retry', () => {
       return num < 2
     }
 
-    await expect(
-      retry(numberGenerator, { shouldRetry, backoff }),
-    ).resolves.toBe(2)
+    assert.strictEqual(
+      await retry(numberGenerator, { shouldRetry, backoff }),
+      2,
+    )
   })
 
   it('executes `onRetry` on each retry', async () => {
-    expect.assertions(1)
-
     const retries = 3
     let onRetryCalls = 0
     function onRetry() {
@@ -85,20 +82,18 @@ describe('retry', () => {
     }
     const throwUntil3 = createThrowUntilN(3)
     await retry(throwUntil3, { onRetry, retries, backoff })
-    expect(onRetryCalls).toBe(retries - 1)
+    assert.strictEqual(onRetryCalls, retries - 1)
   })
 
   it('backs off between each retry', async () => {
-    expect.assertions(2)
-
     const retries = 3
     const throwUntil3 = createThrowUntilN(3)
     // Passing a mock since we are not testing the backoff behavior
-    const mockBackoff = vi.fn()
+    const mockBackoff = mock.fn()
 
     const result = await retry(throwUntil3, { retries, backoff: mockBackoff })
 
-    expect(result).toBe('lorem')
-    expect(mockBackoff).toHaveBeenCalledTimes(2)
+    assert.strictEqual(result, 'lorem')
+    assert.strictEqual(mockBackoff.mock.calls.length, 2)
   })
 })

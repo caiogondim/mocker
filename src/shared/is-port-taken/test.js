@@ -1,38 +1,35 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it } from 'node:test'
+import assert from 'node:assert/strict'
 import getPort from '../../__tests__/helpers/get-port.js'
 import { createServer as createMathServer } from '../../../tools/math-server/index.js'
 import isPortTaken from './index.js'
 
 describe('isPortTaken', () => {
   it('returns `true` if a port was taken', async () => {
-    expect.assertions(1)
-
     const mathServer = createMathServer()
 
     try {
       const port = await getPort()
       await mathServer.listen(port)
 
-      await expect(isPortTaken(port)).resolves.toBe(true)
+      assert.strictEqual(await isPortTaken(port), true)
     } finally {
       await mathServer.close()
     }
   })
 
   it('returns `false` if a port is available', async () => {
-    expect.assertions(1)
     const port = await getPort()
-    await expect(isPortTaken(port)).resolves.toBe(false)
+    assert.strictEqual(await isPortTaken(port), false)
   })
 
   // Regression test. There was a bug when running `isPortTaken` inside a loop
   // since the server created to listen to a port was not being destroyed
   // properly
   it('returns `false` correctly if inside a loop', async () => {
-    expect.assertions(100)
     const port = await getPort()
     for (let i = 0; i < 100; i += 1) {
-      await expect(isPortTaken(port)).resolves.toBe(false)
+      assert.strictEqual(await isPortTaken(port), false)
     }
   })
 
@@ -40,8 +37,6 @@ describe('isPortTaken', () => {
   // since the server created to listen to a port was not being destroyed
   // properly
   it('returns `true` correctly if inside a loop', async () => {
-    expect.assertions(100)
-
     const mathServer = createMathServer()
 
     try {
@@ -49,7 +44,7 @@ describe('isPortTaken', () => {
       await mathServer.listen(port)
 
       for (let i = 0; i < 100; i += 1) {
-        await expect(isPortTaken(port)).resolves.toBe(true)
+        assert.strictEqual(await isPortTaken(port), true)
       }
     } finally {
       await mathServer.close()

@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it } from 'node:test'
+import assert from 'node:assert/strict'
 import MockedRequest from '../mocked-request.js'
 import { rewindable } from '../../shared/stream/index.js'
 import { getBody, SecretNotFoundError } from '../../shared/http/index.js'
@@ -6,10 +7,9 @@ import { createMockManager } from './helpers/mock-manager.js'
 import { createMockedResponse } from './helpers/mocked-response.js'
 import { createMockedRequest } from './helpers/mocked-request.js'
 
+describe('mock-manager', { concurrency: 1 }, () => {
 describe('mockManager.get', () => {
   it('returns a mocked response from disk for requests', async () => {
-    expect.assertions(2)
-
     const mockManager = await createMockManager()
 
     const request1 = rewindable(createMockedRequest())
@@ -20,29 +20,25 @@ describe('mockManager.get', () => {
 
     const { hasMock: hasMock1 } = await mockManager.has({ request: request1 })
 
-    expect(hasMock1).toBe(true)
+    assert.strictEqual(hasMock1, true)
 
     // Test an equal request on another request object
     const request2 = rewindable(createMockedRequest())
     request2.end('Lorem Ipsum')
     const { hasMock: hasMock2 } = await mockManager.has({ request: request2 })
 
-    expect(hasMock2).toBe(true)
+    assert.strictEqual(hasMock2, true)
   })
 
   it('throws an error for non-existing responses for the request passed as argument', async () => {
-    expect.assertions(1)
-
     const mockManager = await createMockManager()
     const request = rewindable(createMockedRequest())
     request.end()
 
-    await expect(mockManager.get({ request })).rejects.toThrow(Error)
+    await assert.rejects(mockManager.get({ request }), Error)
   })
 
   it('doesnt return `content-length` header on mocked responses', async () => {
-    expect.assertions(2)
-
     const mockManager = await createMockManager()
 
     const request1 = rewindable(createMockedRequest())
@@ -60,14 +56,12 @@ describe('mockManager.get', () => {
 
     const { mockedResponse } = await mockManager.get({ request: request1 })
 
-    expect(mockedResponse.headers['content-length']).toBeUndefined()
-    expect(mockedResponse.headers['content-type']).toBe('application/json')
+    assert.strictEqual(mockedResponse.headers['content-length'], undefined)
+    assert.strictEqual(mockedResponse.headers['content-type'], 'application/json')
   })
 
   // It should redact the header and unredact it with the value provided on `redactedHeaders`
   it('unredacts all secrets before returning a mocked response', async () => {
-    expect.assertions(1)
-
     const mockManager = await createMockManager({
       redactedHeaders: { 'example-token': 1234 },
     })
@@ -87,12 +81,10 @@ describe('mockManager.get', () => {
 
     const { mockedResponse } = await mockManager.get({ request: request1 })
 
-    expect(mockedResponse.headers['example-token']).toBe(1234)
+    assert.strictEqual(mockedResponse.headers['example-token'], 1234)
   })
 
   it('throws an error in case it cant unredact all secrets', async () => {
-    expect.assertions(1)
-
     const mockManager = await createMockManager({
       redactedHeaders: { 'example-token': 1234 },
     })
@@ -112,16 +104,15 @@ describe('mockManager.get', () => {
     response.end('{"a":1}')
     await mockManager.set({ request, response })
 
-    await expect(mockManager.get({ request })).rejects.toThrow(
-      SecretNotFoundError,
-    )
+    await assert.rejects(mockManager.get({ request }), (err) => {
+      assert.ok(err instanceof SecretNotFoundError)
+      return true
+    })
   })
 })
 
 describe('mockManager.has', () => {
   it('takes in consideration mockKeys args', async () => {
-    expect.assertions(2)
-
     // Uses `url` and `method` to create a key for the request.
     const mockManager1 = await createMockManager({
       mockKeys: new Set(['url', 'method']),
@@ -154,18 +145,16 @@ describe('mockManager.has', () => {
     // it should return `false`
     const { hasMock: hasMock1 } = await mockManager1.has({ request: request3 })
 
-    expect(hasMock1).toBe(false)
+    assert.strictEqual(hasMock1, false)
 
     // Since it uses only `url` for key and we are using the same `url`,
     // it should return `true`
     const { hasMock: hasMock2 } = await mockManager2.has({ request: request3 })
 
-    expect(hasMock2).toBe(true)
+    assert.strictEqual(hasMock2, true)
   })
 
   it('considers the same response for a request with same value on the body as defined on mockKeys', async () => {
-    expect.assertions(2)
-
     // Creates a MockManager with `'body.lorem.ipsum'` as mockKeys.
     const mockManager1 = await createMockManager({
       mockKeys: new Set(['body.lorem.ipsum']),
@@ -205,18 +194,16 @@ describe('mockManager.has', () => {
     // JSON path `lorem.ipsum`.
     const { hasMock: hasMock1 } = await mockManager1.has({ request: request2 })
 
-    expect(hasMock1).toBe(true)
+    assert.strictEqual(hasMock1, true)
 
     // `mockeManager2` uses `'body'` as mockKey, so it only has a mocked
     // response for requests with the exact same body payload.
     const { hasMock: hasMock2 } = await mockManager2.has({ request: request2 })
 
-    expect(hasMock2).toBe(false)
+    assert.strictEqual(hasMock2, false)
   })
 
   it('mockKeys.body supports N declarations', async () => {
-    expect.assertions(1)
-
     // Creates a MockManager with `'body.lorem.ipsum'` and `'body.lorem.dolor'`
     // as mockKeys.
     const mockManager = await createMockManager({
@@ -250,14 +237,12 @@ describe('mockManager.has', () => {
     // with the same value on that JSON path `lorem.ipsum` and `lorem.dolor`.
     const { hasMock } = await mockManager.has({ request: request2 })
 
-    expect(hasMock).toBe(true)
+    assert.strictEqual(hasMock, true)
   })
 })
 
 describe('mockManager.clear', () => {
   it('clears all saved responses on disk', async () => {
-    expect.assertions(2)
-
     const mockManager = await createMockManager()
 
     const request1 = rewindable(createMockedRequest())
@@ -268,7 +253,7 @@ describe('mockManager.clear', () => {
 
     const { hasMock: hasMock1 } = await mockManager.has({ request: request1 })
 
-    expect(hasMock1).toBe(true)
+    assert.strictEqual(hasMock1, true)
 
     await mockManager.clear()
 
@@ -282,14 +267,12 @@ describe('mockManager.clear', () => {
 
     const { hasMock: hasMock2 } = await mockManager.has({ request: request2 })
 
-    expect(hasMock2).toBe(false)
+    assert.strictEqual(hasMock2, false)
   })
 })
 
 describe('mockManager.set', () => {
   it('saves new mock', async () => {
-    expect.assertions(2)
-
     const mockManager = await createMockManager()
 
     const request = rewindable(createMockedRequest())
@@ -300,13 +283,11 @@ describe('mockManager.set', () => {
 
     const { hasMock, mockPath } = await mockManager.has({ request })
 
-    expect(hasMock).toBe(true)
-    expect(typeof mockPath).toBe('string')
+    assert.strictEqual(hasMock, true)
+    assert.strictEqual(typeof mockPath, 'string')
   })
 
   it('doesnt save file on error', async () => {
-    expect.assertions(2)
-
     const mockManager = await createMockManager()
 
     const request = rewindable(createMockedRequest())
@@ -314,7 +295,7 @@ describe('mockManager.set', () => {
     const response = rewindable(createMockedResponse())
     response.end()
 
-    await expect(
+    await assert.rejects(
       mockManager.set({
         request,
         response,
@@ -323,18 +304,17 @@ describe('mockManager.set', () => {
           throw new Error()
         },
       }),
-    ).rejects.toThrow(Error)
+      Error,
+    )
 
     const { hasMock: hasMock2 } = await mockManager.has({ request })
 
-    expect(hasMock2).toBe(false)
+    assert.strictEqual(hasMock2, false)
   })
 
   // In case we dont have write access to the mock file while updating the
   // mocks, the original mock should not be modified nor deleted.
   it('doesnt delete file in case we dont have write access', async () => {
-    expect.assertions(3)
-
     const mockManager = await createMockManager()
 
     //
@@ -352,7 +332,7 @@ describe('mockManager.set', () => {
 
     const { hasMock: hasMock1 } = await mockManager.has({ request: request1 })
 
-    expect(hasMock1).toBe(true)
+    assert.strictEqual(hasMock1, true)
 
     //
     // Force a "no write access" error on `set` while updating existing mock
@@ -370,7 +350,7 @@ describe('mockManager.set', () => {
       }
     }
 
-    await expect(
+    await assert.rejects(
       mockManager.set({
         request: request2,
         response: response2,
@@ -378,11 +358,12 @@ describe('mockManager.set', () => {
           throw new CustomError({ code: 'EACCES' })
         },
       }),
-    ).rejects.toThrow(Error)
+      Error,
+    )
 
     const { hasMock: hasMock2 } = await mockManager.has({ request: request2 })
 
-    expect(hasMock2).toBe(true)
+    assert.strictEqual(hasMock2, true)
   })
 })
 
@@ -391,8 +372,6 @@ describe('mockManager.getAll', () => {
   // body as JSON. We need to make sure to serialize the JSON body again before
   // sending it through the stream.
   it('jSON.stringify the request and response body in case it is saved as JSON', async () => {
-    expect.assertions(2)
-
     const mockManager = await createMockManager()
 
     //
@@ -432,8 +411,8 @@ describe('mockManager.getAll', () => {
       const requestBody = `${await getBody(mockedRequest)}`
       const responseBody = `${await getBody(mockedResponse)}`
 
-      expect(JSON.parse(requestBody)).toStrictEqual({ a: { b: { c: 1 } } })
-      expect(JSON.parse(responseBody)).toStrictEqual({
+      assert.deepStrictEqual(JSON.parse(requestBody), { a: { b: { c: 1 } } })
+      assert.deepStrictEqual(JSON.parse(responseBody), {
         a: 1,
         b: 2,
         c: { d: 3, e: 4 },
@@ -443,8 +422,6 @@ describe('mockManager.getAll', () => {
 
   // It should redact and unredact the headers with the value provided on `redactedHeaders`
   it('unredacts all secrets on `mockedResponse` and `mockedRequest`', async () => {
-    expect.assertions(2)
-
     const mockManager = await createMockManager({
       redactedHeaders: { 'example-token': 1234 },
     })
@@ -481,14 +458,12 @@ describe('mockManager.getAll', () => {
 
       // mockedResponse example-token header should have the same value as passed on
       // `redactedHeaders`
-      expect(mockedResponse.headers['example-token']).toBe(1234)
-      expect(error).toBeNull()
+      assert.strictEqual(mockedResponse.headers['example-token'], 1234)
+      assert.strictEqual(error, null)
     }
   })
 
   it('yields an error in case it cant unredact all secrets', async () => {
-    expect.assertions(20)
-
     const mockManager = await createMockManager({
       redactedHeaders: { 'example-token': 1234 },
     })
@@ -526,10 +501,11 @@ describe('mockManager.getAll', () => {
       mockedRequest,
       mockPath,
     } of mockManager.getAll()) {
-      expect(error).toBeInstanceOf(SecretNotFoundError)
-      expect(mockedResponse).toBeNull()
-      expect(mockedRequest).toBeNull()
-      expect(typeof mockPath).toBe('string')
+      assert.ok(error instanceof SecretNotFoundError)
+      assert.strictEqual(mockedResponse, null)
+      assert.strictEqual(mockedRequest, null)
+      assert.strictEqual(typeof mockPath, 'string')
     }
   })
+})
 })

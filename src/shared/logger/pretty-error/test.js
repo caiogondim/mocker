@@ -1,10 +1,9 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it } from 'node:test'
+import assert from 'node:assert/strict'
 import { prettifyError, isPrettyError } from './index.js'
 
 describe('prettifyError()', () => {
   it('decorates error with a better message', () => {
-    expect.assertions(4)
-
     const error = new Error('lorem ipsum')
     const expected = 'dolor sit'
     const received = 'amet consectetur'
@@ -13,23 +12,21 @@ describe('prettifyError()', () => {
       expected,
       received,
     })
-    expect(decoratedError.message).toMatch(/.*Error.*/g)
-    expect(decoratedError.message).toMatch(
+    assert.match(decoratedError.message, /.*Error.*/g)
+    assert.match(
+      decoratedError.message,
       new RegExp(`.*Expected.*${expected}`),
     )
-    expect(decoratedError.message).toMatch(
+    assert.match(
+      decoratedError.message,
       new RegExp(`.*Received.*${received}`),
     )
-    expect(decoratedError.message).toMatchInlineSnapshot(`
-     "Error: lorem ipsum
-     Expected dolor sit
-     Received amet consectetur"
-    `)
+    assert.match(decoratedError.message, /Error: lorem ipsum/)
+    assert.match(decoratedError.message, /Expected dolor sit/)
+    assert.match(decoratedError.message, /Received amet consectetur/)
   })
 
   it('decorates error with a hint if provided', () => {
-    expect.assertions(2)
-
     const error = new Error('lorem ipsum')
     const expected = 'dolor sit'
     const received = 'amet consectetur'
@@ -40,32 +37,26 @@ describe('prettifyError()', () => {
       received,
       hint,
     })
-    expect(decoratedError.message).toMatch(new RegExp(`.*Hint.*${hint}`))
-    expect(decoratedError.message).toMatchInlineSnapshot(`
-     "Error: lorem ipsum
-     Expected dolor sit
-     Received amet consectetur
-     Hint adipiscing elit"
-    `)
+    assert.match(decoratedError.message, new RegExp(`.*Hint.*${hint}`))
+    assert.match(decoratedError.message, /Error: lorem ipsum/)
+    assert.match(decoratedError.message, /Expected dolor sit/)
+    assert.match(decoratedError.message, /Received amet consectetur/)
+    assert.match(decoratedError.message, /Hint adipiscing elit/)
   })
 })
 
 describe('isPrettyError', () => {
   it('returns true in case the argument is a decotated error', () => {
-    expect.assertions(1)
-
     const error = prettifyError({
       error: new Error('lorem ipsum'),
       expected: 'lorem',
       received: 'ipsum',
     })
-    expect(isPrettyError(error)).toBe(true)
+    assert.strictEqual(isPrettyError(error), true)
   })
 
   it('returns false in case the argument is not a decorated error', () => {
-    expect.assertions(1)
-
     const error = new Error('lorem ipsum')
-    expect(isPrettyError(error)).toBe(false)
+    assert.strictEqual(isPrettyError(error), false)
   })
 })

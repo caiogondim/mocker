@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it } from 'node:test'
+import assert from 'node:assert/strict'
 import getPort from './helpers/get-port.js'
 import { createMocker, createMemFs } from './helpers/mocker.js'
 import { closeServer, createServer } from './helpers/async-http-server.js'
@@ -6,10 +7,9 @@ import { createServer as createMathServer } from '../../tools/math-server/index.
 import { createServer as createTimeServer } from '../../tools/time-server/index.js'
 import { createRequest, getBody } from '../shared/http/index.js'
 
+describe('arg-mode', { concurrency: 1 }, () => {
 describe(`mode = 'pass'`, () => {
   it('works as a pass-through proxy', async () => {
-    expect.assertions(1)
-
     const originPort = await getPort()
     const mathServer = createMathServer()
     await mathServer.listen(originPort)
@@ -30,7 +30,7 @@ describe(`mode = 'pass'`, () => {
       const response = await responsePromise
       const responseBody = (await getBody(response)).toString()
 
-      expect(responseBody).toBe('4')
+      assert.strictEqual(responseBody, '4')
     } finally {
       await closeServer(mocker)
       await closeServer(mathServer)
@@ -40,8 +40,6 @@ describe(`mode = 'pass'`, () => {
 
 describe(`mode = 'read-pass`, () => {
   it('returns a mocked response when `mode === "read-pass"` and there is a saved response for the request', async () => {
-    expect.assertions(2)
-
     const originPort = await getPort()
     const mathServer = createMathServer()
     await mathServer.listen(originPort)
@@ -66,7 +64,7 @@ describe(`mode = 'read-pass`, () => {
       const response1 = await response1Promise
       const response1Body = (await getBody(response1)).toString()
 
-      expect(response1Body).toBe('14')
+      assert.strictEqual(response1Body, '14')
 
       //
       // Mocked response: client <-> proxy
@@ -79,7 +77,7 @@ describe(`mode = 'read-pass`, () => {
       const response2 = await response2Promise
       const response2Body = (await getBody(response2)).toString()
 
-      expect(response2Body).toBe('14')
+      assert.strictEqual(response2Body, '14')
     } finally {
       await closeServer(mocker)
       await closeServer(mathServer)
@@ -87,8 +85,6 @@ describe(`mode = 'read-pass`, () => {
   })
 
   it('works as a pass-through proxy if `mode === "read-pass" and there is no saved response for the request`', async () => {
-    expect.assertions(1)
-
     const originPort = await getPort()
     const mathServer = createMathServer()
     await mathServer.listen(originPort)
@@ -109,7 +105,7 @@ describe(`mode = 'read-pass`, () => {
       const response = await responsePromise
       const responseBody = (await getBody(response)).toString()
 
-      expect(responseBody).toBe('4')
+      assert.strictEqual(responseBody, '4')
     } finally {
       await closeServer(mocker)
       await closeServer(mathServer)
@@ -119,8 +115,6 @@ describe(`mode = 'read-pass`, () => {
 
 describe(`mode = 'read-write`, () => {
   it('saves and returns a mocked response when `mode === "read-write"`', async () => {
-    expect.assertions(2)
-
     const originPort = await getPort()
     const mathServer = createMathServer()
     await mathServer.listen(originPort)
@@ -147,7 +141,7 @@ describe(`mode = 'read-write`, () => {
 
       const response1Body = (await getBody(response1)).toString()
 
-      expect(response1Body).toBe('10')
+      assert.strictEqual(response1Body, '10')
 
       // Turning off origin server to make sure proxy is returning a mocked response
       await mathServer.close()
@@ -163,7 +157,7 @@ describe(`mode = 'read-write`, () => {
       const response2 = await response2Promise
       const response2Body = (await getBody(response2)).toString()
 
-      expect(response2Body).toBe('10')
+      assert.strictEqual(response2Body, '10')
     } finally {
       await closeServer(mocker)
       await closeServer(mathServer)
@@ -171,8 +165,6 @@ describe(`mode = 'read-write`, () => {
   })
 
   it('returns a mocked response when there is a saved response for the request', async () => {
-    expect.assertions(2)
-
     const originPort = await getPort()
     const mathServer = createMathServer()
     await mathServer.listen(originPort)
@@ -197,7 +189,7 @@ describe(`mode = 'read-write`, () => {
       const response1 = await response1Promise
       const response1Body = (await getBody(response1)).toString()
 
-      expect(response1Body).toBe('14')
+      assert.strictEqual(response1Body, '14')
 
       //
       // Mocked response: client <-> proxy
@@ -210,7 +202,7 @@ describe(`mode = 'read-write`, () => {
       const response2 = await response2Promise
       const response2Body = (await getBody(response2)).toString()
 
-      expect(response2Body).toBe('14')
+      assert.strictEqual(response2Body, '14')
     } finally {
       await closeServer(mocker)
       await closeServer(mathServer)
@@ -220,8 +212,6 @@ describe(`mode = 'read-write`, () => {
 
 describe(`mode = 'read'`, () => {
   it('returns 404 when there is no saved response for the request', async () => {
-    expect.assertions(1)
-
     const originPort = await getPort()
     const mathServer = createMathServer()
     await mathServer.listen(originPort)
@@ -242,7 +232,7 @@ describe(`mode = 'read'`, () => {
       request.end()
       const response = await responsePromise
 
-      expect(response.statusCode).toBe(404)
+      assert.strictEqual(response.statusCode, 404)
     } finally {
       await closeServer(mocker)
       await closeServer(mathServer)
@@ -252,8 +242,6 @@ describe(`mode = 'read'`, () => {
 
 describe(`mode = 'pass-read'`, () => {
   it('fetches from origin first', async () => {
-    expect.assertions(3)
-
     // Creates and starts origin server
     const originPort = await getPort()
     const originServer = await createTimeServer()
@@ -278,7 +266,8 @@ describe(`mode = 'pass-read'`, () => {
         request1.end()
         const response1 = await response1Promise
 
-        expect(`${i} ${response1.headers['x-mocker-response-from']}`).toBe(
+        assert.strictEqual(
+          `${i} ${response1.headers['x-mocker-response-from']}`,
           `${i} Origin`,
         )
       }
@@ -289,8 +278,6 @@ describe(`mode = 'pass-read'`, () => {
   })
 
   it('reads from a mocked response if origin is not available', async () => {
-    expect.assertions(3)
-
     // Creates and starts origin server
     const originPort = await getPort()
     const originServer = await createTimeServer()
@@ -334,7 +321,7 @@ describe(`mode = 'pass-read'`, () => {
       request1.end()
       const response1 = await response1Promise
 
-      expect(response1.headers['x-mocker-response-from']).toBe(`Origin`)
+      assert.strictEqual(response1.headers['x-mocker-response-from'], `Origin`)
 
       // Now we fire a request to `mocker2` with `mode: 'pass-read` to confirm
       // it is getting a response from origin
@@ -345,7 +332,7 @@ describe(`mode = 'pass-read'`, () => {
       request2.end()
       const response2 = await response2Promise
 
-      expect(response2.headers['x-mocker-response-from']).toBe(`Origin`)
+      assert.strictEqual(response2.headers['x-mocker-response-from'], `Origin`)
 
       // Turning off the origin server to test a request without origin being available
       await closeServer(originServer)
@@ -359,7 +346,7 @@ describe(`mode = 'pass-read'`, () => {
       request3.end()
       const response3 = await response3Promise
 
-      expect(response3.headers['x-mocker-response-from']).toBe(`Mock`)
+      assert.strictEqual(response3.headers['x-mocker-response-from'], `Mock`)
     } finally {
       await closeServer(mocker1)
       await closeServer(mocker2)
@@ -368,8 +355,6 @@ describe(`mode = 'pass-read'`, () => {
   })
 
   it('reads from a mocked response if origin returns a 500', async () => {
-    expect.assertions(3)
-
     // Creates and starts origin server
     const originPort = await getPort()
     let shouldOriginReturn500 = false
@@ -418,7 +403,7 @@ describe(`mode = 'pass-read'`, () => {
       request1.end()
       const response1 = await response1Promise
 
-      expect(response1.headers['x-mocker-response-from']).toBe(`Origin`)
+      assert.strictEqual(response1.headers['x-mocker-response-from'], `Origin`)
 
       // Now we fire a request to `mocker2` with `mode: 'pass-read` to confirm
       // it is getting a response from origin
@@ -429,7 +414,7 @@ describe(`mode = 'pass-read'`, () => {
       request2.end()
       const response2 = await response2Promise
 
-      expect(response2.headers['x-mocker-response-from']).toBe(`Origin`)
+      assert.strictEqual(response2.headers['x-mocker-response-from'], `Origin`)
 
       // Forcing origin to return 500
       shouldOriginReturn500 = true
@@ -443,7 +428,7 @@ describe(`mode = 'pass-read'`, () => {
       request3.end()
       const response3 = await response3Promise
 
-      expect(response3.headers['x-mocker-response-from']).toBe(`Mock`)
+      assert.strictEqual(response3.headers['x-mocker-response-from'], `Mock`)
     } finally {
       await closeServer(mocker1)
       await closeServer(mocker2)
@@ -452,8 +437,6 @@ describe(`mode = 'pass-read'`, () => {
   })
 
   it('returns 404 if origin is not available and there is no mocked response for the request', async () => {
-    expect.assertions(2)
-
     // We reserve a port for origin, but we don't listen for anything on this port.
     const originPort = await getPort()
 
@@ -476,10 +459,11 @@ describe(`mode = 'pass-read'`, () => {
       request.end()
       const response = await responsePromise
 
-      expect(response.statusCode).toBe(404)
-      expect(response.headers['x-mocker-mock-path']).toBe(`Not Found`)
+      assert.strictEqual(response.statusCode, 404)
+      assert.strictEqual(response.headers['x-mocker-mock-path'], `Not Found`)
     } finally {
       await closeServer(mocker)
     }
   })
+})
 })

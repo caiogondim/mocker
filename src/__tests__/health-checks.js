@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it } from 'node:test'
+import assert from 'node:assert/strict'
 import getPort from './helpers/get-port.js'
 import { createMocker } from './helpers/mocker.js'
 import { createRequest, getBody } from '../shared/http/index.js'
@@ -7,8 +8,6 @@ import { createServer as createTimeServer } from '../../tools/time-server/index.
 
 describe('health checks endpoints', () => {
   it('implements /.well-known/live endpoint for live health check', async () => {
-    expect.assertions(2)
-
     // Given a mocker instance pointing to an origin that doesn't exist
     const origin =
       'https://non-existent-url-7bb5346fa5452600a876d24b98695404fa0c46ae.example.com'
@@ -31,17 +30,15 @@ describe('health checks endpoints', () => {
 
     try {
       // Then it should return HTTP 200
-      expect(response.statusCode).toBe(200)
+      assert.strictEqual(response.statusCode, 200)
       // And an empty body
-      expect(responseBody).toBe('')
+      assert.strictEqual(responseBody, '')
     } finally {
       await closeServer(mocker)
     }
   })
 
   it('implements /.well-known/ready endpoint for ready health check', async () => {
-    expect.assertions(2)
-
     // Given a mocker instance pointing to an origin that doesn't exist
     const origin =
       'https://non-existent-url-7bb5346fa5452600a876d24b98695404fa0c46ae.example.com'
@@ -64,17 +61,15 @@ describe('health checks endpoints', () => {
 
     try {
       // Then it should return HTTP 200
-      expect(response.statusCode).toBe(200)
+      assert.strictEqual(response.statusCode, 200)
       // And an empty body
-      expect(responseBody).toBe('')
+      assert.strictEqual(responseBody, '')
     } finally {
       await closeServer(mocker)
     }
   })
 
   it('proxies other requests to /.well-known as a normal request', async () => {
-    expect.assertions(2)
-
     // Given a simple HTTP server
     const originPort = await getPort()
     const origin = await createTimeServer()
@@ -101,11 +96,11 @@ describe('health checks endpoints', () => {
 
     try {
       // Then it should behave normally proxying the request to origin.
-      expect(response.statusCode).toBe(200)
+      assert.strictEqual(response.statusCode, 200)
 
       // And it should not have an empty response body, since the response comes
       // from origin.
-      expect(responseBody).not.toBe('')
+      assert.notStrictEqual(responseBody, '')
     } finally {
       await closeServer(mocker)
       await closeServer(origin)

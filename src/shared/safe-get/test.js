@@ -1,15 +1,13 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it } from 'node:test'
+import assert from 'node:assert/strict'
 import safeGet from './index.js'
 
 describe('safeGet', () => {
   it('doesnt throw in case a property is queried on an undefined object', () => {
-    expect.assertions(1)
-    expect(safeGet({}, ['lorem', 'ipsum', 'dolor'])).toBeUndefined()
+    assert.strictEqual(safeGet({}, ['lorem', 'ipsum', 'dolor']), undefined)
   })
 
   it('returns value of deep properties', () => {
-    expect.assertions(2)
-
     const obj = {
       lorem: {
         ipsum: {
@@ -19,15 +17,14 @@ describe('safeGet', () => {
         },
       },
     }
-    expect(safeGet(obj, ['lorem', 'ipsum', 'dolor', 'sit'])).toBe(7)
-    expect(safeGet(obj, ['lorem', 'ipsum', 'dolor'])).toBe(
+    assert.strictEqual(safeGet(obj, ['lorem', 'ipsum', 'dolor', 'sit']), 7)
+    assert.strictEqual(
+      safeGet(obj, ['lorem', 'ipsum', 'dolor']),
       obj.lorem.ipsum.dolor,
     )
   })
 
   it('returns undefined for not existing deep properties', () => {
-    expect.assertions(5)
-
     const obj = {
       lorem: {
         ipsum: {
@@ -35,20 +32,23 @@ describe('safeGet', () => {
         },
       },
     }
-    expect(safeGet(obj, ['quijotest'])).toBeUndefined()
-    expect(safeGet(obj, ['lorem', 'quijotest'])).toBeUndefined()
-    expect(safeGet(obj, ['lorem', 'ipsum', 'dolor', 'sit'])).toBeUndefined()
-    expect(
+    assert.strictEqual(safeGet(obj, ['quijotest']), undefined)
+    assert.strictEqual(safeGet(obj, ['lorem', 'quijotest']), undefined)
+    assert.strictEqual(
+      safeGet(obj, ['lorem', 'ipsum', 'dolor', 'sit']),
+      undefined,
+    )
+    assert.strictEqual(
       safeGet(obj, ['lorem', 'ipsum', 'dolor', 'sit', 'amet']),
-    ).toBeUndefined()
-    expect(safeGet(obj, ['lorem', 'ipsum', 'dolor'])).toBe(
+      undefined,
+    )
+    assert.strictEqual(
+      safeGet(obj, ['lorem', 'ipsum', 'dolor']),
       obj.lorem.ipsum.dolor,
     )
   })
 
   it('works with arrays', () => {
-    expect.assertions(3)
-
     const obj = {
       lorem: {
         ipsum: {
@@ -56,8 +56,8 @@ describe('safeGet', () => {
         },
       },
     }
-    expect(safeGet(obj, ['lorem', 'ipsum', 'dolor', '0'])).toBe(1)
-    expect(safeGet(obj, ['lorem', 'ipsum', 'dolor', '1'])).toBe(2)
-    expect(safeGet(obj, ['lorem', 'ipsum', 'dolor', '2'])).toBe(3)
+    assert.strictEqual(safeGet(obj, ['lorem', 'ipsum', 'dolor', '0']), 1)
+    assert.strictEqual(safeGet(obj, ['lorem', 'ipsum', 'dolor', '1']), 2)
+    assert.strictEqual(safeGet(obj, ['lorem', 'ipsum', 'dolor', '2']), 3)
   })
 })

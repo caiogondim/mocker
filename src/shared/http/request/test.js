@@ -1,4 +1,5 @@
-import { vi, describe, it, expect } from 'vitest'
+import { describe, it, mock } from 'node:test'
+import assert from 'node:assert/strict'
 import getPort from '../../../__tests__/helpers/get-port.js'
 import { createServer as createDuplicateRequestServer } from '../../../../tools/duplicate-request-server/index.js'
 import { createServer as createFlakyServer } from '../../../../tools/flaky-server/index.js'
@@ -9,8 +10,6 @@ import createRequest from './index.js'
 
 describe('createRequest', () => {
   it('makes a request and receives a response', async () => {
-    expect.assertions(1)
-
     const duplicateRequestServer = createDuplicateRequestServer()
     const port = await getPort()
     await duplicateRequestServer.listen(port)
@@ -26,27 +25,23 @@ describe('createRequest', () => {
       const response = await responsePromise
 
       const responseBody = await getBody(response)
-      expect(responseBody.toString()).toBe('lorem ipsumlorem ipsum')
+      assert.strictEqual(responseBody.toString(), 'lorem ipsumlorem ipsum')
     } finally {
       duplicateRequestServer.close()
     }
   })
 
   it('throws an error in case a connection cannot be made', async () => {
-    expect.assertions(1)
-
     const port = await getPort()
 
-    await expect(
+    await assert.rejects(
       createRequest({
         url: `http://localhost:${port}`,
       }),
-    ).rejects.toThrow(``)
+    )
   })
 
   it('retries up to `retries`', async () => {
-    expect.assertions(2)
-
     const flakyServer = createFlakyServer()
     const port = await getPort()
     await flakyServer.listen(port)
@@ -68,18 +63,16 @@ describe('createRequest', () => {
       request.end()
 
       const response = await responsePromise
-      expect(response.statusCode).toBe(200)
+      assert.strictEqual(response.statusCode, 200)
 
       const responseBody = await getBody(response)
-      expect(responseBody.toString()).toBe('dolor sit amet')
+      assert.strictEqual(responseBody.toString(), 'dolor sit amet')
     } finally {
       flakyServer.close()
     }
   })
 
   it('returns the last non-successful request if number of tries equals to `retries`', async () => {
-    expect.assertions(2)
-
     const flakyServer = createFlakyServer()
     const port = await getPort()
     await flakyServer.listen(port)
@@ -96,23 +89,21 @@ describe('createRequest', () => {
       request.end()
 
       const response = await responsePromise
-      expect(response.statusCode).toBe(500)
+      assert.strictEqual(response.statusCode, 500)
 
       const responseBody = await getBody(response)
-      expect(responseBody.toString()).toBe('')
+      assert.strictEqual(responseBody.toString(), '')
     } finally {
       flakyServer.close()
     }
   })
 
   it('backs off between retries', async () => {
-    expect.assertions(1)
-
     const flakyServer = createFlakyServer()
     const port = await getPort()
     await flakyServer.listen(port)
 
-    const mockBackoff = vi.fn()
+    const mockBackoff = mock.fn()
 
     try {
       const [request, responsePromise] = await createRequest({
@@ -127,7 +118,7 @@ describe('createRequest', () => {
 
       await responsePromise
 
-      expect(mockBackoff).toHaveBeenCalledTimes(2)
+      assert.strictEqual(mockBackoff.mock.calls.length, 2)
     } finally {
       flakyServer.close()
     }
@@ -135,8 +126,6 @@ describe('createRequest', () => {
 
   // Regression test
   it('retries even if server cannot be reached', async () => {
-    expect.assertions(2)
-
     const port = await getPort()
     const flakyServer = createFlakyServer()
 
@@ -168,10 +157,10 @@ describe('createRequest', () => {
       ])
 
       const response = await responsePromise
-      expect(response.statusCode).toBe(200)
+      assert.strictEqual(response.statusCode, 200)
 
       const responseBody = await getBody(response)
-      expect(responseBody.toString()).toBe('dolor sit amet')
+      assert.strictEqual(responseBody.toString(), 'dolor sit amet')
     } finally {
       flakyServer.close()
     }
