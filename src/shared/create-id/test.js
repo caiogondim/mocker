@@ -1,23 +1,22 @@
 const createId = require('.')
 
 describe('createId', () => {
-  it('creates an id with characters only present on alphabet parameter', () => {
-    expect.assertions(32)
-
-    const alphabet = ['a', 'b', 'c', 'd', 'e']
-    const id = createId(32, alphabet)
-
-    for (const char of id) {
-      expect(alphabet).toContain(char)
-    }
-  })
-
-  it('creates an id with a length as passed as argument', () => {
+  it('creates a valid UUID', () => {
     expect.assertions(1)
 
-    const length = 16
-    const id = createId(length)
+    const id = createId()
 
-    expect(id).toHaveLength(length)
+    expect(id).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
+    )
+  })
+
+  it('creates unique ids', () => {
+    expect.assertions(1)
+
+    const id1 = createId()
+    const id2 = createId()
+
+    expect(id1).not.toBe(id2)
   })
 })

@@ -1,4 +1,4 @@
-const { Readable } = require('stream')
+const { Readable } = require('node:stream')
 const values = require('.')
 const sleep = require('../../sleep')
 

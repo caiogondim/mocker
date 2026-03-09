@@ -2,10 +2,10 @@
 /** @typedef {import('../shared/http').Headers} Headers */
 /** @typedef {Map<string, string>} ArgvMap */
 
-const path = require('path')
-const { promises: fs } = require('fs')
+const path = require('node:path')
+const { promises: fs } = require('node:fs')
 const stringToBoolean = require('../shared/string-to-boolean')
-const Logger = require('../shared/logger')
+const createLogger = require('../shared/logger')
 const { prettifyError } = require('../shared/logger/pretty-error')
 const { stringify } = require('../shared/logger/format')
 const getConstructorName = require('../shared/get-constructor-name')
@@ -25,7 +25,7 @@ const MODE_VALID_VALUES = [
 const UPDATE_VALID_VALUES = ['off', 'startup', 'only']
 /** @type {Readonly<string[]>} */
 const MOCK_KEYS_VALID_VALUES = ['url', 'method', 'headers', 'body']
-const LOGGING_VALID_VALUES = Logger.validLevels
+const LOGGING_VALID_VALUES = createLogger.validLevels
 
 /** @type {Readonly<RegExp>} */
 const MOCK_KEYS_BODY_REGEX = /^body(?:\.[A-Za-z0-9\-_]+)*$/
@@ -593,7 +593,7 @@ async function parseArgv(argv) {
   const argvMap = argvToArgvMap(argv)
 
   const logging = getLogging(argvMap)
-  Logger.level = logging
+  createLogger.level = logging
 
   const port = await getPort(argvMap)
   const mode = getMode(argvMap)

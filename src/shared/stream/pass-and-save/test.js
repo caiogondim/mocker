@@ -1,4 +1,4 @@
-const { Readable, Transform } = require('stream')
+const { Readable, Transform } = require('node:stream')
 const pipeline = require('../pipeline')
 const createPassAndSave = require('.')
 

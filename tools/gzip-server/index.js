@@ -1,11 +1,9 @@
 /** @typedef {import('../../src/shared/types').AsyncHttpServer} AsyncHttpServer */
 
-const http = require('http')
-const { createGzip } = require('zlib')
-const { pipeline, Readable } = require('stream')
-const { promisify } = require('util')
-
-const asyncPipeline = promisify(pipeline)
+const http = require('node:http')
+const { createGzip } = require('node:zlib')
+const { pipeline } = require('node:stream/promises')
+const { Readable } = require('node:stream')
 
 /** @returns {AsyncHttpServer} */
 function createServer() {
@@ -16,7 +14,7 @@ function createServer() {
     }
     res.writeHead(200, { 'content-encoding': 'gzip' })
     const reqBody = Buffer.concat(reqBodyChunks).toString()
-    await asyncPipeline(Readable.from(reqBody), createGzip(), res)
+    await pipeline(Readable.from(reqBody), createGzip(), res)
   })
 
   return {

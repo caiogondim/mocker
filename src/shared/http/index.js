@@ -34,11 +34,11 @@ async function getBody(req) {
  */
 function getHeaders(reqOrRes) {
   if ('headers' in reqOrRes) {
-    return global.structuredClone(reqOrRes.headers)
+    return structuredClone(reqOrRes.headers)
   }
 
   if ('getHeaders' in reqOrRes && typeof reqOrRes.getHeaders === 'function') {
-    return global.structuredClone(reqOrRes.getHeaders())
+    return structuredClone(reqOrRes.getHeaders())
   }
 
   return {}

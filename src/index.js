@@ -5,15 +5,15 @@
 /** @typedef {import('./shared/http').Headers} Headers */
 /** @typedef {import('./mock-manager/mocked-request')} MockedRequest */
 
-const path = require('path')
-const http = require('http')
-const cluster = require('cluster')
-const os = require('os')
+const path = require('node:path')
+const http = require('node:http')
+const cluster = require('node:cluster')
+const os = require('node:os')
 const packageJson = require('../package.json')
-const Logger = require('./shared/logger')
+const createLogger = require('./shared/logger')
 const { bold, dim, green, yellow, red } = require('./shared/logger/format')
-const { MockManager } = require('./mock-manager')
-const { Origin } = require('./origin')
+const { createMockManager } = require('./mock-manager')
+const { createOrigin } = require('./origin')
 const { delay, throttle, pipeline, rewindable } = require('./shared/stream')
 const createId = require('./shared/create-id')
 const {
@@ -23,7 +23,7 @@ const {
   SecretNotFoundError,
 } = require('./shared/http')
 
-const logger = new Logger()
+const logger = createLogger()
 const closingMockerText = '\r  \nclosing mocker 👋'
 
 class OriginResponseError extends Error {
@@ -123,44 +123,36 @@ function handleLiveAndReadinessConnection(request, response, connectionId) {
 }
 
 class Mocker {
+  /** @type {Args & { fs: FsLike }} */
+  #args
+
+  #origin
+
+  #mockManager
+
+  /** @type {http.Server | null} */
+  #httpServer = null
+
+  #state = {
+    isClosing: false,
+  }
+
   /** @param {Args & { fs: FsLike }} args */
   constructor(args) {
-    /**
-     * @private
-     * @readonly
-     */
-    this._args = args
+    this.#args = args
 
-    /**
-     * @private
-     * @readonly
-     */
-    this._origin = new Origin({
+    this.#origin = createOrigin({
       host: args.origin,
       retries: args.retries,
       overwriteRequestHeaders: args.overwriteRequestHeaders,
     })
 
-    /**
-     * @private
-     * @readonly
-     */
-    this._mockManager = new MockManager({
+    this.#mockManager = createMockManager({
       responsesDir: args.responsesDir,
       mockKeys: args.mockKeys,
       redactedHeaders: args.redactedHeaders,
       fs: args.fs,
     })
-
-    /**
-     * @private
-     * @type {http.Server | null}
-     */
-    this._httpServer = null
-
-    this._state = {
-      isClosing: false,
-    }
 
     /** @type {AsyncHttpServer} */
     // Checks if instance implements AsyncHttpServer interface.
@@ -175,8 +167,8 @@ class Mocker {
    * @returns {boolean}
    */
   get listening() {
-    if (!this._httpServer) return false
-    return this._httpServer.listening
+    if (!this.#httpServer) return false
+    return this.#httpServer.listening
   }
 
   /**
@@ -185,8 +177,9 @@ class Mocker {
    * @param {number} port
    * @returns {Promise<void>}
    */
-  async listen(port = this._args.port) {
-    const { _args: args, _state: state } = this
+  async listen(port = this.#args.port) {
+    const args = this.#args
+    const state = this.#state
 
     state.isClosing = false
 
@@ -224,10 +217,10 @@ class Mocker {
     if (cluster.isPrimary) {
       logger.log(printStartMessage())
 
-      this._addListeners()
+      this.#addListeners()
 
       if (args.update === 'startup' || args.update === 'only') {
-        await this._updateMocks()
+        await this.#updateMocks()
       }
 
       if (args.update === 'only') {
@@ -244,8 +237,8 @@ class Mocker {
             process.pid
           )}, and proxying ${bold(args.origin)}`
         )
-        this._httpServer = http
-          .createServer(this._server.bind(this))
+        this.#httpServer = http
+          .createServer(this.#server.bind(this))
           .listen(port, resolve)
         // Type definition for cluster module is broken
         // @ts-expect-error
@@ -296,8 +289,8 @@ class Mocker {
         // Type definition for cluster module is broken
         // @ts-expect-error
       } else if (cluster.isWorker) {
-        this._httpServer = http
-          .createServer(this._server.bind(this))
+        this.#httpServer = http
+          .createServer(this.#server.bind(this))
           .listen(port, resolve)
       }
     })
@@ -309,11 +302,12 @@ class Mocker {
    * @returns {Promise<void>}
    */
   async close() {
-    const { _state: state, _httpServer: httpServer } = this
+    const state = this.#state
+    const httpServer = this.#httpServer
 
     state.isClosing = true
 
-    this._removeListeners()
+    this.#removeListeners()
 
     // Type definition for cluster module is broken
     // @ts-expect-error
@@ -344,10 +338,9 @@ class Mocker {
   }
 
   /**
-   * @private
    * @returns {void}
    */
-  _addListeners() {
+  #addListeners() {
     for (const signal of terminationSignals) {
       process.on(signal, async () => {
         logger.log(closingMockerText)
@@ -357,24 +350,22 @@ class Mocker {
   }
 
   /**
-   * @private
    * @returns {void}
    */
-  _removeListeners() {
+  #removeListeners() {
     for (const signal of terminationSignals) {
       process.removeAllListeners(signal)
     }
   }
 
   /**
-   * @private
    * @param {http.IncomingMessage} request
    * @param {http.ServerResponse} response
    * @returns {Promise<void>}
    */
   // eslint-disable-next-line complexity
-  async _server(request, response) {
-    const { _args: args } = this
+  async #server(request, response) {
+    const args = this.#args
     const connectionId = createId()
 
     response.setHeader('x-powered-by', 'mocker')
@@ -398,14 +389,14 @@ class Mocker {
     const requestRewindable = rewindable(request)
 
     if (args.cors && request.method === 'OPTIONS') {
-      this._handleCors(requestRewindable, response, connectionId)
+      this.#handleCors(requestRewindable, response, connectionId)
       return
     }
 
     try {
       switch (args.mode) {
         case 'read': {
-          await this._handleConnectionWithReadMode(
+          await this.#handleConnectionWithReadMode(
             requestRewindable,
             response,
             connectionId
@@ -413,7 +404,7 @@ class Mocker {
           return
         }
         case 'read-write': {
-          await this._handleConnectionWithReadWriteMode(
+          await this.#handleConnectionWithReadWriteMode(
             requestRewindable,
             response,
             connectionId
@@ -421,7 +412,7 @@ class Mocker {
           return
         }
         case 'read-pass': {
-          await this._handleConnectionWithReadPassMode(
+          await this.#handleConnectionWithReadPassMode(
             requestRewindable,
             response,
             connectionId
@@ -429,7 +420,7 @@ class Mocker {
           return
         }
         case 'write': {
-          await this._handleConnectionWithWriteMode(
+          await this.#handleConnectionWithWriteMode(
             requestRewindable,
             response,
             connectionId
@@ -437,7 +428,7 @@ class Mocker {
           return
         }
         case 'pass': {
-          await this._handleConnectionWithPassMode(
+          await this.#handleConnectionWithPassMode(
             requestRewindable,
             response,
             connectionId
@@ -445,7 +436,7 @@ class Mocker {
           return
         }
         case 'pass-read': {
-          await this._handleConnectionWithPassReadMode(
+          await this.#handleConnectionWithPassReadMode(
             requestRewindable,
             response,
             connectionId
@@ -474,36 +465,33 @@ class Mocker {
   }
 
   /**
-   * @private
    * @param {http.IncomingMessage & Rewindable} request
    * @param {http.ServerResponse} response
    * @param {string} connectionId
    * @returns {Promise<void>}
    */
-  async _handleConnectionWithWriteMode(request, response, connectionId) {
-    await this._respondFromOrigin(request, response, connectionId)
+  async #handleConnectionWithWriteMode(request, response, connectionId) {
+    await this.#respondFromOrigin(request, response, connectionId)
   }
 
   /**
-   * @private
    * @param {http.IncomingMessage & Rewindable} request
    * @param {http.ServerResponse} response
    * @param {string} connectionId
    * @returns {Promise<void>}
    */
-  async _handleConnectionWithPassMode(request, response, connectionId) {
-    await this._respondFromOrigin(request, response, connectionId)
+  async #handleConnectionWithPassMode(request, response, connectionId) {
+    await this.#respondFromOrigin(request, response, connectionId)
   }
 
   /**
-   * @private
    * @param {http.IncomingMessage & Rewindable} request
    * @param {http.ServerResponse} response
    * @param {string} connectionId
    * @returns {Promise<void>}
    */
-  async _handleConnectionWithReadWriteMode(request, response, connectionId) {
-    const { _mockManager: mockManager } = this
+  async #handleConnectionWithReadWriteMode(request, response, connectionId) {
+    const mockManager = this.#mockManager
 
     const { hasMock, mockPath } = await mockManager.has({
       request,
@@ -512,25 +500,24 @@ class Mocker {
     const mockBasename = path.basename(mockPath)
 
     if (hasMock) {
-      await this._respondFromMock(request, response, connectionId)
+      await this.#respondFromMock(request, response, connectionId)
       return
     }
 
     logger.warn(
       `${dim(connectionId)} mocked response "${mockBasename}" was not found`
     )
-    await this._respondFromOrigin(request, response, connectionId)
+    await this.#respondFromOrigin(request, response, connectionId)
   }
 
   /**
-   * @private
    * @param {http.IncomingMessage & Rewindable} request
    * @param {http.ServerResponse} response
    * @param {string} connectionId
    * @returns {Promise<void>}
    */
-  async _handleConnectionWithReadPassMode(request, response, connectionId) {
-    const { _mockManager: mockManager } = this
+  async #handleConnectionWithReadPassMode(request, response, connectionId) {
+    const mockManager = this.#mockManager
 
     const { hasMock, mockPath } = await mockManager.has({
       request,
@@ -539,24 +526,23 @@ class Mocker {
     const mockBasename = path.basename(mockPath)
 
     if (hasMock) {
-      await this._respondFromMock(request, response, connectionId)
+      await this.#respondFromMock(request, response, connectionId)
       return
     }
 
     logger.info(
       `${dim(connectionId)} mocked response "${mockBasename}" was not found`
     )
-    await this._respondFromOrigin(request, response, connectionId)
+    await this.#respondFromOrigin(request, response, connectionId)
   }
 
   /**
-   *@private
    *@param {http.IncomingMessage} request
    *@param {http.ServerResponse} response
    *@param {string} connectionId
    *@returns {Promise<void>}
    */
-  async _handleCors(request, response, connectionId) {
+  async #handleCors(request, response, connectionId) {
     logger.info(`${dim(connectionId)} 👈 ${formatStatusCode(200)} CORS`)
 
     response.setHeader(
@@ -576,14 +562,13 @@ class Mocker {
   }
 
   /**
-   * @private
    * @param {http.IncomingMessage & Rewindable} request
    * @param {http.ServerResponse} response
    * @param {string} connectionId
    * @returns {Promise<void>}
    */
-  async _handleConnectionWithReadMode(request, response, connectionId) {
-    const { _mockManager: mockManager } = this
+  async #handleConnectionWithReadMode(request, response, connectionId) {
+    const mockManager = this.#mockManager
 
     const { hasMock, mockPath } = await mockManager.has({
       request,
@@ -592,7 +577,7 @@ class Mocker {
     const mockBasename = path.basename(mockPath)
 
     if (hasMock) {
-      await this._respondFromMock(request, response, connectionId)
+      await this.#respondFromMock(request, response, connectionId)
       return
     }
 
@@ -603,17 +588,16 @@ class Mocker {
   }
 
   /**
-   * @private
    * @param {http.IncomingMessage & Rewindable} request
    * @param {http.ServerResponse} response
    * @param {string} connectionId
    * @returns {Promise<void>}
    */
-  async _handleConnectionWithPassReadMode(request, response, connectionId) {
-    const { _mockManager: mockManager } = this
+  async #handleConnectionWithPassReadMode(request, response, connectionId) {
+    const mockManager = this.#mockManager
 
     try {
-      await this._respondFromOrigin(request, response, connectionId)
+      await this.#respondFromOrigin(request, response, connectionId)
       return
     } catch (error) {
       if (
@@ -634,7 +618,7 @@ class Mocker {
       const mockBasename = path.basename(mockPath)
 
       if (hasMock) {
-        await this._respondFromMock(request, response, connectionId)
+        await this.#respondFromMock(request, response, connectionId)
         return
       }
 
@@ -647,14 +631,14 @@ class Mocker {
   }
 
   /**
-   * @private
    * @param {http.IncomingMessage & Rewindable} request
    * @param {http.ServerResponse} response
    * @param {string} connectionId
    * @returns {Promise<void>}
    */
-  async _respondFromMock(request, response, connectionId) {
-    const { _args: args, _mockManager: mockManager } = this
+  async #respondFromMock(request, response, connectionId) {
+    const args = this.#args
+    const mockManager = this.#mockManager
 
     try {
       const { mockedResponse, mockPath } = await mockManager.get({
@@ -680,7 +664,7 @@ class Mocker {
         response.setHeader(key, value)
       }
 
-      this._overwriteResponseHeaders(response, request.headers)
+      this.#overwriteResponseHeaders(response, request.headers)
 
       await pipeline(
         mockedResponse,
@@ -702,20 +686,20 @@ class Mocker {
   }
 
   /**
-   * @private
    * @param {http.IncomingMessage & Rewindable} clientToProxyRequest
    * @param {http.ServerResponse} proxyToClientResponse
    * @param {string} connectionId
    * @returns {Promise<void>}
    */
-  async _respondFromOrigin(
+  async #respondFromOrigin(
     clientToProxyRequest,
     proxyToClientResponse,
     connectionId
   ) {
-    const { _args: args, _origin: origin } = this
+    const args = this.#args
+    const origin = this.#origin
     const { method = undefined, url = '' } = clientToProxyRequest
-    const requestHeaders = global.structuredClone(clientToProxyRequest.headers)
+    const requestHeaders = structuredClone(clientToProxyRequest.headers)
 
     proxyToClientResponse.setHeader('x-mocker-request-id', connectionId)
     proxyToClientResponse.setHeader('x-mocker-response-from', 'Origin')
@@ -740,9 +724,9 @@ class Mocker {
     }
 
     copyResponseAttrs(originToProxyResponse, proxyToClientResponse)
-    this._overwriteResponseHeaders(proxyToClientResponse, requestHeaders)
+    this.#overwriteResponseHeaders(proxyToClientResponse, requestHeaders)
 
-    await this._writeMockIfOk(
+    await this.#writeMockIfOk(
       clientToProxyRequest,
       originToProxyResponseRewindable,
       connectionId
@@ -763,13 +747,12 @@ class Mocker {
   }
 
   /**
-   * @private
    * @param {http.ServerResponse} response
    * @param {Headers} requestHeaders
    * @returns {void}
    */
-  _overwriteResponseHeaders(response, requestHeaders) {
-    const { _args: args } = this
+  #overwriteResponseHeaders(response, requestHeaders) {
+    const args = this.#args
 
     for (const [key, value] of Object.entries(args.overwriteResponseHeaders)) {
       if (value === null || value === undefined) {
@@ -788,14 +771,14 @@ class Mocker {
   }
 
   /**
-   * @private
    * @param {(http.IncomingMessage | MockedRequest) & Rewindable} request
    * @param {http.IncomingMessage & Rewindable} response
    * @param {string} connectionId
    * @returns {Promise<void>}
    */
-  async _writeMockIfOk(request, response, connectionId) {
-    const { _args: args, _mockManager: mockManager } = this
+  async #writeMockIfOk(request, response, connectionId) {
+    const args = this.#args
+    const mockManager = this.#mockManager
 
     if (!(args.mode === 'write' || args.mode === 'read-write')) return
 
@@ -829,13 +812,13 @@ class Mocker {
   }
 
   /**
-   * @private
    * @param {Object} options
    * @param {Function} [options.fault] For fault injection.
    */
   // eslint-disable-next-line complexity
-  async _updateMocks({ fault = () => {} } = {}) {
-    const { _mockManager: mockManager, _origin: origin } = this
+  async #updateMocks({ fault = () => {} } = {}) {
+    const mockManager = this.#mockManager
+    const origin = this.#origin
     const total = await mockManager.size()
     let i = 1
 

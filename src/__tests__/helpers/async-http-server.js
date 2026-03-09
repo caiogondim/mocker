@@ -1,6 +1,6 @@
 /** @typedef {import('../../shared/types').AsyncHttpServer} AsyncHttpServer */
 
-const http = require('http')
+const http = require('node:http')
 
 /**
  * @param {AsyncHttpServer} server

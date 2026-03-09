@@ -1,6 +1,6 @@
 /** @typedef {import('./types').Rewindable} Rewindable */
 
-const { Readable } = require('stream')
+const { Readable } = require('node:stream')
 
 /**
  * @param {Readable} stream

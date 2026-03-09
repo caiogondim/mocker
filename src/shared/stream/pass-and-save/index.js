@@ -1,21 +1,15 @@
-const { Transform } = require('stream')
-
-function createDeferred() {
-  // eslint-disable-next-line no-unused-vars
-  let resolve = (/** @type {any} */ value) => {}
-  // eslint-disable-next-line no-unused-vars
-  let reject = (/** @type {any} */ value) => {}
-  const promise = new Promise((resolve_, reject_) => {
-    resolve = resolve_
-    reject = reject_
-  })
-
-  return { resolve, reject, promise }
-}
+const { Transform } = require('node:stream')
 
 /** @returns {[Transform, Promise<Buffer[]>]} */
 function createPassAndSave() {
-  const { resolve, reject, promise: contentPromise } = createDeferred()
+  /** @type {function(any): void} */
+  let resolve
+  /** @type {function(any): void} */
+  let reject
+  const contentPromise = new Promise((resolve_, reject_) => {
+    resolve = resolve_
+    reject = reject_
+  })
   /** @type {Buffer[]} */
   const chunks = []
 

@@ -1,4 +1,4 @@
-const { PassThrough, Readable } = require('stream')
+const { PassThrough, Readable } = require('node:stream')
 const sleep = require('../../sleep')
 const values = require('../values')
 const rewindable = require('.')

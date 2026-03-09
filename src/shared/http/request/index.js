@@ -1,22 +1,9 @@
 /** @typedef {import('../types').RequestWrite} RequestWrite */
 
-const http = require('http')
-const https = require('https')
+const http = require('node:http')
+const https = require('node:https')
 const createBackoff = require('../../backoff')
 const retry = require('../../function-call/retry')
-
-function createDeferred() {
-  // eslint-disable-next-line no-unused-vars
-  let resolve = (/** @type {any} */ value) => {}
-  // eslint-disable-next-line no-unused-vars
-  let reject = (/** @type {any} */ value) => {}
-  const promise = new Promise((resolve_, reject_) => {
-    resolve = resolve_
-    reject = reject_
-  })
-
-  return { resolve, reject, promise }
-}
 
 /**
  * @param {string} protocol
@@ -176,11 +163,14 @@ async function createRequestWithRetry({
   // Creates a deferred (a Promise that can be resolved/rejected from the outside)
   //
 
-  const {
-    resolve: resolveResponse,
-    reject: rejectResponse,
-    promise: responseWithRetryPromise,
-  } = createDeferred()
+  // eslint-disable-next-line no-unused-vars
+  let resolveResponse = (/** @type {any} */ value) => {}
+  // eslint-disable-next-line no-unused-vars
+  let rejectResponse = (/** @type {any} */ value) => {}
+  const responseWithRetryPromise = new Promise((resolve_, reject_) => {
+    resolveResponse = resolve_
+    rejectResponse = reject_
+  })
 
   //
   // Retry loop

@@ -1,4 +1,4 @@
-const { Readable, Transform, PassThrough } = require('stream')
+const { Readable, Transform, PassThrough } = require('node:stream')
 const pipeline = require('../pipeline')
 const throttle = require('.')
 

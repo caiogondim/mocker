@@ -8,12 +8,12 @@
 /** @typedef {import('../shared/stream/rewindable/types').Rewindable} Rewindable */
 /** @typedef {import('../shared/types').Json} Json */
 
-const path = require('path')
-const nativeFs = require('fs')
-const zlib = require('zlib')
-const stream = require('stream')
-const crypto = require('crypto')
-const { promisify } = require('util')
+const path = require('node:path')
+const nativeFs = require('node:fs')
+const zlib = require('node:zlib')
+const { Readable } = require('node:stream')
+const crypto = require('node:crypto')
+const { promisify } = require('node:util')
 const MockedResponse = require('./mocked-response')
 const {
   getBody,
@@ -22,12 +22,12 @@ const {
   unredactHeaders,
 } = require('../shared/http')
 const { pipeline, rewindable } = require('../shared/stream')
-const Logger = require('../shared/logger')
+const createLogger = require('../shared/logger')
 const { dim } = require('../shared/logger/format')
 const safeGet = require('../shared/safe-get')
 const MockedRequest = require('./mocked-request')
 
-const logger = new Logger()
+const logger = createLogger()
 
 const RESPONSE_FILE_REGEX = /\.json$/
 
@@ -142,57 +142,77 @@ function sanitizeResponseHeaders(headers, secrets) {
   return headersClone
 }
 
-class MockManager {
-  /**
-   * @param {Object} options
-   * @param {Args['responsesDir']} options.responsesDir
-   * @param {Args['mockKeys']} [options.mockKeys]
-   * @param {Args['redactedHeaders']} [options.redactedHeaders]
-   * @param {FsLike} [options.fs]
-   */
-  constructor({
-    responsesDir,
-    mockKeys = new Set(['url', 'method']),
-    redactedHeaders = {},
-    fs = nativeFs,
-  }) {
-    /**
-     * @private
-     * @readonly
-     */
-    this._responsesDir = responsesDir
+/**
+ * @param {(HttpIncomingMessage | MockedRequest) & Rewindable} request
+ * @param {string} connectionId
+ * @param {Args['responsesDir']} responsesDir
+ * @param {Args['mockKeys']} mockKeys
+ * @returns {Promise<string>}
+ */
+async function requestToMockPath(
+  request,
+  connectionId,
+  responsesDir,
+  mockKeys
+) {
+  const reqBody = await getBody(request.rewind())
+  const body = parseBody(reqBody, request, connectionId)
 
-    /**
-     * @private
-     * @readonly
-     */
-    this._mockKeys = mockKeys
+  let fileName = ''
+  for (const mockKey of mockKeys) {
+    if (mockKey === 'method' || mockKey === 'headers' || mockKey === 'url') {
+      fileName = `${fileName} ${JSON.stringify(request[mockKey])}`
+    } else if (mockKey === 'body') {
+      fileName = `${fileName} ${reqBody}`
+    } else if (mockKey.startsWith('body.') && typeof body === 'object') {
+      const props = mockKey.split('.').slice(1)
+      const bodyVal = safeGet(body, props)
 
-    /**
-     * @private
-     * @readonly
-     */
-    this._fs = fs
+      if (bodyVal === undefined) {
+        continue
+      }
 
-    /**
-     * @private
-     * @readonly
-     */
-    this._redactedHeaders = redactedHeaders
+      fileName = `${fileName} ${JSON.stringify(bodyVal)}`
+    }
   }
 
+  fileName = fileName.trim()
+  fileName = `${sha256(fileName)}.json`
+
+  const filePath = path.join(responsesDir, fileName)
+  return filePath
+}
+
+/**
+ * @param {Object} options
+ * @param {Args['responsesDir']} options.responsesDir
+ * @param {Args['mockKeys']} [options.mockKeys]
+ * @param {Args['redactedHeaders']} [options.redactedHeaders]
+ * @param {FsLike} [options.fs]
+ */
+function createMockManager({
+  responsesDir,
+  mockKeys = new Set(['url', 'method']),
+  redactedHeaders = {},
+  fs = nativeFs,
+}) {
   /**
    * @param {Object} options
    * @param {(HttpIncomingMessage | MockedRequest) & Rewindable} options.request
    * @param {string} [options.connectionId]
    * @returns {Promise<{ mockPath: string; hasMock: boolean }>}
    */
-  async has({ request, connectionId = '?' }) {
-    const fs = this._fs.promises
+  async function has({ request, connectionId = '?' }) {
+    const fsPromises = fs.promises
 
-    const mockPath = await this._requestToMockPath(request, connectionId)
+    const mockPath = await requestToMockPath(
+      request,
+      connectionId,
+      responsesDir,
+      mockKeys
+    )
     try {
-      await fs.access(mockPath)
+      await fsPromises.access(mockPath)
       return { hasMock: true, mockPath }
     } catch (_) {
       return { hasMock: false, mockPath }
@@ -205,11 +225,15 @@ class MockManager {
    * @param {string} [options.connectionId]
    * @returns {Promise<{ mockPath: string; mockedResponse: MockedResponse }>}
    */
-  async get({ request, connectionId = '?' }) {
-    const fs = this._fs.promises
-    const redactedHeaders = this._redactedHeaders
-    const filePath = await this._requestToMockPath(request, connectionId)
-    const fileContent = await fs.readFile(filePath)
+  async function get({ request, connectionId = '?' }) {
+    const fsPromises = fs.promises
+    const filePath = await requestToMockPath(
+      request,
+      connectionId,
+      responsesDir,
+      mockKeys
+    )
+    const fileContent = await fsPromises.readFile(filePath)
     const fileJson = JSON.parse(fileContent.toString('utf8'))
 
     if (
@@ -242,13 +266,22 @@ class MockManager {
    * @param {Function} [options.fault] For fault injection.
    * @returns {Promise<{ mockPath: string }>}
    */
-  async set({ request, response, connectionId = '?', fault = () => {} }) {
+  async function set({
+    request,
+    response,
+    connectionId = '?',
+    fault = () => {},
+  }) {
     const {
       createWriteStream,
       promises: { unlink },
-    } = this._fs
-    const redactedHeaders = this._redactedHeaders
-    const filePath = await this._requestToMockPath(request, connectionId)
+    } = fs
+    const filePath = await requestToMockPath(
+      request,
+      connectionId,
+      responsesDir,
+      mockKeys
+    )
     const reqBodyBuffer = await getBody(request.rewind())
     const resBodyBuffer = await getBody(response.rewind())
     const reqBody = parseBody(reqBodyBuffer, request, connectionId)
@@ -291,7 +324,7 @@ class MockManager {
 
     try {
       await pipeline(
-        stream.Readable.from(fileContentSerialized),
+        Readable.from(fileContentSerialized),
         createWriteStream(filePath, { autoClose: true })
       )
       fault()
@@ -311,13 +344,12 @@ class MockManager {
     }
   }
 
-  async clear() {
-    const fs = this._fs.promises
-    const responsesDir = this._responsesDir
-    const files = await fs.readdir(responsesDir, { encoding: 'buffer' })
+  async function clear() {
+    const fsPromises = fs.promises
+    const files = await fsPromises.readdir(responsesDir, { encoding: 'buffer' })
     for (const file of files) {
       if (RESPONSE_FILE_REGEX.test(file.toString())) {
-        await fs.unlink(path.join(responsesDir, file.toString()))
+        await fsPromises.unlink(path.join(responsesDir, file.toString()))
       }
     }
   }
@@ -331,12 +363,10 @@ class MockManager {
    *   mockedRequest: (MockedRequest & Rewindable) | null
    * }>}
    */
-  async *getAll() {
-    const fs = this._fs.promises
-    const responsesDir = this._responsesDir
-    const redactedHeaders = this._redactedHeaders
+  async function* getAll() {
+    const fsPromises = fs.promises
 
-    const files = await fs.readdir(responsesDir, { encoding: 'buffer' })
+    const files = await fsPromises.readdir(responsesDir, { encoding: 'buffer' })
     for (const file of files) {
       const filePath = path.join(responsesDir, file.toString())
       if (!filePath.endsWith('.json')) {
@@ -344,7 +374,7 @@ class MockManager {
       }
 
       try {
-        const fileContent = await fs.readFile(filePath)
+        const fileContent = await fsPromises.readFile(filePath)
         const fileJson = JSON.parse(fileContent.toString('utf8'))
 
         if (
@@ -405,11 +435,12 @@ class MockManager {
    * @public
    * @returns {Promise<number>}
    */
-  async size() {
-    const fs = this._fs.promises
-    const responsesDir = this._responsesDir
+  async function size() {
+    const fsPromises = fs.promises
 
-    const filesBuffer = await fs.readdir(responsesDir, { encoding: 'buffer' })
+    const filesBuffer = await fsPromises.readdir(responsesDir, {
+      encoding: 'buffer',
+    })
     let output = 0
     for (const fileBuffer of filesBuffer) {
       const filePath = path.join(responsesDir, `${fileBuffer}`)
@@ -421,43 +452,7 @@ class MockManager {
     return output
   }
 
-  /**
-   * @private
-   * @param {(HttpIncomingMessage | MockedRequest) & Rewindable} request
-   * @param {string} connectionId
-   * @returns {Promise<string>}
-   */
-  async _requestToMockPath(request, connectionId = '?') {
-    const responsesDir = this._responsesDir
-    const mockKeys = this._mockKeys
-
-    const reqBody = await getBody(request.rewind())
-    const body = parseBody(reqBody, request, connectionId)
-
-    let fileName = ''
-    for (const mockKey of mockKeys) {
-      if (mockKey === 'method' || mockKey === 'headers' || mockKey === 'url') {
-        fileName = `${fileName} ${JSON.stringify(request[mockKey])}`
-      } else if (mockKey === 'body') {
-        fileName = `${fileName} ${reqBody}`
-      } else if (mockKey.startsWith('body.') && typeof body === 'object') {
-        const props = mockKey.split('.').slice(1)
-        const bodyVal = safeGet(body, props)
-
-        if (bodyVal === undefined) {
-          continue
-        }
-
-        fileName = `${fileName} ${JSON.stringify(bodyVal)}`
-      }
-    }
-
-    fileName = fileName.trim()
-    fileName = `${sha256(fileName)}.json`
-
-    const filePath = path.join(responsesDir, fileName)
-    return filePath
-  }
+  return { has, get, set, clear, getAll, size }
 }
 
-module.exports = { MockManager }
+module.exports = { createMockManager }

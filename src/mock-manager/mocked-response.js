@@ -1,6 +1,6 @@
 /** @typedef {import('../shared/http').Headers} Headers */
 
-const { Transform } = require('stream')
+const { Transform } = require('node:stream')
 
 class MockedResponse extends Transform {
   /**

@@ -1,4 +1,4 @@
-const { PassThrough, Transform } = require('stream')
+const { PassThrough, Transform } = require('node:stream')
 const sleep = require('../../sleep')
 
 /**

@@ -1,95 +1,67 @@
-const { Transform, PassThrough } = require('stream')
+const { Transform, PassThrough } = require('node:stream')
 
 // https://en.wikipedia.org/wiki/Token_bucket
 class TokenBucket {
+  /** @type {number} */
+  #capacity
+  /** @type {number} */
+  #fillFrequency
+  /** @type {number} */
+  #tokens = 0
+  /** @type {function(any=): void} */
+  #refillResolve = () => {}
+  /** @type {boolean} */
+  #hasPendingRefill = false
+
   /**
    * @param {Object} options
    * @param {number} options.capacity
    * @param {number} options.fillFrequency
    */
   constructor({ capacity, fillFrequency }) {
-    /**
-     * @private
-     *
-     * @readonly
-     */
-    this._capacity = capacity
-
-    /**
-     * @private
-     *
-     * @readonly
-     */
-    this._fillFrequency = fillFrequency
-
-    /**
-     * @private
-     * @type {number}
-     */
-    this._tokens = 0
-
-    /**
-     * @private
-     *
-     * @type {null | typeof setTimeout}
-     */
-    this._interval = null
-
-    /** @private */
-    this._refillResolve = () => {}
-
-    /** @private */
-    this._isInitialized = false
-
-    /** @private */
-    this._hasPendingRefill = false
+    this.#capacity = capacity
+    this.#fillFrequency = fillFrequency
   }
 
-  /** @returns {number} */
   get tokens() {
-    return this._tokens
+    return this.#tokens
   }
 
   /**
    * @param {number} quantity
-   * @returns {Boolean}
+   * @returns {boolean}
    */
   take(quantity) {
     if (!Number.isInteger(quantity) || quantity <= 0) {
       throw TypeError('quantity must be a positive integer')
     }
 
-    if (!this._hasPendingRefill) {
-      this._hasPendingRefill = true
-      setTimeout(() => this._fill(), 1000 / this._fillFrequency)
+    if (!this.#hasPendingRefill) {
+      this.#hasPendingRefill = true
+      setTimeout(() => this.#fill(), 1000 / this.#fillFrequency)
     }
 
-    if (quantity <= this._tokens) {
-      this._tokens -= quantity
+    if (quantity <= this.#tokens) {
+      this.#tokens -= quantity
       return true
     }
     return false
   }
 
-  /** @returns {Promise<void>} */
   async refill() {
-    if (this._capacity === this._tokens) {
+    if (this.#capacity === this.#tokens) {
       return Promise.resolve()
     }
 
     return new Promise((resolve) => {
-      this._refillResolve = resolve
+      this.#refillResolve = resolve
     })
   }
 
-  /**
-   * @private
-   * @returns {void}
-   */
-  _fill() {
-    this._tokens = this._capacity
-    this._hasPendingRefill = false
-    this._refillResolve()
+  #fill() {
+    this.#tokens = this.#capacity
+    this.#hasPendingRefill = false
+    this.#refillResolve()
   }
 }
 

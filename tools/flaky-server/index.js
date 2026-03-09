@@ -1,10 +1,7 @@
 /** @typedef {import('../../src/shared/types').AsyncHttpServer} AsyncHttpServer */
 
-const http = require('http')
-const { pipeline } = require('stream')
-const { promisify } = require('util')
-
-const asyncPipeline = promisify(pipeline)
+const http = require('node:http')
+const { pipeline } = require('node:stream/promises')
 
 /** @returns {AsyncHttpServer} */
 function createServer() {
@@ -16,7 +13,7 @@ function createServer() {
     const statusCode = requestNum % 3 === 0 ? 200 : 500
     res.writeHead(statusCode, {})
     if (statusCode === 200) {
-      await asyncPipeline(req, res)
+      await pipeline(req, res)
     } else {
       res.end()
     }

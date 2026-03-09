@@ -1,5 +1,5 @@
 const getPort = require('get-port')
-const { Origin } = require('.')
+const { createOrigin } = require('.')
 const { getBody } = require('../shared/http')
 const {
   createServer: createRequestHeaderOnResponseBodyServer,
@@ -17,7 +17,7 @@ describe('origin', () => {
         createRequestHeaderOnResponseBodyServer()
       await requestHeaderOnResponseBodyServer.listen(originPort)
 
-      const origin = new Origin({
+      const origin = createOrigin({
         host: `http://localhost:${originPort}`,
         overwriteRequestHeaders: { lorem: 'ipsum', dolor: 5, host: 'dolor' },
       })
@@ -44,7 +44,7 @@ describe('origin', () => {
         createRequestHeaderOnResponseBodyServer()
       await requestHeaderOnResponseBodyServer.listen(originPort)
 
-      const origin = new Origin({
+      const origin = createOrigin({
         host: `http://localhost:${originPort}`,
         overwriteRequestHeaders: {
           host: 'example.com',
@@ -76,7 +76,7 @@ describe('origin', () => {
       const originPort = await getPort()
       await flakyServer.listen(originPort)
 
-      const origin = new Origin({
+      const origin = createOrigin({
         host: `http://localhost:${originPort}`,
         retries: 3,
       })
@@ -110,7 +110,7 @@ describe('origin', () => {
       // And a mocker server proxying it
 
       // When I make a request to the mocker server using an absolute URL
-      const origin = new Origin({ host: `http://localhost:${originPort}` })
+      const origin = createOrigin({ host: `http://localhost:${originPort}` })
       const [request, responsePromise] = await origin.request({
         url: `http://localhost:${originPort}?a=1&b=2&operation=sum`,
       })

@@ -22,13 +22,13 @@ const {
   OVERWRITE_RESPONSE_HEADERS_DEFAULT,
 } = require('./src/args')
 const Mocker = require('./src')
-const Logger = require('./src/shared/logger')
+const createLogger = require('./src/shared/logger')
 const { bold, stripMargin, table, dim, stringify } = require('./src/shared/logger/format')
 const packageJson = require('./package.json')
 
 const mockKeysDefaultStr = Array.from(MOCK_KEYS_DEFAULT.values()).join(',')
 
-const logger = new Logger({ forceLog: true })
+const logger = createLogger({ forceLog: true })
 
 function printHelp() {
   // Based on docopt http://docopt.org/

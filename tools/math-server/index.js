@@ -1,6 +1,6 @@
 /** @typedef {import('../../src/shared/types').AsyncHttpServer} AsyncHttpServer */
 
-const http = require('http')
+const http = require('node:http')
 
 const commonHeaders = { 'content-type': 'text/plain' }
 
