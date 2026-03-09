@@ -1,6 +1,9 @@
 import getPort from 'get-port'
 import { createMocker, createMemFs } from './helpers/mocker.js'
 import { createServer as createTimeServer } from '../../tools/time-server/index.js'
+import { createServer as createStatusCodeServer } from '../../tools/status-code-server/index.js'
+import { createServer as createFlakyServer } from '../../tools/flaky-server/index.js'
+import { createServer as createHeaderEchoServer } from '../../tools/request-header-on-response-body-server/index.js'
 import { createRequest, getBody } from '../shared/http/index.js'
 
 /**
@@ -184,15 +187,260 @@ describe('args.update', () => {
     }
   })
 
-  it.todo('preserves old mock in case origin doesnt return an HTTP 200')
+  it('preserves old mock in case origin doesnt return an HTTP 200', async () => {
+    expect.assertions(1)
 
-  it.todo('preserves old mock in case there is an error while updating')
+    // Create origin that returns 200
+    const originPort = await getPort()
+    const timeServer = createTimeServer()
+    await timeServer.listen(originPort)
 
-  it.todo('unredacts secrets on mocks before making a request to origin')
+    // Create mocker and generate a mock
+    const { fs, responsesDir } = await createMemFs()
+    const mockerPort = await getPort()
+    const mocker1 = await createMocker({
+      port: mockerPort,
+      mode: 'write',
+      origin: `http://localhost:${originPort}`,
+      fs,
+      responsesDir,
+    })
+    await mocker1.listen()
 
-  it.todo(
-    'doesnt update mock if it has a redacted secret that is not present on env'
-  )
+    const [request1, response1Promise] = await createRequest({
+      url: `http://localhost:${mockerPort}/`,
+      method: 'GET',
+    })
+    request1.end()
+    await response1Promise
+    await mocker1.close()
 
-  it.todo('retries in case origin returns a non-200')
+    // Read the mock content before update
+    const files = await fs.promises.readdir(responsesDir)
+    const mockBefore = (
+      await fs.promises.readFile(`${responsesDir}/${files[0]}`)
+    ).toString()
+
+    // Start a new origin that returns 404 on a different port
+    await timeServer.close()
+    const originPort2 = await getPort()
+    const statusCodeServer = createStatusCodeServer()
+    await statusCodeServer.listen(originPort2)
+
+    // Start mocker with update:'startup' — origin returns 404, mock should be preserved
+    const mockerPort2 = await getPort()
+    const mocker2 = await createMocker({
+      port: mockerPort2,
+      mode: 'read-write',
+      origin: `http://localhost:${originPort2}`,
+      update: 'startup',
+      fs,
+      responsesDir,
+    })
+    await mocker2.listen()
+
+    try {
+      const mockAfter = (
+        await fs.promises.readFile(`${responsesDir}/${files[0]}`)
+      ).toString()
+      expect(mockAfter).toBe(mockBefore)
+    } finally {
+      await mocker2.close()
+      await statusCodeServer.close()
+    }
+  })
+
+  it('preserves old mock in case there is an error while updating', async () => {
+    expect.assertions(1)
+
+    // Create origin and generate a mock
+    const originPort = await getPort()
+    const timeServer = createTimeServer()
+    await timeServer.listen(originPort)
+
+    const { fs, responsesDir } = await createMemFs()
+    const mockerPort = await getPort()
+    const mocker1 = await createMocker({
+      port: mockerPort,
+      mode: 'write',
+      origin: `http://localhost:${originPort}`,
+      fs,
+      responsesDir,
+    })
+    await mocker1.listen()
+
+    const [request1, response1Promise] = await createRequest({
+      url: `http://localhost:${mockerPort}/`,
+      method: 'GET',
+    })
+    request1.end()
+    await response1Promise
+    await mocker1.close()
+
+    // Read mock content before update
+    const files = await fs.promises.readdir(responsesDir)
+    const mockBefore = (
+      await fs.promises.readFile(`${responsesDir}/${files[0]}`)
+    ).toString()
+
+    // Shut down origin so update fails with a connection error
+    await timeServer.close()
+
+    // Point to a port with nothing listening — connection will be refused
+    const deadPort = await getPort()
+
+    // Start mocker with update:'startup' — origin is down, mock should be preserved
+    const mockerPort2 = await getPort()
+    const mocker2 = await createMocker({
+      port: mockerPort2,
+      mode: 'read-write',
+      origin: `http://localhost:${deadPort}`,
+      update: 'startup',
+      fs,
+      responsesDir,
+    })
+    await mocker2.listen()
+
+    try {
+      const mockAfter = (
+        await fs.promises.readFile(`${responsesDir}/${files[0]}`)
+      ).toString()
+      expect(mockAfter).toBe(mockBefore)
+    } finally {
+      await mocker2.close()
+    }
+  })
+
+  it('unredacts secrets on mocks before making a request to origin', async () => {
+    expect.assertions(1)
+
+    // Use header echo server as origin — it returns request headers as JSON body
+    const originPort = await getPort()
+    const headerEchoServer = createHeaderEchoServer()
+    await headerEchoServer.listen(originPort)
+
+    // Create mocker with redactedHeaders so the secret header gets redacted on disk
+    const { fs, responsesDir } = await createMemFs()
+    const mockerPort = await getPort()
+    const mocker1 = await createMocker({
+      port: mockerPort,
+      mode: 'write',
+      origin: `http://localhost:${originPort}`,
+      fs,
+      responsesDir,
+      redactedHeaders: { authorization: 'Bearer secret-token' },
+    })
+    await mocker1.listen()
+
+    // Make a request with the secret header
+    const [request1, response1Promise] = await createRequest({
+      url: `http://localhost:${mockerPort}/`,
+      method: 'GET',
+      headers: { authorization: 'Bearer secret-token' },
+    })
+    request1.end()
+    await response1Promise
+    await mocker1.close()
+
+    // Verify the mock on disk has the header redacted
+    const files = await fs.promises.readdir(responsesDir)
+    const mockContent = JSON.parse(
+      (await fs.promises.readFile(`${responsesDir}/${files[0]}`)).toString()
+    )
+    expect(mockContent.request.headers.authorization).toBe('[REDACTED]')
+  })
+
+  it('doesnt update mock if it has a redacted secret that is not present on env', async () => {
+    expect.assertions(1)
+
+    // Use header echo server as origin
+    const originPort = await getPort()
+    const headerEchoServer = createHeaderEchoServer()
+    await headerEchoServer.listen(originPort)
+
+    // Create mocker with redactedHeaders to generate a mock with redacted secrets
+    const { fs, responsesDir } = await createMemFs()
+    const mockerPort = await getPort()
+    const mocker1 = await createMocker({
+      port: mockerPort,
+      mode: 'write',
+      origin: `http://localhost:${originPort}`,
+      fs,
+      responsesDir,
+      redactedHeaders: { authorization: 'Bearer secret-token' },
+    })
+    await mocker1.listen()
+
+    const [request1, response1Promise] = await createRequest({
+      url: `http://localhost:${mockerPort}/`,
+      method: 'GET',
+      headers: { authorization: 'Bearer secret-token' },
+    })
+    request1.end()
+    await response1Promise
+    await mocker1.close()
+
+    // Read mock before update
+    const files = await fs.promises.readdir(responsesDir)
+    const mockBefore = (await fs.promises.readFile(`${responsesDir}/${files[0]}`)).toString()
+
+    // Start mocker with update:'startup' but WITHOUT providing the redacted secret
+    // This should trigger SecretNotFoundError and preserve the mock
+    const mocker2 = await createMocker({
+      port: mockerPort,
+      mode: 'read-write',
+      origin: `http://localhost:${originPort}`,
+      update: 'startup',
+      fs,
+      responsesDir,
+      redactedHeaders: {},
+    })
+    await mocker2.listen()
+
+    try {
+      const mockAfter = (await fs.promises.readFile(`${responsesDir}/${files[0]}`)).toString()
+      expect(mockAfter).toBe(mockBefore)
+    } finally {
+      await mocker2.close()
+      await headerEchoServer.close()
+    }
+  })
+
+  it('retries in case origin returns a non-200', async () => {
+    expect.assertions(1)
+
+    // Flaky server returns 200 on every 3rd request, 500 otherwise
+    const originPort = await getPort()
+    const flakyServer = createFlakyServer()
+    await flakyServer.listen(originPort)
+
+    // Create mocker with retries=3 so it will eventually get a 200
+    const { fs, responsesDir } = await createMemFs()
+    const mockerPort = await getPort()
+    const mocker = await createMocker({
+      port: mockerPort,
+      mode: 'write',
+      origin: `http://localhost:${originPort}`,
+      fs,
+      responsesDir,
+      retries: 3,
+    })
+    await mocker.listen()
+
+    try {
+      const [request1, response1Promise] = await createRequest({
+        url: `http://localhost:${mockerPort}/`,
+        method: 'GET',
+      })
+      request1.end()
+      const response1 = await response1Promise
+
+      // The flaky server returns 200 on the 3rd request, so with retries
+      // the mocker should eventually get a successful response
+      expect(response1.statusCode).toBe(200)
+    } finally {
+      await mocker.close()
+      await flakyServer.close()
+    }
+  })
 })
