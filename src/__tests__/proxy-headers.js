@@ -8,6 +8,7 @@
 // - RFC 7239 (Forwarded HTTP Extension)
 //
 
+import { describe, it, expect } from 'vitest'
 import http from 'node:http'
 import getPort from './helpers/get-port.js'
 import { createMocker } from './helpers/mocker.js'

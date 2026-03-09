@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest'
 import { prettifyError, isPrettyError } from './index.js'
 
 describe('prettifyError()', () => {
@@ -20,9 +21,9 @@ describe('prettifyError()', () => {
       new RegExp(`.*Received.*${received}`),
     )
     expect(decoratedError.message).toMatchInlineSnapshot(`
-      "Error: lorem ipsum
-      Expected dolor sit
-      Received amet consectetur"
+     "Error: lorem ipsum
+     Expected dolor sit
+     Received amet consectetur"
     `)
   })
 
@@ -41,10 +42,10 @@ describe('prettifyError()', () => {
     })
     expect(decoratedError.message).toMatch(new RegExp(`.*Hint.*${hint}`))
     expect(decoratedError.message).toMatchInlineSnapshot(`
-      "Error: lorem ipsum
-      Expected dolor sit
-      Received amet consectetur
-      Hint adipiscing elit"
+     "Error: lorem ipsum
+     Expected dolor sit
+     Received amet consectetur
+     Hint adipiscing elit"
     `)
   })
 })

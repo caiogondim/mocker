@@ -56,20 +56,4 @@ export default [
     },
   },
 
-  // Jest test files — allow Jest globals
-  {
-    files: ['**/__tests__/**/*.js', '**/test.js', 'jest.setup.js'],
-    languageOptions: {
-      globals: {
-        describe: 'readonly',
-        it: 'readonly',
-        expect: 'readonly',
-        beforeEach: 'readonly',
-        afterEach: 'readonly',
-        beforeAll: 'readonly',
-        afterAll: 'readonly',
-        jest: 'readonly',
-      },
-    },
-  },
 ]

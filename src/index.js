@@ -218,13 +218,14 @@ class Mocker {
       }
 
       if (args.update === 'only') {
+        this.#removeListeners()
         logger.log(closingMockerText)
         return
       }
     }
 
     return new Promise((resolve) => {
-      // Cluster mode doesn't play well with Jest.
+      // Cluster mode doesn't play well with test runners.
       if (process.env.NODE_ENV === 'test') {
         logger.info(
           `started on port ${bold(port)}, with pid ${bold(

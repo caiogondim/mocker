@@ -1,3 +1,4 @@
+import { vi, describe, it, expect } from 'vitest'
 import MockedRequest from '../../mock-manager/mocked-request.js'
 import { isHeaders, getHeaders } from './index.js'
 
@@ -48,7 +49,7 @@ describe('getHeaders()', () => {
     // Given I have a request without a `.headers` property, but with a `.getHeaders` method
     const headers = { a: 1, b: 2, c: 3 }
     const request = {
-      getHeaders: jest.fn(() => headers),
+      getHeaders: vi.fn(() => headers),
     }
 
     // When I use `getHeaders()` on it

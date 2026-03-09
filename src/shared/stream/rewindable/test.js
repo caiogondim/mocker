@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest'
 import { PassThrough, Readable } from 'node:stream'
 import sleep from '../../sleep/index.js'
 import values from '../values/index.js'

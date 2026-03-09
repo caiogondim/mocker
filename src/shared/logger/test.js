@@ -1,3 +1,5 @@
+import { describe, it, expect } from 'vitest'
+
 /** @typedef {import('./index.js').Console} Console */
 
 import createLogger, { setLevel } from './index.js'

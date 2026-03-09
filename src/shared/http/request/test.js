@@ -1,3 +1,4 @@
+import { vi, describe, it, expect } from 'vitest'
 import getPort from '../../../__tests__/helpers/get-port.js'
 import { createServer as createDuplicateRequestServer } from '../../../../tools/duplicate-request-server/index.js'
 import { createServer as createFlakyServer } from '../../../../tools/flaky-server/index.js'
@@ -111,7 +112,7 @@ describe('createRequest', () => {
     const port = await getPort()
     await flakyServer.listen(port)
 
-    const mockBackoff = jest.fn()
+    const mockBackoff = vi.fn()
 
     try {
       const [request, responsePromise] = await createRequest({

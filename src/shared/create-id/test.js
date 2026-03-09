@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest'
 import createId from './index.js'
 
 describe('createId', () => {

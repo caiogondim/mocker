@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest'
 import getPort from './helpers/get-port.js'
 import { createRequest } from '../shared/http/index.js'
 import { createServer as createMathServer } from '../../tools/math-server/index.js'

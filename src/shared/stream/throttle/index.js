@@ -38,7 +38,7 @@ class TokenBucket {
 
     if (!this.#hasPendingRefill) {
       this.#hasPendingRefill = true
-      setTimeout(() => this.#fill(), 1000 / this.#fillFrequency)
+      setTimeout(() => this.#fill(), 1000 / this.#fillFrequency).unref()
     }
 
     if (quantity <= this.#tokens) {

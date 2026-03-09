@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest'
 import getPort from '../../__tests__/helpers/get-port.js'
 import { createServer as createMathServer } from '../../../tools/math-server/index.js'
 import isPortTaken from './index.js'

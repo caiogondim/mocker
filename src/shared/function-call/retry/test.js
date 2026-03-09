@@ -1,3 +1,4 @@
+import { vi, describe, it, expect } from 'vitest'
 import sleep from '../../sleep/index.js'
 import retry from './index.js'
 
@@ -93,7 +94,7 @@ describe('retry', () => {
     const retries = 3
     const throwUntil3 = createThrowUntilN(3)
     // Passing a mock since we are not testing the backoff behavior
-    const mockBackoff = jest.fn()
+    const mockBackoff = vi.fn()
 
     const result = await retry(throwUntil3, { retries, backoff: mockBackoff })
 

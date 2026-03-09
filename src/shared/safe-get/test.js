@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest'
 import safeGet from './index.js'
 
 describe('safeGet', () => {

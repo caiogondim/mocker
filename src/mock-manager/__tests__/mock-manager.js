@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest'
 import MockedRequest from '../mocked-request.js'
 import { rewindable } from '../../shared/stream/index.js'
 import { getBody, SecretNotFoundError } from '../../shared/http/index.js'

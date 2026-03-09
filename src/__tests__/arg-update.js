@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest'
 import getPort from './helpers/get-port.js'
 import { createMocker, createMemFs } from './helpers/mocker.js'
 import { createServer as createTimeServer } from '../../tools/time-server/index.js'
@@ -5,14 +6,7 @@ import { createServer as createStatusCodeServer } from '../../tools/status-code-
 import { createServer as createFlakyServer } from '../../tools/flaky-server/index.js'
 import { createServer as createHeaderEchoServer } from '../../tools/request-header-on-response-body-server/index.js'
 import { createRequest, getBody } from '../shared/http/index.js'
-
-/**
- * @param {number} ms
- * @returns {Promise<void>}
- */
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
+import sleep from '../shared/sleep/index.js'
 
 describe('args.update', () => {
   it('updates all mocks with origin in case update=startup', async () => {

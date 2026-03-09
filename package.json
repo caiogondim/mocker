@@ -5,12 +5,12 @@
   "type": "module",
   "main": "src/index.js",
   "scripts": {
-    "test": "npm run lint && npm run type-check && npm run jest",
+    "test:all": "npm run lint && npm run type-check && npm run test",
     "start": "NODE_OPTIONS='--max-http-header-size=1000000 --unhandled-rejections=strict' ./mocker",
     "dev:httpbin": "node --watch-path=./src mocker --responsesDir ./responses/httpbin --origin http://httpbin.org --logging verbose --mode read-write",
     "dev:vi": "./scripts/dev-vi",
     "dev": "NODE_OPTIONS='--max-http-header-size=1000000 --unhandled-rejections=strict' node --watch-path=./src mocker",
-    "jest": "NODE_OPTIONS='--max-old-space-size=4000 --experimental-vm-modules' NODE_ENV=test jest --collectCoverageFrom='./src/**/*.js'",
+    "test": "vitest run",
     "type-check": "tsc --p './tsconfig.json'",
     "fmt": "prettier --print-width 80 --prose-wrap always --write './**/*.{js,md,yml,json}' --ignore-path .gitignore",
     "fmt:check": "prettier --check './**/*.{js,md,yml,json}' --ignore-path .gitignore",
@@ -20,11 +20,10 @@
   "private": true,
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@types/jest": "^30",
     "@types/node": "^24",
     "eslint": "^10.0.3",
     "eslint-plugin-n": "^17.24.0",
-    "jest": "^30.2.0",
+    "vitest": "^4.0.18",
     "memfs": "^4.7.7",
     "prettier": "^3.8.1",
     "typescript": "^5.8",
@@ -33,19 +32,5 @@
   "engines": {
     "node": ">=24"
   },
-  "bin": "./mocker",
-  "jest": {
-    "testPathIgnorePatterns": [
-      "__tests__/helpers/"
-    ],
-    "coverageThreshold": {
-      "global": {
-        "branches": 78.14
-      }
-    },
-    "injectGlobals": true,
-    "setupFiles": [
-      "./jest.setup.js"
-    ]
-  }
+  "bin": "./mocker"
 }

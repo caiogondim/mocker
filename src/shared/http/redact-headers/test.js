@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest'
 import { redactHeaders, unredactHeaders, SecretNotFoundError } from './index.js'
 
 describe('redactHeaders', () => {

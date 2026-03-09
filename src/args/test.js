@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest'
 import path from 'node:path'
 import {
   parseArgv,
@@ -23,9 +24,9 @@ describe('behavior', () => {
 
     const argv2 = ['', '', ...getRequiredArgs(), '--foo', 'bar']
     await expect(parseArgv(argv2)).rejects.toMatchInlineSnapshot(`
-      [TypeError: TypeError: invalid arg
-      Expected one of ["--origin", "--port", "--delay", "--throttle", "--update", "--mode", "--workers", "--responsesDir", "--logging", "--mockKeys", "--redactedHeaders", "--retries", "--overwriteResponseHeaders", "--overwriteRequestHeaders", "--cors"]
-      Received "--foo"]
+     [TypeError: TypeError: invalid arg
+     Expected one of ["--origin", "--port", "--delay", "--throttle", "--update", "--mode", "--workers", "--responsesDir", "--logging", "--mockKeys", "--redactedHeaders", "--retries", "--overwriteResponseHeaders", "--overwriteRequestHeaders", "--cors"]
+     Received "--foo"]
     `)
   })
 
@@ -34,9 +35,9 @@ describe('behavior', () => {
 
     const argv1 = ['', '', '--origin', 'http://example.com', '--delay']
     await expect(parseArgv(argv1)).rejects.toMatchInlineSnapshot(`
-      [TypeError: TypeError: args has invalid shape
-      Expected args following the pattern "--arg1 value1 --arg2 value2"
-      Received "http://example.com --delay"]
+     [TypeError: TypeError: args has invalid shape
+     Expected args following the pattern "--arg1 value1 --arg2 value2"
+     Received "http://example.com --delay"]
     `)
 
     const argv2 = ['', '', ...getRequiredArgs(), '--delay', '100']
@@ -51,9 +52,9 @@ describe('behavior', () => {
       '--origin',
     ]
     await expect(parseArgv(argv3)).rejects.toMatchInlineSnapshot(`
-      [TypeError: TypeError: args has invalid shape
-      Expected args following the pattern "--arg1 value1 --arg2 value2"
-      Received "http://example.com --delay --origin"]
+     [TypeError: TypeError: args has invalid shape
+     Expected args following the pattern "--arg1 value1 --arg2 value2"
+     Received "http://example.com --delay --origin"]
     `)
   })
 })
@@ -63,9 +64,9 @@ describe('--origin', () => {
     expect.assertions(1)
     const argv = ['', '', '--port', '8273']
     await expect(parseArgv(argv)).rejects.toMatchInlineSnapshot(`
-      [TypeError: TypeError: invalid --origin
-      Expected valid URL
-      Received ""]
+     [TypeError: TypeError: invalid --origin
+     Expected valid URL
+     Received ""]
     `)
   })
 
@@ -73,9 +74,9 @@ describe('--origin', () => {
     expect.assertions(1)
     const argv = ['', '', '--origin', 'lorem-ipsum']
     await expect(parseArgv(argv)).rejects.toMatchInlineSnapshot(`
-      [TypeError: TypeError: invalid --origin
-      Expected valid URL
-      Received "lorem-ipsum"]
+     [TypeError: TypeError: invalid --origin
+     Expected valid URL
+     Received "lorem-ipsum"]
     `)
   })
 
@@ -83,9 +84,9 @@ describe('--origin', () => {
     expect.assertions(1)
     const argv = ['', '', '--origin', 'lorem://ipsum.com']
     await expect(parseArgv(argv)).rejects.toMatchInlineSnapshot(`
-      [TypeError: TypeError: invalid --origin
-      Expected URL with HTTP or HTTPS protocol
-      Received "lorem://ipsum.com"]
+     [TypeError: TypeError: invalid --origin
+     Expected URL with HTTP or HTTPS protocol
+     Received "lorem://ipsum.com"]
     `)
   })
 })
@@ -104,9 +105,9 @@ describe('--port', () => {
     expect.assertions(1)
     const argv = ['', '', ...getRequiredArgs(), '--port', '-8273']
     await expect(parseArgv(argv)).rejects.toMatchInlineSnapshot(`
-      [TypeError: TypeError: invalid --port
-      Expected positive integer
-      Received "-8273"]
+     [TypeError: TypeError: invalid --port
+     Expected positive integer
+     Received "-8273"]
     `)
   })
 
@@ -114,9 +115,9 @@ describe('--port', () => {
     expect.assertions(1)
     const argv = ['', '', ...getRequiredArgs(), '--port', 'lorem-ipsum']
     await expect(parseArgv(argv)).rejects.toMatchInlineSnapshot(`
-      [TypeError: TypeError: invalid --port
-      Expected positive integer
-      Received "lorem-ipsum"]
+     [TypeError: TypeError: invalid --port
+     Expected positive integer
+     Received "lorem-ipsum"]
     `)
   })
 
@@ -157,9 +158,9 @@ describe('--delay', () => {
     expect.assertions(1)
     const argv = ['', '', ...getRequiredArgs(), '--delay', '-8273']
     await expect(parseArgv(argv)).rejects.toMatchInlineSnapshot(`
-      [TypeError: TypeError: invalid --delay
-      Expected positive integer
-      Received "-8273"]
+     [TypeError: TypeError: invalid --delay
+     Expected positive integer
+     Received "-8273"]
     `)
   })
 
@@ -167,9 +168,9 @@ describe('--delay', () => {
     expect.assertions(1)
     const argv = ['', '', ...getRequiredArgs(), '--delay', 'lorem-ipsum']
     await expect(parseArgv(argv)).rejects.toMatchInlineSnapshot(`
-      [TypeError: TypeError: invalid --delay
-      Expected positive integer
-      Received "lorem-ipsum"]
+     [TypeError: TypeError: invalid --delay
+     Expected positive integer
+     Received "lorem-ipsum"]
     `)
   })
 })
@@ -179,16 +180,16 @@ describe('--throttle', () => {
     expect.assertions(1)
     const argv = ['', '', ...getRequiredArgs()]
     const args = await parseArgv(argv)
-    await expect(args.throttle).toStrictEqual(Infinity)
+    expect(args.throttle).toStrictEqual(Infinity)
   })
 
   it('throws an error if not a positive number', async () => {
     expect.assertions(1)
     const argv = ['', '', ...getRequiredArgs(), '--throttle', '-8273']
     await expect(parseArgv(argv)).rejects.toMatchInlineSnapshot(`
-      [TypeError: TypeError: invalid --throttle
-      Expected positive integer
-      Received "-8273"]
+     [TypeError: TypeError: invalid --throttle
+     Expected positive integer
+     Received "-8273"]
     `)
   })
 
@@ -196,9 +197,9 @@ describe('--throttle', () => {
     expect.assertions(1)
     const argv = ['', '', ...getRequiredArgs(), '--throttle', 'lorem-ipsum']
     await expect(parseArgv(argv)).rejects.toMatchInlineSnapshot(`
-      [TypeError: TypeError: invalid --throttle
-      Expected positive integer
-      Received "lorem-ipsum"]
+     [TypeError: TypeError: invalid --throttle
+     Expected positive integer
+     Received "lorem-ipsum"]
     `)
   })
 })
@@ -244,9 +245,9 @@ describe('--mode', () => {
     ]
     // @ts-ignore
     await expect(parseArgv(argv)).rejects.toMatchInlineSnapshot(`
-      [TypeError: TypeError: invalid --mode
-      Expected one of ["read", "write", "read-write", "pass", "read-pass", "pass-read"]
-      Received "lorem-ipsum"]
+     [TypeError: TypeError: invalid --mode
+     Expected one of ["read", "write", "read-write", "pass", "read-pass", "pass-read"]
+     Received "lorem-ipsum"]
     `)
   })
 })
@@ -285,9 +286,9 @@ describe('--update', () => {
     ]
     // @ts-ignore
     await expect(parseArgv(argv)).rejects.toMatchInlineSnapshot(`
-      [TypeError: TypeError: invalid --update
-      Expected one of ["off", "startup", "only"]
-      Received "lorem-ipsum"]
+     [TypeError: TypeError: invalid --update
+     Expected one of ["off", "startup", "only"]
+     Received "lorem-ipsum"]
     `)
   })
 })
@@ -307,9 +308,9 @@ describe('--workers', () => {
 
     const argv = ['', '', ...getRequiredArgs(), '--workers', '-6']
     await expect(parseArgv(argv)).rejects.toMatchInlineSnapshot(`
-      [TypeError: TypeError: invalid --workers
-      Expected positive integer
-      Received "-6"]
+     [TypeError: TypeError: invalid --workers
+     Expected positive integer
+     Received "-6"]
     `)
   })
 
@@ -317,9 +318,9 @@ describe('--workers', () => {
     expect.assertions(1)
     const argv = ['', '', ...getRequiredArgs(), '--workers', 'lorem-ipsum']
     await expect(parseArgv(argv)).rejects.toMatchInlineSnapshot(`
-      [TypeError: TypeError: invalid --workers
-      Expected positive integer
-      Received "lorem-ipsum"]
+     [TypeError: TypeError: invalid --workers
+     Expected positive integer
+     Received "lorem-ipsum"]
     `)
   })
 
@@ -341,7 +342,7 @@ describe('--responsesDir', () => {
     const argv = ['', '', ...getRequiredArgs()]
     const args = await parseArgv(argv)
 
-    expect(args.workers).toBe(1)
+    expect(args.responsesDir).toBeDefined()
   })
 
   it('doesnt throw an error for a valid value', async () => {
@@ -368,9 +369,9 @@ describe('--responsesDir', () => {
       'non-existing-folder',
     ]
     await expect(parseArgv(argv)).rejects.toMatchInlineSnapshot(`
-      [TypeError: TypeError: invalid --responsesDir
-      Expected a valid folder path
-      Received "non-existing-folder"]
+     [TypeError: TypeError: invalid --responsesDir
+     Expected a valid folder path
+     Received "non-existing-folder"]
     `)
   })
 
@@ -399,9 +400,9 @@ describe('--logging', () => {
 
     const argv = ['', '', ...getRequiredArgs(), '--logging', 'lorem-ipsum']
     await expect(parseArgv(argv)).rejects.toMatchInlineSnapshot(`
-      [TypeError: TypeError: invalid --logging
-      Expected one of ["silent", "error", "warn", "verbose"]
-      Received "lorem-ipsum"]
+     [TypeError: TypeError: invalid --logging
+     Expected one of ["silent", "error", "warn", "verbose"]
+     Received "lorem-ipsum"]
     `)
   })
 
@@ -432,10 +433,10 @@ describe('--mockKeys', () => {
 
     const argv = ['', '', ...getRequiredArgs(), '--mockKeys', 'lorem-ipsum']
     await expect(parseArgv(argv)).rejects.toMatchInlineSnapshot(`
-      [TypeError: TypeError: invalid --mockKeys
-      Expected set of ["url", "method", "headers", "body"]
-      Received "lorem-ipsum"
-      Hint The body deep attributes can be used too, e.g.: "body.foo.bar"]
+     [TypeError: TypeError: invalid --mockKeys
+     Expected set of ["url", "method", "headers", "body"]
+     Received "lorem-ipsum"
+     Hint The body deep attributes can be used too, e.g.: "body.foo.bar"]
     `)
   })
 
@@ -504,9 +505,9 @@ describe('--retries', () => {
     expect.assertions(1)
     const argv = ['', '', ...getRequiredArgs(), '--retries', '-8273']
     await expect(parseArgv(argv)).rejects.toMatchInlineSnapshot(`
-      [TypeError: TypeError: invalid --retries
-      Expected positive integer
-      Received "-8273"]
+     [TypeError: TypeError: invalid --retries
+     Expected positive integer
+     Received "-8273"]
     `)
   })
 
@@ -514,9 +515,9 @@ describe('--retries', () => {
     expect.assertions(1)
     const argv = ['', '', ...getRequiredArgs(), '--retries', 'lorem-ipsum']
     await expect(parseArgv(argv)).rejects.toMatchInlineSnapshot(`
-      [TypeError: TypeError: invalid --retries
-      Expected positive integer
-      Received "lorem-ipsum"]
+     [TypeError: TypeError: invalid --retries
+     Expected positive integer
+     Received "lorem-ipsum"]
     `)
   })
 })
@@ -526,9 +527,7 @@ describe('--redactedHeaders', () => {
     expect.assertions(1)
     const argv = ['', '', ...getRequiredArgs()]
     const args = await parseArgv(argv)
-    expect(args.overwriteResponseHeaders).toStrictEqual(
-      REDACTED_HEADERS_DEFAULT,
-    )
+    expect(args.redactedHeaders).toStrictEqual(REDACTED_HEADERS_DEFAULT)
   })
 
   it('parses value to an object', async () => {
@@ -559,9 +558,9 @@ describe('--redactedHeaders', () => {
       redactedHeaders1,
     ]
     await expect(parseArgv(argv1)).rejects.toMatchInlineSnapshot(`
-      [TypeError: TypeError: invalid --redactedHeaders
-      Expected valid JSON string
-      Received "{\\"content-type\\": \\"application/json\\""]
+     [TypeError: TypeError: invalid --redactedHeaders
+     Expected valid JSON string
+     Received "{\\"content-type\\": \\"application/json\\""]
     `)
 
     // undefined is not a valid JSON value
@@ -574,9 +573,9 @@ describe('--redactedHeaders', () => {
       redactedHeaders2,
     ]
     await expect(parseArgv(argv2)).rejects.toMatchInlineSnapshot(`
-      [TypeError: TypeError: invalid --redactedHeaders
-      Expected valid JSON string
-      Received "{\\"content-type\\": undefined }"]
+     [TypeError: TypeError: invalid --redactedHeaders
+     Expected valid JSON string
+     Received "{\\"content-type\\": undefined }"]
     `)
   })
 
@@ -593,9 +592,9 @@ describe('--redactedHeaders', () => {
       redactedHeaders1,
     ]
     await expect(parseArgv(argv1)).rejects.toMatchInlineSnapshot(`
-      [TypeError: TypeError: invalid --redactedHeaders
-      Expected valid Header type { [header: string]: string[] string number null undefined }
-      Received [1,2,3]]
+     [TypeError: TypeError: invalid --redactedHeaders
+     Expected valid Header type { [header: string]: string[] string number null undefined }
+     Received [1,2,3]]
     `)
 
     // Invalid since it cannot have a depth larger than 2
@@ -608,9 +607,9 @@ describe('--redactedHeaders', () => {
       redactedHeaders2,
     ]
     await expect(parseArgv(argv2)).rejects.toMatchInlineSnapshot(`
-      [TypeError: TypeError: invalid --redactedHeaders
-      Expected valid Header type { [header: string]: string[] string number null undefined }
-      Received {"lorem":{"ipsum":"dolor"}}]
+     [TypeError: TypeError: invalid --redactedHeaders
+     Expected valid Header type { [header: string]: string[] string number null undefined }
+     Received {"lorem":{"ipsum":"dolor"}}]
     `)
 
     // Invalid since it has an array of numbers
@@ -623,9 +622,9 @@ describe('--redactedHeaders', () => {
       redactedHeaders3,
     ]
     await expect(parseArgv(argv3)).rejects.toMatchInlineSnapshot(`
-      [TypeError: TypeError: invalid --redactedHeaders
-      Expected valid Header type { [header: string]: string[] string number null undefined }
-      Received {"lorem":[1,2,3]}]
+     [TypeError: TypeError: invalid --redactedHeaders
+     Expected valid Header type { [header: string]: string[] string number null undefined }
+     Received {"lorem":[1,2,3]}]
     `)
 
     // Invalid since it has a number as key
@@ -638,9 +637,9 @@ describe('--redactedHeaders', () => {
       redactedHeaders4,
     ]
     await expect(parseArgv(argv4)).rejects.toMatchInlineSnapshot(`
-      [TypeError: TypeError: invalid --redactedHeaders
-      Expected valid JSON string
-      Received "{1: \\"lorem\\"}"]
+     [TypeError: TypeError: invalid --redactedHeaders
+     Expected valid JSON string
+     Received "{1: \\"lorem\\"}"]
     `)
   })
 })
@@ -684,9 +683,9 @@ describe('--overwriteResponseHeaders', () => {
       overwriteResponseHeaders1,
     ]
     await expect(parseArgv(argv1)).rejects.toMatchInlineSnapshot(`
-      [TypeError: TypeError: invalid --overwriteResponseHeaders
-      Expected valid JSON string
-      Received "{\\"content-type\\": \\"application/json\\""]
+     [TypeError: TypeError: invalid --overwriteResponseHeaders
+     Expected valid JSON string
+     Received "{\\"content-type\\": \\"application/json\\""]
     `)
 
     // undefined is not a valid JSON value
@@ -699,9 +698,9 @@ describe('--overwriteResponseHeaders', () => {
       overwriteResponseHeaders2,
     ]
     await expect(parseArgv(argv2)).rejects.toMatchInlineSnapshot(`
-      [TypeError: TypeError: invalid --overwriteResponseHeaders
-      Expected valid JSON string
-      Received "{\\"content-type\\": undefined }"]
+     [TypeError: TypeError: invalid --overwriteResponseHeaders
+     Expected valid JSON string
+     Received "{\\"content-type\\": undefined }"]
     `)
   })
 
@@ -718,9 +717,9 @@ describe('--overwriteResponseHeaders', () => {
       overwriteResponseHeaders1,
     ]
     await expect(parseArgv(argv1)).rejects.toMatchInlineSnapshot(`
-      [TypeError: TypeError: invalid --overwriteResponseHeaders
-      Expected valid Header type { [header: string]: string[] string number null undefined }
-      Received [1,2,3]]
+     [TypeError: TypeError: invalid --overwriteResponseHeaders
+     Expected valid Header type { [header: string]: string[] string number null undefined }
+     Received [1,2,3]]
     `)
 
     // Invalid since it cannot have a depth larger than 2
@@ -733,9 +732,9 @@ describe('--overwriteResponseHeaders', () => {
       overwriteResponseHeaders2,
     ]
     await expect(parseArgv(argv2)).rejects.toMatchInlineSnapshot(`
-      [TypeError: TypeError: invalid --overwriteResponseHeaders
-      Expected valid Header type { [header: string]: string[] string number null undefined }
-      Received {"lorem":{"ipsum":"dolor"}}]
+     [TypeError: TypeError: invalid --overwriteResponseHeaders
+     Expected valid Header type { [header: string]: string[] string number null undefined }
+     Received {"lorem":{"ipsum":"dolor"}}]
     `)
 
     // Invalid since it has an array of numbers
@@ -748,9 +747,9 @@ describe('--overwriteResponseHeaders', () => {
       overwriteResponseHeaders3,
     ]
     await expect(parseArgv(argv3)).rejects.toMatchInlineSnapshot(`
-      [TypeError: TypeError: invalid --overwriteResponseHeaders
-      Expected valid Header type { [header: string]: string[] string number null undefined }
-      Received {"lorem":[1,2,3]}]
+     [TypeError: TypeError: invalid --overwriteResponseHeaders
+     Expected valid Header type { [header: string]: string[] string number null undefined }
+     Received {"lorem":[1,2,3]}]
     `)
 
     // Invalid since it has a number as key
@@ -763,9 +762,9 @@ describe('--overwriteResponseHeaders', () => {
       overwriteResponseHeaders4,
     ]
     await expect(parseArgv(argv4)).rejects.toMatchInlineSnapshot(`
-      [TypeError: TypeError: invalid --overwriteResponseHeaders
-      Expected valid JSON string
-      Received "{1: \\"lorem\\"}"]
+     [TypeError: TypeError: invalid --overwriteResponseHeaders
+     Expected valid JSON string
+     Received "{1: \\"lorem\\"}"]
     `)
   })
 })
@@ -808,9 +807,9 @@ describe('--overwriteRequestHeaders', () => {
       overwriteRequestHeaders1,
     ]
     await expect(parseArgv(argv1)).rejects.toMatchInlineSnapshot(`
-      [TypeError: TypeError: invalid --overwriteRequestHeaders
-      Expected valid JSON string
-      Received "{\\"content-type\\": \\"application/json\\""]
+     [TypeError: TypeError: invalid --overwriteRequestHeaders
+     Expected valid JSON string
+     Received "{\\"content-type\\": \\"application/json\\""]
     `)
 
     // undefined is not a valid JSON value
@@ -819,13 +818,13 @@ describe('--overwriteRequestHeaders', () => {
       '',
       '',
       ...getRequiredArgs(),
-      '--overwriteResponseHeaders',
+      '--overwriteRequestHeaders',
       overwriteRequestHeaders2,
     ]
     await expect(parseArgv(argv2)).rejects.toMatchInlineSnapshot(`
-      [TypeError: TypeError: invalid --overwriteResponseHeaders
-      Expected valid JSON string
-      Received "{\\"content-type\\": undefined }"]
+     [TypeError: TypeError: invalid --overwriteRequestHeaders
+     Expected valid JSON string
+     Received "{\\"content-type\\": undefined }"]
     `)
   })
 
@@ -838,13 +837,13 @@ describe('--overwriteRequestHeaders', () => {
       '',
       '',
       ...getRequiredArgs(),
-      '--overwriteResponseHeaders',
+      '--overwriteRequestHeaders',
       overwriteRequestHeaders1,
     ]
     await expect(parseArgv(argv1)).rejects.toMatchInlineSnapshot(`
-      [TypeError: TypeError: invalid --overwriteResponseHeaders
-      Expected valid Header type { [header: string]: string[] string number null undefined }
-      Received [1,2,3]]
+     [TypeError: TypeError: invalid --overwriteRequestHeaders
+     Expected valid Header type { [header: string]: string[] string number null undefined }
+     Received [1,2,3]]
     `)
 
     // Invalid since it cannot have a depth larger than 2
@@ -853,13 +852,13 @@ describe('--overwriteRequestHeaders', () => {
       '',
       '',
       ...getRequiredArgs(),
-      '--overwriteResponseHeaders',
+      '--overwriteRequestHeaders',
       overwriteRequestHeaders2,
     ]
     await expect(parseArgv(argv2)).rejects.toMatchInlineSnapshot(`
-      [TypeError: TypeError: invalid --overwriteResponseHeaders
-      Expected valid Header type { [header: string]: string[] string number null undefined }
-      Received {"lorem":{"ipsum":"dolor"}}]
+     [TypeError: TypeError: invalid --overwriteRequestHeaders
+     Expected valid Header type { [header: string]: string[] string number null undefined }
+     Received {"lorem":{"ipsum":"dolor"}}]
     `)
 
     // Invalid since it has an array of numbers
@@ -868,13 +867,13 @@ describe('--overwriteRequestHeaders', () => {
       '',
       '',
       ...getRequiredArgs(),
-      '--overwriteResponseHeaders',
+      '--overwriteRequestHeaders',
       overwriteRequestHeaders3,
     ]
     await expect(parseArgv(argv3)).rejects.toMatchInlineSnapshot(`
-      [TypeError: TypeError: invalid --overwriteResponseHeaders
-      Expected valid Header type { [header: string]: string[] string number null undefined }
-      Received {"lorem":[1,2,3]}]
+     [TypeError: TypeError: invalid --overwriteRequestHeaders
+     Expected valid Header type { [header: string]: string[] string number null undefined }
+     Received {"lorem":[1,2,3]}]
     `)
 
     // Invalid since it has a number as key
@@ -883,13 +882,13 @@ describe('--overwriteRequestHeaders', () => {
       '',
       '',
       ...getRequiredArgs(),
-      '--overwriteResponseHeaders',
+      '--overwriteRequestHeaders',
       overwriteRequestHeaders4,
     ]
     await expect(parseArgv(argv4)).rejects.toMatchInlineSnapshot(`
-      [TypeError: TypeError: invalid --overwriteResponseHeaders
-      Expected valid JSON string
-      Received "{1: \\"lorem\\"}"]
+     [TypeError: TypeError: invalid --overwriteRequestHeaders
+     Expected valid JSON string
+     Received "{1: \\"lorem\\"}"]
     `)
   })
 })

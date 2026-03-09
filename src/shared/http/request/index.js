@@ -216,7 +216,7 @@ async function createRequestWithRetry({
       }
     }
     await backoff()
-    setTimeout(loop, 0)
+    setTimeout(loop, 0).unref()
   }
   setTimeout(loop, 0)
 

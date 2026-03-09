@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest'
 import { Readable, Transform } from 'node:stream'
 import pipeline from '../pipeline/index.js'
 import createPassAndSave from './index.js'

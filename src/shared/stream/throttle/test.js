@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest'
 import { Readable, Transform, PassThrough } from 'node:stream'
 import pipeline from '../pipeline/index.js'
 import throttle from './index.js'

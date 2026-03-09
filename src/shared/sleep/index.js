@@ -4,7 +4,7 @@
  */
 function sleep(ms) {
   return new Promise((resolve) => {
-    setTimeout(resolve, ms)
+    setTimeout(resolve, ms).unref()
   })
 }
 

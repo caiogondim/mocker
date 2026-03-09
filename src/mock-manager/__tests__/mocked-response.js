@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest'
 import { getBody } from '../../shared/http/index.js'
 import { createMockedResponse } from './helpers/mocked-response.js'
 
