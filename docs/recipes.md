@@ -11,7 +11,7 @@ node tools/mocker/tools/math-server 8889
 2. Start mocker as a proxy for `math-server`
 
 ```bash
-yarn dev --port 8890 --mode read-write --responsesDir responses/math-server --origin http://localhost:8889 --overwriteRequestHeaders '{ "user-agent": "lorem ipsum" }' --logging verbose --redactedHeaders '{"date": null, "cache-control": null}'
+npm run dev -- --port 8890 --mode read-write --responsesDir responses/math-server --origin http://localhost:8889 --overwriteRequestHeaders '{ "user-agent": "lorem ipsum" }' --logging verbose --redactedHeaders '{"date": null, "cache-control": null}'
 ```
 
 ## Flagging a mock file as "locked"

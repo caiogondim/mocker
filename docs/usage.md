@@ -1,7 +1,7 @@
 ## Usage
 
 ```bash
-yarn start --origin http://example.com --responsesDir ./responses/example-com --mode read-write
+npm start -- --origin http://example.com --responsesDir ./responses/example-com --mode read-write
 ```
 
 ## Options

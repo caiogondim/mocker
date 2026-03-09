@@ -4,7 +4,7 @@
   "description": "HTTP mock server for development and stable E2E tests",
   "main": "src/index.js",
   "scripts": {
-    "test": "yarn lint && yarn type-check && yarn jest",
+    "test": "npm run lint && npm run type-check && npm run jest",
     "start": "NODE_OPTIONS='--max-http-header-size=1000000 --unhandled-rejections=strict' ./mocker",
     "dev:httpbin": "node --watch-path=./src mocker --responsesDir ./responses/httpbin --origin http://httpbin.org --logging verbose --mode read-write",
     "dev:vi": "./scripts/dev-vi",
@@ -49,6 +49,5 @@
         "branches": 78.14
       }
     }
-  },
-  "packageManager": "yarn@4.1.1+sha256.f3cc0eda8e5560e529c7147565b30faa43b4e472d90e8634d7134a37c7f59781"
+  }
 }
