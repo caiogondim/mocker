@@ -23,7 +23,13 @@ import {
 } from './src/args/index.js'
 import Mocker from './src/index.js'
 import createLogger from './src/shared/logger/index.js'
-import { bold, stripMargin, table, dim, stringify } from './src/shared/logger/format/index.js'
+import {
+  bold,
+  stripMargin,
+  table,
+  dim,
+  stringify,
+} from './src/shared/logger/format/index.js'
 import { createRequire } from 'node:module'
 
 const packageJson = createRequire(import.meta.url)('./package.json')
@@ -37,64 +43,70 @@ function printHelp() {
     stripMargin(`
       |${bold('mocker')} 🥸 v${packageJson.version}
       |
-      |${bold('ARGS')}`)
+      |${bold('ARGS')}`),
   )
   logger.log(
     table(
-      [`  --origin <URL>`, `Origin base URL ${dim(`[e.g.: "http://example.com"]`)}`],
-      [`  [--responsesDir <path>]`, `Path to mocked responses directory ${dim(`[default: ${stringify(RESPONSES_DIR_DEFAULT)}]`)}`],
+      [
+        `  --origin <URL>`,
+        `Origin base URL ${dim(`[e.g.: "http://example.com"]`)}`,
+      ],
+      [
+        `  [--responsesDir <path>]`,
+        `Path to mocked responses directory ${dim(`[default: ${stringify(RESPONSES_DIR_DEFAULT)}]`)}`,
+      ],
       [
         `  [--update <update>]`,
         `One of: ${stringify(UPDATE_VALID_VALUES)} ${dim(
-          `[default: ${stringify(UPDATE_DEFAULT)}]`
+          `[default: ${stringify(UPDATE_DEFAULT)}]`,
         )}`,
       ],
       [
         `  [--mode <mode>]`,
         `One of: ${stringify(MODE_VALID_VALUES)} ${dim(
-          `${dim(`[default: ${stringify(MODE_DEFAULT)}]`)}`
+          `${dim(`[default: ${stringify(MODE_DEFAULT)}]`)}`,
         )}`,
       ],
       [
         `  [--port <n>]`,
         `Port the mocker server will listen to ${dim(
-          `[default: ${stringify(PORT_DEFAULT)}]`
+          `[default: ${stringify(PORT_DEFAULT)}]`,
         )}`,
       ],
       [
         `  [--retries <n>]`,
         `Max number of retries to origin while response is not a 200 ${dim(
-          `[default: ${stringify(RETRIES_DEFAULT)}]`
+          `[default: ${stringify(RETRIES_DEFAULT)}]`,
         )}`,
       ],
       [
         `  [--redactedHeaders <JSON>]`,
         `JSON of header names to redact from mocks and logging ${dim(
-          `[default: ${stringify(REDACTED_HEADERS_DEFAULT)}]`
+          `[default: ${stringify(REDACTED_HEADERS_DEFAULT)}]`,
         )}`,
       ],
       [
         `  [--overwriteRequestHeaders <JSON>]`,
         `JSON of request headers to be overwritten ${dim(
-          `[default: ${stringify({ host: 'example.com' })}]`
+          `[default: ${stringify({ host: 'example.com' })}]`,
         )}`,
       ],
       [
         `  [--overwriteResponseHeaders <JSON>]`,
         `JSON of response headers to be overwritten ${dim(
-          `[default: ${stringify(OVERWRITE_RESPONSE_HEADERS_DEFAULT)}]`
+          `[default: ${stringify(OVERWRITE_RESPONSE_HEADERS_DEFAULT)}]`,
         )}`,
       ],
       [
         `  [--delay <ms>]`,
         `Artificial delay to every request ${dim(
-          `[default: ${stringify(DELAY_DEFAULT)}]`
+          `[default: ${stringify(DELAY_DEFAULT)}]`,
         )}`,
       ],
       [
         `  [--throttle <kB/s>]`,
         `Artificial throttle to every request ${dim(
-          `[default: ${stringify(THROTTLE_DEFAULT)}]`
+          `[default: ${stringify(THROTTLE_DEFAULT)}]`,
         )}`,
       ],
       [
@@ -104,16 +116,16 @@ function printHelp() {
       [
         `  [--logging <logging>]`,
         `One of: ${stringify(LOGGING_VALID_VALUES)} ${dim(
-          `[default: ${stringify(LOGGING_DEFAULT)}]`
+          `[default: ${stringify(LOGGING_DEFAULT)}]`,
         )}`,
       ],
       [
         `  [--mockKeys <val1,val2>]`,
         `Set of: ${stringify([...MOCK_KEYS_VALID_VALUES, 'body.**'])} ${dim(
-          `[default: ${stringify(mockKeysDefaultStr)}]`
+          `[default: ${stringify(mockKeysDefaultStr)}]`,
         )}`,
-      ]
-    )
+      ],
+    ),
   )
   logger.log(
     stripMargin(`
@@ -121,17 +133,21 @@ function printHelp() {
       |  mocker --origin http://example.com --responsesDir /path/to/folder
       |  mocker --origin http://example.com --responsesDir /path/to/folder --mockKeys url,method,body.variables.id
       |  mocker --origin http://example.com --responsesDir /path/to/folder --mode read-write --workers 4
-      |  mocker --origin http://example.com --responsesDir /path/to/folder --update startup --workers 4`)
+      |  mocker --origin http://example.com --responsesDir /path/to/folder --update startup --workers 4`),
   )
   logger.log(
     stripMargin(`
       |${bold('DOCS')}
-      |  https://github.com/caiogondim/mocker/tree/main/docs`)
+      |  https://github.com/caiogondim/mocker/tree/main/docs`),
   )
 }
 
 async function main() {
-  if (process.argv[2] === '--help' || process.argv[2] === '-h') {
+  if (
+    process.argv[2] === '--help' ||
+    process.argv[2] === '-h' ||
+    process.argv[2] === undefined
+  ) {
     printHelp()
   } else {
     try {
