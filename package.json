@@ -19,13 +19,12 @@
   "license": "UNLICENSED",
   "private": true,
   "devDependencies": {
-    "@eslint/js": "^9.39.4",
+    "@eslint/js": "^10.0.1",
     "@types/jest": "^30",
     "@types/node": "^24",
-    "eslint": "^9.39.4",
-    "eslint-plugin-json": "^4.0.1",
+    "eslint": "^10.0.3",
+
     "eslint-plugin-n": "^17.24.0",
-    "eslint-plugin-sort-class-members": "^1.21.0",
     "jest": "^30.2.0",
     "memfs": "^4.7.7",
     "prettier": "^3.8.1",

@@ -1,8 +1,8 @@
 import js from '@eslint/js'
 import tseslint from 'typescript-eslint'
 import nodePlugin from 'eslint-plugin-n'
-import sortClassMembers from 'eslint-plugin-sort-class-members'
-import jsonPlugin from 'eslint-plugin-json'
+
+
 
 export default [
   { ignores: ['node_modules/', 'out/'] },
@@ -29,27 +29,7 @@ export default [
         globalThis: 'readonly',
       },
     },
-    plugins: {
-      'sort-class-members': sortClassMembers,
-    },
     rules: {
-      // Class member ordering
-      'sort-class-members/sort-class-members': [
-        'error',
-        {
-          order: [
-            '[static-properties]',
-            '[static-methods]',
-            '[properties]',
-            '[conventional-private-properties]',
-            'constructor',
-            '[methods]',
-            '[conventional-private-methods]',
-          ],
-          accessorPairPositioning: 'getThenSet',
-        },
-      ],
-
       // Variables
       'no-unused-vars': [
         'error',
@@ -95,9 +75,4 @@ export default [
     },
   },
 
-  // JSON files
-  {
-    files: ['**/*.json'],
-    ...jsonPlugin.configs['recommended'],
-  },
 ]
