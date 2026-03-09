@@ -5,7 +5,7 @@ import { createMockManager } from './helpers/mock-manager.js'
 import { createMockedResponse } from './helpers/mocked-response.js'
 import { createMockedRequest } from './helpers/mocked-request.js'
 
-describe('mockManager.prototype.get', () => {
+describe('mockManager.get', () => {
   it('returns a mocked response from disk for requests', async () => {
     expect.assertions(2)
 
@@ -117,7 +117,7 @@ describe('mockManager.prototype.get', () => {
   })
 })
 
-describe('mockManager.prototype.has', () => {
+describe('mockManager.has', () => {
   it('takes in consideration mockKeys args', async () => {
     expect.assertions(2)
 
@@ -253,7 +253,7 @@ describe('mockManager.prototype.has', () => {
   })
 })
 
-describe('mockManager.prototype.clear', () => {
+describe('mockManager.clear', () => {
   it('clears all saved responses on disk', async () => {
     expect.assertions(2)
 
@@ -285,7 +285,7 @@ describe('mockManager.prototype.clear', () => {
   })
 })
 
-describe('mockManager.prototype.set', () => {
+describe('mockManager.set', () => {
   it('saves new mock', async () => {
     expect.assertions(2)
 
@@ -385,7 +385,7 @@ describe('mockManager.prototype.set', () => {
   })
 })
 
-describe('mockManager.prototype.getAll', () => {
+describe('mockManager.getAll', () => {
   // In case a request/response has `content-type: application/json`, mocker saves its
   // body as JSON. We need to make sure to serialize the JSON body again before
   // sending it through the stream.

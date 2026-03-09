@@ -5,7 +5,7 @@
 import path from 'node:path'
 import { promises as fs } from 'node:fs'
 import stringToBoolean from '../shared/string-to-boolean/index.js'
-import createLogger from '../shared/logger/index.js'
+import createLogger, { validLevels as loggerValidLevels, setLevel as setLoggerLevel } from '../shared/logger/index.js'
 import { prettifyError } from '../shared/logger/pretty-error/index.js'
 import { stringify } from '../shared/logger/format/index.js'
 import getConstructorName from '../shared/get-constructor-name/index.js'
@@ -25,7 +25,7 @@ const MODE_VALID_VALUES = [
 const UPDATE_VALID_VALUES = ['off', 'startup', 'only']
 /** @type {Readonly<string[]>} */
 const MOCK_KEYS_VALID_VALUES = ['url', 'method', 'headers', 'body']
-const LOGGING_VALID_VALUES = createLogger.validLevels
+const LOGGING_VALID_VALUES = loggerValidLevels
 
 /** @type {Readonly<RegExp>} */
 const MOCK_KEYS_BODY_REGEX = /^body(?:\.[A-Za-z0-9\-_]+)*$/
@@ -510,8 +510,7 @@ function isArgsLogging(logging) {
  * @returns {Args['logging']}
  */
 function getLogging(argvMap) {
-  const argvLogging = argvMap.get('logging') ?? LOGGING_DEFAULT
-  const logging = argvLogging ?? LOGGING_DEFAULT
+  const logging = argvMap.get('logging') ?? LOGGING_DEFAULT
 
   if (!isArgsLogging(logging)) {
     const error = prettifyError({
@@ -593,7 +592,7 @@ async function parseArgv(argv) {
   const argvMap = argvToArgvMap(argv)
 
   const logging = getLogging(argvMap)
-  createLogger.level = logging
+  setLoggerLevel(logging)
 
   const port = await getPort(argvMap)
   const mode = getMode(argvMap)

@@ -1,5 +1,3 @@
-/** @typedef {import('../../types.js').StreamReadable} StreamReadable */
-
 /**
  * @param {AsyncIterable<any> | Iterable<any>} stream
  * @returns {Promise<any[]>}

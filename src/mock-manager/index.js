@@ -196,6 +196,8 @@ function createMockManager({
   redactedHeaders = {},
   fs = nativeFs,
 }) {
+  const fsPromises = fs.promises
+
   /**
    * @param {Object} options
    * @param {(HttpIncomingMessage | MockedRequest) & Rewindable} options.request
@@ -203,8 +205,6 @@ function createMockManager({
    * @returns {Promise<{ mockPath: string; hasMock: boolean }>}
    */
   async function has({ request, connectionId = '?' }) {
-    const fsPromises = fs.promises
-
     const mockPath = await requestToMockPath(
       request,
       connectionId,
@@ -226,7 +226,6 @@ function createMockManager({
    * @returns {Promise<{ mockPath: string; mockedResponse: MockedResponse }>}
    */
   async function get({ request, connectionId = '?' }) {
-    const fsPromises = fs.promises
     const filePath = await requestToMockPath(
       request,
       connectionId,
@@ -345,11 +344,11 @@ function createMockManager({
   }
 
   async function clear() {
-    const fsPromises = fs.promises
-    const files = await fsPromises.readdir(responsesDir, { encoding: 'buffer' })
+    const files = // @ts-ignore memfs typing mismatch
+      /** @type {string[]} */ (await fsPromises.readdir(responsesDir))
     for (const file of files) {
-      if (RESPONSE_FILE_REGEX.test(file.toString())) {
-        await fsPromises.unlink(path.join(responsesDir, file.toString()))
+      if (RESPONSE_FILE_REGEX.test(file)) {
+        await fsPromises.unlink(path.join(responsesDir, file))
       }
     }
   }
@@ -364,11 +363,10 @@ function createMockManager({
    * }>}
    */
   async function* getAll() {
-    const fsPromises = fs.promises
-
-    const files = await fsPromises.readdir(responsesDir, { encoding: 'buffer' })
+    const files = // @ts-ignore memfs typing mismatch
+      /** @type {string[]} */ (await fsPromises.readdir(responsesDir))
     for (const file of files) {
-      const filePath = path.join(responsesDir, file.toString())
+      const filePath = path.join(responsesDir, file)
       if (!filePath.endsWith('.json')) {
         continue
       }
@@ -436,14 +434,11 @@ function createMockManager({
    * @returns {Promise<number>}
    */
   async function size() {
-    const fsPromises = fs.promises
-
-    const filesBuffer = await fsPromises.readdir(responsesDir, {
-      encoding: 'buffer',
-    })
+    const files = // @ts-ignore memfs typing mismatch
+      /** @type {string[]} */ (await fsPromises.readdir(responsesDir))
     let output = 0
-    for (const fileBuffer of filesBuffer) {
-      const filePath = path.join(responsesDir, `${fileBuffer}`)
+    for (const file of files) {
+      const filePath = path.join(responsesDir, file)
       if (!filePath.endsWith('.json')) {
         continue
       }

@@ -14,10 +14,20 @@ import { isPrettyError } from './pretty-error/index.js'
  *
  * @readonly
  */
-const validLevels = ['silent', 'error', 'warn', 'verbose']
+export const validLevels = ['silent', 'error', 'warn', 'verbose']
 
 /** @type {LoggerLevels} */
 let level = 'silent' // eslint-disable-line jest/require-hook
+
+/** @returns {LoggerLevels} */
+export function getLevel() {
+  return level
+}
+
+/** @param {LoggerLevels} newLevel */
+export function setLevel(newLevel) {
+  level = newLevel
+}
 
 /**
  * Simple wrapper around `console` to consolidate the decision about when a
@@ -39,7 +49,7 @@ function createLogger({
     if (forceLog) return true
 
     return (
-      validLevels.indexOf(method) <= validLevels.indexOf(createLogger.level)
+      validLevels.indexOf(method) <= validLevels.indexOf(getLevel())
     )
   }
 
@@ -126,19 +136,5 @@ function createLogger({
 
   return { log, warn, error, info, success }
 }
-
-createLogger.validLevels = validLevels
-
-// eslint-disable-next-line jest/require-hook
-Object.defineProperty(createLogger, 'level', {
-  get() {
-    return level
-  },
-  set(/** @type {LoggerLevels} */ newLevel) {
-    level = newLevel
-  },
-  enumerable: true,
-  configurable: true,
-})
 
 export default createLogger

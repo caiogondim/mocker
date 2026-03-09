@@ -59,17 +59,12 @@ function copyResponseAttrs(responseSource, responseTarget) {
 
   delete headers['content-length']
 
+  responseTarget.statusCode = responseSource.statusCode || 200
   if (responseSource.statusMessage) {
-    responseTarget.statusCode = responseSource.statusCode || 200
     responseTarget.statusMessage = responseSource.statusMessage
-    for (const [key, value] of Object.entries(headers)) {
-      responseTarget.setHeader(key, value)
-    }
-  } else {
-    responseTarget.statusCode = responseSource.statusCode || 200
-    for (const [key, value] of Object.entries(headers)) {
-      responseTarget.setHeader(key, value)
-    }
+  }
+  for (const [key, value] of Object.entries(headers)) {
+    responseTarget.setHeader(key, value)
   }
 }
 
@@ -272,7 +267,6 @@ class Mocker {
         })
 
         cluster.on('listening', resolve)
-
       } else if (cluster.isWorker) {
         this.#httpServer = http
           .createServer(this.#server.bind(this))
@@ -400,16 +394,9 @@ class Mocker {
           )
           return
         }
-        case 'write': {
-          await this.#handleConnectionWithWriteMode(
-            requestRewindable,
-            response,
-            connectionId
-          )
-          return
-        }
+        case 'write':
         case 'pass': {
-          await this.#handleConnectionWithPassMode(
+          await this.#respondFromOrigin(
             requestRewindable,
             response,
             connectionId
@@ -443,26 +430,6 @@ class Mocker {
 
       throw error
     }
-  }
-
-  /**
-   * @param {http.IncomingMessage & Rewindable} request
-   * @param {http.ServerResponse} response
-   * @param {string} connectionId
-   * @returns {Promise<void>}
-   */
-  async #handleConnectionWithWriteMode(request, response, connectionId) {
-    await this.#respondFromOrigin(request, response, connectionId)
-  }
-
-  /**
-   * @param {http.IncomingMessage & Rewindable} request
-   * @param {http.ServerResponse} response
-   * @param {string} connectionId
-   * @returns {Promise<void>}
-   */
-  async #handleConnectionWithPassMode(request, response, connectionId) {
-    await this.#respondFromOrigin(request, response, connectionId)
   }
 
   /**
@@ -530,13 +497,13 @@ class Mocker {
       'access-control-allow-origin',
       `${request.headers.origin}`
     )
-    response.setHeader('Access-Control-Allow-Credentials', 'true')
+    response.setHeader('access-control-allow-credentials', 'true')
     response.setHeader(
-      'Access-Control-Allow-Methods',
+      'access-control-allow-methods',
       'PUT, GET, POST, DELETE, OPTIONS'
     )
     response.setHeader(
-      'Access-Control-Allow-Headers',
+      'access-control-allow-headers',
       'Content-Type, x-cf-source-id, x-cf-corr-id'
     )
     response.end()
@@ -680,7 +647,7 @@ class Mocker {
     const args = this.#args
     const origin = this.#origin
     const { method = undefined, url = '' } = clientToProxyRequest
-    const requestHeaders = structuredClone(clientToProxyRequest.headers)
+    const requestHeaders = clientToProxyRequest.headers
 
     proxyToClientResponse.setHeader('x-mocker-request-id', connectionId)
     proxyToClientResponse.setHeader('x-mocker-response-from', 'Origin')
