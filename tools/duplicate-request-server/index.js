@@ -1,10 +1,10 @@
 /** @typedef {import('../../src/shared/types.js').AsyncHttpServer} AsyncHttpServer */
 
-import http from 'node:http'
+import { createAsyncHttpServer } from '../../src/shared/async-http-server/index.js'
 
 /** @returns {AsyncHttpServer} */
 function createServer() {
-  const server = http.createServer(async (req, res) => {
+  return createAsyncHttpServer(async (req, res) => {
     const reqBodyChunks = []
     for await (const chunk of req) {
       reqBodyChunks.push(chunk)
@@ -12,36 +12,6 @@ function createServer() {
     const reqBody = Buffer.concat(reqBodyChunks).toString()
     res.end(`${reqBody}${reqBody}`)
   })
-
-  return {
-    /**
-     * @param {number} port
-     * @returns {Promise<void>}
-     */
-    listen(port) {
-      return new Promise((resolve) => {
-        server.listen(port, resolve)
-      })
-    },
-    close() {
-      if (!server.listening) return Promise.resolve()
-      return new Promise((resolve, reject) => {
-        server.close((error) => {
-          if (error) {
-            reject(error)
-          } else {
-            resolve()
-          }
-        })
-      })
-    },
-    get listening() {
-      return server.listening
-    },
-    async [Symbol.asyncDispose]() {
-      await this.close()
-    },
-  }
 }
 
 /**
