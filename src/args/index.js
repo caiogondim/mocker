@@ -11,8 +11,8 @@ import {
 } from '../shared/logger/index.js'
 import { prettifyError } from '../shared/logger/pretty-error/index.js'
 import { stringify } from '../shared/logger/format/index.js'
-import getConstructorName from '../shared/get-constructor-name/index.js'
 import isPortTaken from '../shared/is-port-taken/index.js'
+import { isHeaders } from '../shared/http/index.js'
 
 /** @type {Readonly<string[]>} */
 const MODE_VALID_VALUES = [
@@ -247,8 +247,13 @@ function getRedactedHeaders(argvMap) {
       redactedHeadersArgv === undefined
         ? REDACTED_HEADERS_DEFAULT
         : JSON.parse(redactedHeadersArgv)
-    const customTypeError = new TypeError(`invalid --redactedHeaders`)
-    validateHeadersType(redactedHeaders, customTypeError)
+    if (!isHeaders(redactedHeaders)) {
+      throw prettifyError({
+        error: new TypeError(`invalid --redactedHeaders`),
+        expected: `valid Header type { [header: string]: string[] | string | number | null | undefined }`,
+        received: stringify(redactedHeaders),
+      })
+    }
 
     return redactedHeaders
   } catch (error) {
@@ -300,8 +305,13 @@ function getOverwriteResponseHeaders(argvMap) {
         ? OVERWRITE_RESPONSE_HEADERS_DEFAULT
         : JSON.parse(overwriteResponseHeadersArgv)
 
-    const customTypeError = new TypeError(`invalid --overwriteResponseHeaders`)
-    validateHeadersType(overwriteResponseHeaders, customTypeError)
+    if (!isHeaders(overwriteResponseHeaders)) {
+      throw prettifyError({
+        error: new TypeError(`invalid --overwriteResponseHeaders`),
+        expected: `valid Header type { [header: string]: string[] | string | number | null | undefined }`,
+        received: stringify(overwriteResponseHeaders),
+      })
+    }
 
     return overwriteResponseHeaders
   } catch (error) {
@@ -329,8 +339,13 @@ function getOverwriteRequestHeaders(argvMap) {
         ? getDefaultOverwriteRequestHeaders(argvMap)
         : JSON.parse(overwriteRequestHeadersArgv)
 
-    const customTypeError = new TypeError(`invalid --overwriteRequestHeaders`)
-    validateHeadersType(overwriteRequestHeaders, customTypeError)
+    if (!isHeaders(overwriteRequestHeaders)) {
+      throw prettifyError({
+        error: new TypeError(`invalid --overwriteRequestHeaders`),
+        expected: `valid Header type { [header: string]: string[] | string | number | null | undefined }`,
+        received: stringify(overwriteRequestHeaders),
+      })
+    }
 
     return overwriteRequestHeaders
   } catch (error) {
@@ -525,53 +540,6 @@ function getLogging(argvMap) {
   }
 
   return logging
-}
-
-/**
- * @param {Headers} headers
- * @param {TypeError} customTypeError
- * @returns {void}
- */
-function validateHeadersType(headers, customTypeError) {
-  const prettyError = prettifyError({
-    error: customTypeError,
-    expected: `valid Header type { [header: string]: string[] | string | number | null | undefined }`,
-    received: stringify(headers),
-  })
-
-  // Must be an object at the root level
-  if (getConstructorName(headers) !== 'Object') {
-    throw prettyError
-  }
-
-  for (const value of Object.values(headers)) {
-    const valueConstructorName = getConstructorName(value)
-    if (
-      valueConstructorName === 'String' ||
-      valueConstructorName === 'Number' ||
-      valueConstructorName === 'Undefined' ||
-      valueConstructorName === 'Null' ||
-      valueConstructorName === 'Boolean'
-    ) {
-      continue
-    } else if (valueConstructorName === 'Array') {
-      // To make TypeScript happy
-      if (!Array.isArray(value)) {
-        continue
-      }
-
-      value.forEach(
-        /** @param {any} arrValue */ (arrValue) => {
-          if (getConstructorName(arrValue) !== 'String') {
-            throw prettyError
-          }
-        },
-      )
-      continue
-    }
-
-    throw prettyError
-  }
 }
 
 /**

@@ -150,10 +150,6 @@ class Mocker {
       fs: args.fs,
     })
 
-    /** @type {AsyncHttpServer} */
-    // Checks if instance implements AsyncHttpServer interface.
-    // eslint-disable-next-line no-unused-vars
-    const instance = this
   }
 
   /**
