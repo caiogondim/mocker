@@ -3,16 +3,6 @@
 import http from 'node:http'
 
 /**
- * @param {AsyncHttpServer} server
- * @returns {Promise<void>}
- */
-async function closeServer(server) {
-  if (server && server.listening) {
-    await server.close()
-  }
-}
-
-/**
  * @param {Parameters<typeof http.createServer>[1]} connectionHandler
  * @returns {AsyncHttpServer}
  */
@@ -30,27 +20,18 @@ function createServer(connectionHandler) {
       })
     },
     close() {
+      if (!server.listening) return Promise.resolve()
       return new Promise((resolve, reject) => {
-        server.close((error) => {
-          if (error) {
-            reject(error)
-          } else {
-            resolve()
-          }
-        })
+        server.close((error) => (error ? reject(error) : resolve()))
       })
     },
     get listening() {
       return server.listening
     },
     async [Symbol.asyncDispose]() {
-      if (server.listening) {
-        await new Promise((resolve, reject) => {
-          server.close((error) => (error ? reject(error) : resolve()))
-        })
-      }
+      await this.close()
     },
   }
 }
 
-export { closeServer, createServer }
+export { createServer }

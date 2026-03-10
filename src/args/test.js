@@ -500,7 +500,9 @@ describe('--overwriteResponseHeaders', () => {
       '--overwriteResponseHeaders',
       overwriteResponseHeaders1,
     ]
-    await expect(parseArgv(argv1)).rejects.toThrow(/invalid --overwriteResponseHeaders/)
+    await expect(parseArgv(argv1)).rejects.toThrow(
+      /invalid --overwriteResponseHeaders/,
+    )
 
     // undefined is not a valid JSON value
     const overwriteResponseHeaders2 = '{"content-type": undefined }'
@@ -511,7 +513,9 @@ describe('--overwriteResponseHeaders', () => {
       '--overwriteResponseHeaders',
       overwriteResponseHeaders2,
     ]
-    await expect(parseArgv(argv2)).rejects.toThrow(/invalid --overwriteResponseHeaders/)
+    await expect(parseArgv(argv2)).rejects.toThrow(
+      /invalid --overwriteResponseHeaders/,
+    )
   })
 
   it('throws an error if not a valid Header type', async () => {
@@ -524,7 +528,9 @@ describe('--overwriteResponseHeaders', () => {
       '--overwriteResponseHeaders',
       overwriteResponseHeaders1,
     ]
-    await expect(parseArgv(argv1)).rejects.toThrow(/invalid --overwriteResponseHeaders/)
+    await expect(parseArgv(argv1)).rejects.toThrow(
+      /invalid --overwriteResponseHeaders/,
+    )
 
     // Invalid since it cannot have a depth larger than 2
     const overwriteResponseHeaders2 = '{"lorem": { "ipsum": "dolor" }}'
@@ -535,7 +541,9 @@ describe('--overwriteResponseHeaders', () => {
       '--overwriteResponseHeaders',
       overwriteResponseHeaders2,
     ]
-    await expect(parseArgv(argv2)).rejects.toThrow(/invalid --overwriteResponseHeaders/)
+    await expect(parseArgv(argv2)).rejects.toThrow(
+      /invalid --overwriteResponseHeaders/,
+    )
 
     // Invalid since it has an array of numbers
     const overwriteResponseHeaders3 = '{"lorem": [1, 2, 3]}'
@@ -546,7 +554,9 @@ describe('--overwriteResponseHeaders', () => {
       '--overwriteResponseHeaders',
       overwriteResponseHeaders3,
     ]
-    await expect(parseArgv(argv3)).rejects.toThrow(/invalid --overwriteResponseHeaders/)
+    await expect(parseArgv(argv3)).rejects.toThrow(
+      /invalid --overwriteResponseHeaders/,
+    )
 
     // Invalid since it has a number as key
     const overwriteResponseHeaders4 = '{1: "lorem"}'
@@ -557,7 +567,9 @@ describe('--overwriteResponseHeaders', () => {
       '--overwriteResponseHeaders',
       overwriteResponseHeaders4,
     ]
-    await expect(parseArgv(argv4)).rejects.toThrow(/invalid --overwriteResponseHeaders/)
+    await expect(parseArgv(argv4)).rejects.toThrow(
+      /invalid --overwriteResponseHeaders/,
+    )
   })
 })
 
@@ -593,7 +605,9 @@ describe('--overwriteRequestHeaders', () => {
       '--overwriteRequestHeaders',
       overwriteRequestHeaders1,
     ]
-    await expect(parseArgv(argv1)).rejects.toThrow(/invalid --overwriteRequestHeaders/)
+    await expect(parseArgv(argv1)).rejects.toThrow(
+      /invalid --overwriteRequestHeaders/,
+    )
 
     // undefined is not a valid JSON value
     const overwriteRequestHeaders2 = '{"content-type": undefined }'
@@ -604,7 +618,9 @@ describe('--overwriteRequestHeaders', () => {
       '--overwriteRequestHeaders',
       overwriteRequestHeaders2,
     ]
-    await expect(parseArgv(argv2)).rejects.toThrow(/invalid --overwriteRequestHeaders/)
+    await expect(parseArgv(argv2)).rejects.toThrow(
+      /invalid --overwriteRequestHeaders/,
+    )
   })
 
   it('throws an error if not a valid Header type', async () => {
@@ -617,7 +633,9 @@ describe('--overwriteRequestHeaders', () => {
       '--overwriteRequestHeaders',
       overwriteRequestHeaders1,
     ]
-    await expect(parseArgv(argv1)).rejects.toThrow(/invalid --overwriteRequestHeaders/)
+    await expect(parseArgv(argv1)).rejects.toThrow(
+      /invalid --overwriteRequestHeaders/,
+    )
 
     // Invalid since it cannot have a depth larger than 2
     const overwriteRequestHeaders2 = '{"lorem": { "ipsum": "dolor" }}'
@@ -628,7 +646,9 @@ describe('--overwriteRequestHeaders', () => {
       '--overwriteRequestHeaders',
       overwriteRequestHeaders2,
     ]
-    await expect(parseArgv(argv2)).rejects.toThrow(/invalid --overwriteRequestHeaders/)
+    await expect(parseArgv(argv2)).rejects.toThrow(
+      /invalid --overwriteRequestHeaders/,
+    )
 
     // Invalid since it has an array of numbers
     const overwriteRequestHeaders3 = '{"lorem": [1, 2, 3]}'
@@ -639,7 +659,9 @@ describe('--overwriteRequestHeaders', () => {
       '--overwriteRequestHeaders',
       overwriteRequestHeaders3,
     ]
-    await expect(parseArgv(argv3)).rejects.toThrow(/invalid --overwriteRequestHeaders/)
+    await expect(parseArgv(argv3)).rejects.toThrow(
+      /invalid --overwriteRequestHeaders/,
+    )
 
     // Invalid since it has a number as key
     const overwriteRequestHeaders4 = '{1: "lorem"}'
@@ -650,7 +672,9 @@ describe('--overwriteRequestHeaders', () => {
       '--overwriteRequestHeaders',
       overwriteRequestHeaders4,
     ]
-    await expect(parseArgv(argv4)).rejects.toThrow(/invalid --overwriteRequestHeaders/)
+    await expect(parseArgv(argv4)).rejects.toThrow(
+      /invalid --overwriteRequestHeaders/,
+    )
   })
 })
 

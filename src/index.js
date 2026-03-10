@@ -296,7 +296,7 @@ class Mocker {
     }
 
     return new Promise((resolve, reject) => {
-      if (httpServer) {
+      if (httpServer && httpServer.listening) {
         httpServer.close((error) => {
           state.isClosing = false
 

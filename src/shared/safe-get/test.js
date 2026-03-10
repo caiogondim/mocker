@@ -17,9 +17,9 @@ describe('safeGet', () => {
       },
     }
     expect(safeGet(obj, ['lorem', 'ipsum', 'dolor', 'sit'])).toBe(7)
-    expect(
-      safeGet(obj, ['lorem', 'ipsum', 'dolor']),
-    ).toBe(obj.lorem.ipsum.dolor)
+    expect(safeGet(obj, ['lorem', 'ipsum', 'dolor'])).toBe(
+      obj.lorem.ipsum.dolor,
+    )
   })
 
   it('returns undefined for not existing deep properties', () => {
@@ -32,15 +32,13 @@ describe('safeGet', () => {
     }
     expect(safeGet(obj, ['quijotest'])).toBeUndefined()
     expect(safeGet(obj, ['lorem', 'quijotest'])).toBeUndefined()
-    expect(
-      safeGet(obj, ['lorem', 'ipsum', 'dolor', 'sit']),
-    ).toBeUndefined()
+    expect(safeGet(obj, ['lorem', 'ipsum', 'dolor', 'sit'])).toBeUndefined()
     expect(
       safeGet(obj, ['lorem', 'ipsum', 'dolor', 'sit', 'amet']),
     ).toBeUndefined()
-    expect(
-      safeGet(obj, ['lorem', 'ipsum', 'dolor']),
-    ).toBe(obj.lorem.ipsum.dolor)
+    expect(safeGet(obj, ['lorem', 'ipsum', 'dolor'])).toBe(
+      obj.lorem.ipsum.dolor,
+    )
   })
 
   it('works with arrays', () => {

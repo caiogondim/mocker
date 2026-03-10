@@ -9,20 +9,16 @@
 //
 
 import { describe, it, expect } from '@jest/globals'
-import http from 'node:http'
 import getPort from './helpers/get-port.js'
 import { createMocker } from './helpers/mocker.js'
+import { createServer } from './helpers/async-http-server.js'
 import { createServer as createHeaderEchoServer } from '../../tools/request-header-on-response-body-server/index.js'
 import { createServer as createStatusCodeServer } from '../../tools/status-code-server/index.js'
 import { createServer as createGzipServer } from '../../tools/gzip-server/index.js'
 import { createRequest, getBody } from '../shared/http/index.js'
 
-/**
- * Creates a server that echoes back the request method, url, headers, and body
- * as a JSON response.
- */
 function createEchoServer() {
-  const server = http.createServer(async (req, res) => {
+  return createServer(async (req, res) => {
     const chunks = []
     for await (const chunk of req) {
       chunks.push(chunk)
@@ -39,30 +35,6 @@ function createEchoServer() {
       }),
     )
   })
-
-  return {
-    /** @param {number} port */
-    listen(port) {
-      return new Promise((resolve) => {
-        server.listen(port, () => resolve(undefined))
-      })
-    },
-    close() {
-      return new Promise((resolve, reject) => {
-        server.close((error) => (error ? reject(error) : resolve(undefined)))
-      })
-    },
-    get listening() {
-      return server.listening
-    },
-    async [Symbol.asyncDispose]() {
-      if (server.listening) {
-        await new Promise((resolve, reject) => {
-          server.close((error) => (error ? reject(error) : resolve(undefined)))
-        })
-      }
-    },
-  }
 }
 
 describe('proxy headers', () => {
@@ -179,28 +151,31 @@ describe('proxy headers', () => {
 })
 
 describe('HTTP method forwarding', () => {
-  it.each(['GET', 'POST', 'PUT', 'DELETE', 'PATCH'])('forwards %s method to origin', async (method) => {
-    const originPort = await getPort()
-    await using origin = createEchoServer()
-    await origin.listen(originPort)
+  it.each(['GET', 'POST', 'PUT', 'DELETE', 'PATCH'])(
+    'forwards %s method to origin',
+    async (method) => {
+      const originPort = await getPort()
+      await using origin = createEchoServer()
+      await origin.listen(originPort)
 
-    const mockerPort = await getPort()
-    await using mocker = await createMocker({
-      port: mockerPort,
-      mode: 'pass',
-      origin: `http://localhost:${originPort}`,
-    })
-    await mocker.listen()
+      const mockerPort = await getPort()
+      await using mocker = await createMocker({
+        port: mockerPort,
+        mode: 'pass',
+        origin: `http://localhost:${originPort}`,
+      })
+      await mocker.listen()
 
-    const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${mockerPort}/test-path`,
-      method,
-    })
-    request.end()
-    const response = await responsePromise
-    const body = JSON.parse(`${await getBody(response)}`)
-    expect(body.method).toBe(method)
-  })
+      const [request, responsePromise] = await createRequest({
+        url: `http://localhost:${mockerPort}/test-path`,
+        method,
+      })
+      request.end()
+      const response = await responsePromise
+      const body = JSON.parse(`${await getBody(response)}`)
+      expect(body.method).toBe(method)
+    },
+  )
 
   it('forwards HEAD method and returns no body', async () => {
     const originPort = await getPort()
@@ -333,28 +308,31 @@ describe('request body integrity', () => {
 })
 
 describe('status code forwarding', () => {
-  it.each([200, 201, 204, 301, 302, 400, 401, 403, 404, 500, 502, 503])('relays %i status code from origin', async (statusCode) => {
-    const originPort = await getPort()
-    await using origin = createStatusCodeServer()
-    await origin.listen(originPort)
+  it.each([200, 201, 204, 301, 302, 400, 401, 403, 404, 500, 502, 503])(
+    'relays %i status code from origin',
+    async (statusCode) => {
+      const originPort = await getPort()
+      await using origin = createStatusCodeServer()
+      await origin.listen(originPort)
 
-    const mockerPort = await getPort()
-    await using mocker = await createMocker({
-      port: mockerPort,
-      mode: 'pass',
-      origin: `http://localhost:${originPort}`,
-    })
-    await mocker.listen()
+      const mockerPort = await getPort()
+      await using mocker = await createMocker({
+        port: mockerPort,
+        mode: 'pass',
+        origin: `http://localhost:${originPort}`,
+      })
+      await mocker.listen()
 
-    const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${mockerPort}/`,
-      method: 'GET',
-      headers: { 'response-status-code': `${statusCode}` },
-    })
-    request.end()
-    const response = await responsePromise
-    expect(response.statusCode).toBe(statusCode)
-  })
+      const [request, responsePromise] = await createRequest({
+        url: `http://localhost:${mockerPort}/`,
+        method: 'GET',
+        headers: { 'response-status-code': `${statusCode}` },
+      })
+      request.end()
+      const response = await responsePromise
+      expect(response.statusCode).toBe(statusCode)
+    },
+  )
 })
 
 describe('end-to-end header forwarding', () => {

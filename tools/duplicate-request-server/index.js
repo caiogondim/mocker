@@ -24,6 +24,7 @@ function createServer() {
       })
     },
     close() {
+      if (!server.listening) return Promise.resolve()
       return new Promise((resolve, reject) => {
         server.close((error) => {
           if (error) {
@@ -38,11 +39,7 @@ function createServer() {
       return server.listening
     },
     async [Symbol.asyncDispose]() {
-      if (server.listening) {
-        await new Promise((resolve, reject) => {
-          server.close((error) => (error ? reject(error) : resolve()))
-        })
-      }
+      await this.close()
     },
   }
 }

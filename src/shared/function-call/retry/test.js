@@ -35,9 +35,7 @@ describe('retry', () => {
     // Test behavior with `retry`
     //
 
-    expect(
-      await retry(createThrowUntilN(3), { backoff }),
-    ).toBe('lorem')
+    expect(await retry(createThrowUntilN(3), { backoff })).toBe('lorem')
   })
 
   it('retries up to `retries`', async () => {
@@ -65,9 +63,7 @@ describe('retry', () => {
       return num < 2
     }
 
-    expect(
-      await retry(numberGenerator, { shouldRetry, backoff }),
-    ).toBe(2)
+    expect(await retry(numberGenerator, { shouldRetry, backoff })).toBe(2)
   })
 
   it('executes `onRetry` on each retry', async () => {

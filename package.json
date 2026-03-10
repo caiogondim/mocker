@@ -35,8 +35,13 @@
   },
   "bin": "./mocker",
   "jest": {
-    "testMatch": ["**/test.js", "**/__tests__/*.js"],
-    "testPathIgnorePatterns": ["__tests__/helpers/"],
+    "testMatch": [
+      "**/test.js",
+      "**/__tests__/*.js"
+    ],
+    "testPathIgnorePatterns": [
+      "__tests__/helpers/"
+    ],
     "injectGlobals": false,
     "randomize": true,
     "maxWorkers": "75%",

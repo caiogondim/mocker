@@ -233,9 +233,7 @@ describe(`mode = 'pass-read'`, () => {
       request1.end()
       const response1 = await response1Promise
 
-      expect(
-        `${i} ${response1.headers['x-mocker-response-from']}`,
-      ).toBe(
+      expect(`${i} ${response1.headers['x-mocker-response-from']}`).toBe(
         `${i} Origin`,
       )
     }

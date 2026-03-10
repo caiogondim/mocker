@@ -18,7 +18,7 @@ describe('args.update', () => {
     // Creates mocker server
     const { fs, responsesDir } = await createMemFs()
     const mockerPort = await getPort()
-    const mocker1 = await createMocker({
+    await using mocker1 = await createMocker({
       port: mockerPort,
       mode: 'read-write',
       origin: `http://localhost:${originPort}`,
@@ -76,7 +76,7 @@ describe('args.update', () => {
     // And a mocker instance configured with `{ mode: 'write' }`
     const { fs, responsesDir } = await createMemFs()
     const mockerPort = await getPort()
-    const mocker1 = await createMocker({
+    await using mocker1 = await createMocker({
       port: mockerPort,
       mode: 'write',
       origin: `http://localhost:${originPort}`,
@@ -165,7 +165,7 @@ describe('args.update', () => {
     // Create mocker and generate a mock
     const { fs, responsesDir } = await createMemFs()
     const mockerPort = await getPort()
-    const mocker1 = await createMocker({
+    await using mocker1 = await createMocker({
       port: mockerPort,
       mode: 'write',
       origin: `http://localhost:${originPort}`,
@@ -220,7 +220,7 @@ describe('args.update', () => {
 
     const { fs, responsesDir } = await createMemFs()
     const mockerPort = await getPort()
-    const mocker1 = await createMocker({
+    await using mocker1 = await createMocker({
       port: mockerPort,
       mode: 'write',
       origin: `http://localhost:${originPort}`,
@@ -276,7 +276,7 @@ describe('args.update', () => {
     // Create mocker with redactedHeaders so the secret header gets redacted on disk
     const { fs, responsesDir } = await createMemFs()
     const mockerPort = await getPort()
-    const mocker1 = await createMocker({
+    await using mocker1 = await createMocker({
       port: mockerPort,
       mode: 'write',
       origin: `http://localhost:${originPort}`,
@@ -314,7 +314,7 @@ describe('args.update', () => {
     // Create mocker with redactedHeaders to generate a mock with redacted secrets
     const { fs, responsesDir } = await createMemFs()
     const mockerPort = await getPort()
-    const mocker1 = await createMocker({
+    await using mocker1 = await createMocker({
       port: mockerPort,
       mode: 'write',
       origin: `http://localhost:${originPort}`,

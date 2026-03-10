@@ -12,9 +12,9 @@ describe('rewindable', () => {
     stream.write('2')
     stream.write('3')
     stream.end()
-    expect(
-      await values(stream),
-    ).toEqual(await values(rewindableStream.rewind()))
+    expect(await values(stream)).toEqual(
+      await values(rewindableStream.rewind()),
+    )
   })
 
   it('can be rewinded even when stream is not finished', async () => {
