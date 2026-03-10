@@ -7,7 +7,7 @@ describe('duplicate-request-server', () => {
   it('responds with double the payload passed on request', async () => {
     // Configure server
     const port = await getPort()
-    const server = createServer()
+    await using server = createServer()
     await server.listen(port)
     const serverUrl = `http://localhost:${port}`
 
@@ -21,10 +21,6 @@ describe('duplicate-request-server', () => {
     const response1 = await responsePromise1
     const responseBody1 = (await getBody(response1)).toString()
 
-    try {
-      expect(responseBody1).toBe(`${payload}${payload}`)
-    } finally {
-      await server.close()
-    }
+    expect(responseBody1).toBe(`${payload}${payload}`)
   })
 })

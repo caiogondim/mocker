@@ -2,7 +2,6 @@ import { describe, it, expect } from '@jest/globals'
 import getPort from './helpers/get-port.js'
 import { createMocker } from './helpers/mocker.js'
 import { createRequest, getBody } from '../shared/http/index.js'
-import { closeServer } from './helpers/async-http-server.js'
 import { createServer as createTimeServer } from '../../tools/time-server/index.js'
 
 describe('health checks endpoints', () => {
@@ -11,7 +10,7 @@ describe('health checks endpoints', () => {
     const origin =
       'https://non-existent-url-7bb5346fa5452600a876d24b98695404fa0c46ae.example.com'
     const port = await getPort()
-    const mocker = await createMocker({
+    await using mocker = await createMocker({
       port,
       mode: 'pass',
       origin,
@@ -27,14 +26,10 @@ describe('health checks endpoints', () => {
     const response = await responsePromise
     const responseBody = `${await getBody(response)}`
 
-    try {
-      // Then it should return HTTP 200
-      expect(response.statusCode).toBe(200)
-      // And an empty body
-      expect(responseBody).toBe('')
-    } finally {
-      await closeServer(mocker)
-    }
+    // Then it should return HTTP 200
+    expect(response.statusCode).toBe(200)
+    // And an empty body
+    expect(responseBody).toBe('')
   })
 
   it('implements /.well-known/ready endpoint for ready health check', async () => {
@@ -42,7 +37,7 @@ describe('health checks endpoints', () => {
     const origin =
       'https://non-existent-url-7bb5346fa5452600a876d24b98695404fa0c46ae.example.com'
     const port = await getPort()
-    const mocker = await createMocker({
+    await using mocker = await createMocker({
       port,
       mode: 'pass',
       origin,
@@ -58,25 +53,21 @@ describe('health checks endpoints', () => {
     const response = await responsePromise
     const responseBody = `${await getBody(response)}`
 
-    try {
-      // Then it should return HTTP 200
-      expect(response.statusCode).toBe(200)
-      // And an empty body
-      expect(responseBody).toBe('')
-    } finally {
-      await closeServer(mocker)
-    }
+    // Then it should return HTTP 200
+    expect(response.statusCode).toBe(200)
+    // And an empty body
+    expect(responseBody).toBe('')
   })
 
   it('proxies other requests to /.well-known as a normal request', async () => {
     // Given a simple HTTP server
     const originPort = await getPort()
-    const origin = await createTimeServer()
+    await using origin = createTimeServer()
     await origin.listen(originPort)
 
     // And a mocker instance pointing to it as origin
     const mockerPort = await getPort()
-    const mocker = await createMocker({
+    await using mocker = await createMocker({
       port: mockerPort,
       mode: 'pass',
       origin: `http://localhost:${originPort}`,
@@ -93,16 +84,11 @@ describe('health checks endpoints', () => {
     const response = await responsePromise
     const responseBody = `${await getBody(response)}`
 
-    try {
-      // Then it should behave normally proxying the request to origin.
-      expect(response.statusCode).toBe(200)
+    // Then it should behave normally proxying the request to origin.
+    expect(response.statusCode).toBe(200)
 
-      // And it should not have an empty response body, since the response comes
-      // from origin.
-      expect(responseBody).not.toBe('')
-    } finally {
-      await closeServer(mocker)
-      await closeServer(origin)
-    }
+    // And it should not have an empty response body, since the response comes
+    // from origin.
+    expect(responseBody).not.toBe('')
   })
 })

@@ -9,25 +9,21 @@ import createRequest from './index.js'
 
 describe('createRequest', () => {
   it('makes a request and receives a response', async () => {
-    const duplicateRequestServer = createDuplicateRequestServer()
+    await using duplicateRequestServer = createDuplicateRequestServer()
     const port = await getPort()
     await duplicateRequestServer.listen(port)
 
-    try {
-      const [request, responsePromise] = await createRequest({
-        url: `http://localhost:${port}`,
-        method: 'POST',
-      })
-      request.write('lorem ipsum')
-      request.end()
+    const [request, responsePromise] = await createRequest({
+      url: `http://localhost:${port}`,
+      method: 'POST',
+    })
+    request.write('lorem ipsum')
+    request.end()
 
-      const response = await responsePromise
+    const response = await responsePromise
 
-      const responseBody = await getBody(response)
-      expect(responseBody.toString()).toBe('lorem ipsumlorem ipsum')
-    } finally {
-      duplicateRequestServer.close()
-    }
+    const responseBody = await getBody(response)
+    expect(responseBody.toString()).toBe('lorem ipsumlorem ipsum')
   })
 
   it('throws an error in case a connection cannot be made', async () => {
@@ -41,92 +37,80 @@ describe('createRequest', () => {
   })
 
   it('retries up to `retries`', async () => {
-    const flakyServer = createFlakyServer()
+    await using flakyServer = createFlakyServer()
     const port = await getPort()
     await flakyServer.listen(port)
 
-    try {
-      //
-      // Even though flaky server returns a successful response on the
-      // 3rd attempt, `createRequest` abstracts that.
-      //
+    //
+    // Even though flaky server returns a successful response on the
+    // 3rd attempt, `createRequest` abstracts that.
+    //
 
-      const [request, responsePromise] = await createRequest({
-        url: `http://localhost:${port}`,
-        method: 'POST',
-        retries: 3,
-        backoff: async () => {},
-      })
-      request.write('dolor')
-      request.write(' sit amet')
-      request.end()
+    const [request, responsePromise] = await createRequest({
+      url: `http://localhost:${port}`,
+      method: 'POST',
+      retries: 3,
+      backoff: async () => {},
+    })
+    request.write('dolor')
+    request.write(' sit amet')
+    request.end()
 
-      const response = await responsePromise
-      expect(response.statusCode).toBe(200)
+    const response = await responsePromise
+    expect(response.statusCode).toBe(200)
 
-      const responseBody = await getBody(response)
-      expect(responseBody.toString()).toBe('dolor sit amet')
-    } finally {
-      flakyServer.close()
-    }
+    const responseBody = await getBody(response)
+    expect(responseBody.toString()).toBe('dolor sit amet')
   })
 
   it('returns the last non-successful request if number of tries equals to `retries`', async () => {
-    const flakyServer = createFlakyServer()
+    await using flakyServer = createFlakyServer()
     const port = await getPort()
     await flakyServer.listen(port)
 
-    try {
-      const [request, responsePromise] = await createRequest({
-        url: `http://localhost:${port}`,
-        method: 'POST',
-        retries: 2,
-        backoff: async () => {},
-      })
-      request.write('dolor')
-      request.write(' sit amet')
-      request.end()
+    const [request, responsePromise] = await createRequest({
+      url: `http://localhost:${port}`,
+      method: 'POST',
+      retries: 2,
+      backoff: async () => {},
+    })
+    request.write('dolor')
+    request.write(' sit amet')
+    request.end()
 
-      const response = await responsePromise
-      expect(response.statusCode).toBe(500)
+    const response = await responsePromise
+    expect(response.statusCode).toBe(500)
 
-      const responseBody = await getBody(response)
-      expect(responseBody.toString()).toBe('')
-    } finally {
-      flakyServer.close()
-    }
+    const responseBody = await getBody(response)
+    expect(responseBody.toString()).toBe('')
   })
 
   it('backs off between retries', async () => {
-    const flakyServer = createFlakyServer()
+    await using flakyServer = createFlakyServer()
     const port = await getPort()
     await flakyServer.listen(port)
 
     const mockBackoff = jest.fn()
 
-    try {
-      const [request, responsePromise] = await createRequest({
-        url: `http://localhost:${port}`,
-        method: 'POST',
-        retries: 3,
-        backoff: mockBackoff,
-      })
-      request.write('dolor')
-      request.write(' sit amet')
-      request.end()
+    const [request, responsePromise] = await createRequest({
+      url: `http://localhost:${port}`,
+      method: 'POST',
+      retries: 3,
+      backoff: mockBackoff,
+    })
+    request.write('dolor')
+    request.write(' sit amet')
+    request.end()
 
-      await responsePromise
+    await responsePromise
 
-      expect(mockBackoff.mock.calls.length).toBe(2)
-    } finally {
-      flakyServer.close()
-    }
+    expect(mockBackoff.mock.calls.length).toBe(2)
   })
 
   // Regression test
   it('retries even if server cannot be reached', async () => {
     const port = await getPort()
-    const flakyServer = createFlakyServer()
+    await using flakyServer = createFlakyServer()
 
     async function sendRequest() {
       const [request, responsePromise] = await createRequest({
@@ -147,21 +131,17 @@ describe('createRequest', () => {
       await flakyServer.listen(port)
     }
 
-    try {
-      // Run `sendRequest` and `startServerAfterDelay` in parallel.
-      // Server will be started after the first request was sent.
-      const [responsePromise] = await Promise.all([
-        sendRequest(),
-        startServerAfterDelay(),
-      ])
+    // Run `sendRequest` and `startServerAfterDelay` in parallel.
+    // Server will be started after the first request was sent.
+    const [responsePromise] = await Promise.all([
+      sendRequest(),
+      startServerAfterDelay(),
+    ])
 
-      const response = await responsePromise
-      expect(response.statusCode).toBe(200)
+    const response = await responsePromise
+    expect(response.statusCode).toBe(200)
 
-      const responseBody = await getBody(response)
-      expect(responseBody.toString()).toBe('dolor sit amet')
-    } finally {
-      flakyServer.close()
-    }
+    const responseBody = await getBody(response)
+    expect(responseBody.toString()).toBe('dolor sit amet')
   })
 })

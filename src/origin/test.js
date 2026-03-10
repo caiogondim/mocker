@@ -10,7 +10,7 @@ describe('origin', () => {
   describe('request()', () => {
     it('overwrites request headers defined on `overwriteRequestHeaders` constructor argument', async () => {
       const originPort = await getPort()
-      const requestHeaderOnResponseBodyServer =
+      await using requestHeaderOnResponseBodyServer =
         createRequestHeaderOnResponseBodyServer()
       await requestHeaderOnResponseBodyServer.listen(originPort)
 
@@ -24,18 +24,14 @@ describe('origin', () => {
       const responseBody = (await getBody(response)).toString()
       const responseJson = JSON.parse(responseBody)
 
-      try {
-        expect(responseJson.host).toBe('dolor')
-        expect(responseJson.lorem).toBe('ipsum')
-        expect(responseJson.dolor).toBe('5')
-      } finally {
-        await requestHeaderOnResponseBodyServer.close()
-      }
+      expect(responseJson.host).toBe('dolor')
+      expect(responseJson.lorem).toBe('ipsum')
+      expect(responseJson.dolor).toBe('5')
     })
 
     it(`removes \`via\` header request header if \`overwriteRequestHeaders\` equals to \`{ via: null }\``, async () => {
       const originPort = await getPort()
-      const requestHeaderOnResponseBodyServer =
+      await using requestHeaderOnResponseBodyServer =
         createRequestHeaderOnResponseBodyServer()
       await requestHeaderOnResponseBodyServer.listen(originPort)
 
@@ -54,18 +50,14 @@ describe('origin', () => {
       const responseBody = (await getBody(response)).toString()
       const responseJson = JSON.parse(responseBody)
 
-      try {
-        expect(responseJson.lorem).toBe('ipsum')
-        expect(responseJson.dolor).toBe('5')
-        expect(responseJson.via).toBeUndefined()
-      } finally {
-        await requestHeaderOnResponseBodyServer.close()
-      }
+      expect(responseJson.lorem).toBe('ipsum')
+      expect(responseJson.dolor).toBe('5')
+      expect(responseJson.via).toBeUndefined()
     })
 
     it('retries requests as defined on `retries` constructor argument', async () => {
       // This server always returns a 500 but on every 3rd request.
-      const flakyServer = createFlakyServer()
+      await using flakyServer = createFlakyServer()
       const originPort = await getPort()
       await flakyServer.listen(originPort)
 
@@ -81,20 +73,16 @@ describe('origin', () => {
       request.write(' dolor')
       request.end(' sit amet')
 
-      try {
-        const response = await responsePromise
-        expect(response.statusCode).toBe(200)
+      const response = await responsePromise
+      expect(response.statusCode).toBe(200)
 
-        const responseBody = await getBody(response)
-        expect(responseBody.toString()).toBe('lorem ipsum dolor sit amet')
-      } finally {
-        await flakyServer.close()
-      }
+      const responseBody = await getBody(response)
+      expect(responseBody.toString()).toBe('lorem ipsum dolor sit amet')
     })
 
     it('accepts absolute URLs', async () => {
       // Given I have a server
-      const mathServer = createMathServer()
+      await using mathServer = createMathServer()
       const originPort = await getPort()
       await mathServer.listen(originPort)
 
@@ -108,15 +96,11 @@ describe('origin', () => {
       request.end()
 
       // Then it should work as it does for relative URLs
-      try {
-        const response = await responsePromise
-        expect(response.statusCode).toBe(200)
+      const response = await responsePromise
+      expect(response.statusCode).toBe(200)
 
-        const responseBody = await getBody(response)
-        expect(responseBody.toString()).toBe('3')
-      } finally {
-        await mathServer.close()
-      }
+      const responseBody = await getBody(response)
+      expect(responseBody.toString()).toBe('3')
     })
   })
 })

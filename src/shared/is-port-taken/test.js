@@ -5,16 +5,11 @@ import isPortTaken from './index.js'
 
 describe('isPortTaken', () => {
   it('returns `true` if a port was taken', async () => {
-    const mathServer = createMathServer()
+    await using mathServer = createMathServer()
+    const port = await getPort()
+    await mathServer.listen(port)
 
-    try {
-      const port = await getPort()
-      await mathServer.listen(port)
-
-      expect(await isPortTaken(port)).toBe(true)
-    } finally {
-      await mathServer.close()
-    }
+    expect(await isPortTaken(port)).toBe(true)
   })
 
   it('returns `false` if a port is available', async () => {
@@ -36,17 +31,12 @@ describe('isPortTaken', () => {
   // since the server created to listen to a port was not being destroyed
   // properly
   it('returns `true` correctly if inside a loop', async () => {
-    const mathServer = createMathServer()
+    await using mathServer = createMathServer()
+    const port = await getPort()
+    await mathServer.listen(port)
 
-    try {
-      const port = await getPort()
-      await mathServer.listen(port)
-
-      for (let i = 0; i < 100; i += 1) {
-        expect(await isPortTaken(port)).toBe(true)
-      }
-    } finally {
-      await mathServer.close()
+    for (let i = 0; i < 100; i += 1) {
+      expect(await isPortTaken(port)).toBe(true)
     }
   })
 })

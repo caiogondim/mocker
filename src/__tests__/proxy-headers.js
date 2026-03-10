@@ -55,6 +55,13 @@ function createEchoServer() {
     get listening() {
       return server.listening
     },
+    async [Symbol.asyncDispose]() {
+      if (server.listening) {
+        await new Promise((resolve, reject) => {
+          server.close((error) => (error ? reject(error) : resolve(undefined)))
+        })
+      }
+    },
   }
 }
 
@@ -65,199 +72,169 @@ describe('proxy headers', () => {
    */
   it(`'Forwarded' header`, async () => {
     const originPort = await getPort()
-    const origin = createHeaderEchoServer()
+    await using origin = createHeaderEchoServer()
     await origin.listen(originPort)
 
     const mockerPort = await getPort()
-    const mocker = await createMocker({
+    await using mocker = await createMocker({
       port: mockerPort,
       mode: 'read-write',
       origin: `http://localhost:${originPort}`,
     })
     await mocker.listen()
 
-    try {
-      const [request, responsePromise] = await createRequest({
-        url: `http://localhost:${mockerPort}/`,
-        method: 'GET',
-        headers: {
-          forwarded: 'for=192.0.2.60;proto=http;by=203.0.113.43',
-        },
-      })
-      request.end()
-      const response = await responsePromise
-      const body = JSON.parse(`${await getBody(response)}`)
-      expect(body.forwarded).toBe('for=192.0.2.60;proto=http;by=203.0.113.43')
-    } finally {
-      await mocker.close()
-      await origin.close()
-    }
+    const [request, responsePromise] = await createRequest({
+      url: `http://localhost:${mockerPort}/`,
+      method: 'GET',
+      headers: {
+        forwarded: 'for=192.0.2.60;proto=http;by=203.0.113.43',
+      },
+    })
+    request.end()
+    const response = await responsePromise
+    const body = JSON.parse(`${await getBody(response)}`)
+    expect(body.forwarded).toBe('for=192.0.2.60;proto=http;by=203.0.113.43')
   })
 
   /** @see Docs https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-For */
   it(`'X-Forwarded-For' header`, async () => {
     const originPort = await getPort()
-    const origin = createHeaderEchoServer()
+    await using origin = createHeaderEchoServer()
     await origin.listen(originPort)
 
     const mockerPort = await getPort()
-    const mocker = await createMocker({
+    await using mocker = await createMocker({
       port: mockerPort,
       mode: 'read-write',
       origin: `http://localhost:${originPort}`,
     })
     await mocker.listen()
 
-    try {
-      const [request, responsePromise] = await createRequest({
-        url: `http://localhost:${mockerPort}/`,
-        method: 'GET',
-        headers: {
-          'x-forwarded-for': '203.0.113.195, 70.41.3.18',
-        },
-      })
-      request.end()
-      const response = await responsePromise
-      const body = JSON.parse(`${await getBody(response)}`)
-      expect(body['x-forwarded-for']).toBe('203.0.113.195, 70.41.3.18')
-    } finally {
-      await mocker.close()
-      await origin.close()
-    }
+    const [request, responsePromise] = await createRequest({
+      url: `http://localhost:${mockerPort}/`,
+      method: 'GET',
+      headers: {
+        'x-forwarded-for': '203.0.113.195, 70.41.3.18',
+      },
+    })
+    request.end()
+    const response = await responsePromise
+    const body = JSON.parse(`${await getBody(response)}`)
+    expect(body['x-forwarded-for']).toBe('203.0.113.195, 70.41.3.18')
   })
 
   /** @see Docs https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-Host */
   it(`'X-Forwarded-Host' header`, async () => {
     const originPort = await getPort()
-    const origin = createHeaderEchoServer()
+    await using origin = createHeaderEchoServer()
     await origin.listen(originPort)
 
     const mockerPort = await getPort()
-    const mocker = await createMocker({
+    await using mocker = await createMocker({
       port: mockerPort,
       mode: 'read-write',
       origin: `http://localhost:${originPort}`,
     })
     await mocker.listen()
 
-    try {
-      const [request, responsePromise] = await createRequest({
-        url: `http://localhost:${mockerPort}/`,
-        method: 'GET',
-        headers: {
-          'x-forwarded-host': 'id42.example-cdn.com',
-        },
-      })
-      request.end()
-      const response = await responsePromise
-      const body = JSON.parse(`${await getBody(response)}`)
-      expect(body['x-forwarded-host']).toBe('id42.example-cdn.com')
-    } finally {
-      await mocker.close()
-      await origin.close()
-    }
+    const [request, responsePromise] = await createRequest({
+      url: `http://localhost:${mockerPort}/`,
+      method: 'GET',
+      headers: {
+        'x-forwarded-host': 'id42.example-cdn.com',
+      },
+    })
+    request.end()
+    const response = await responsePromise
+    const body = JSON.parse(`${await getBody(response)}`)
+    expect(body['x-forwarded-host']).toBe('id42.example-cdn.com')
   })
 
   /** @see Docs https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-Proto */
   it(`'X-Forwarded-Proto' header`, async () => {
     const originPort = await getPort()
-    const origin = createHeaderEchoServer()
+    await using origin = createHeaderEchoServer()
     await origin.listen(originPort)
 
     const mockerPort = await getPort()
-    const mocker = await createMocker({
+    await using mocker = await createMocker({
       port: mockerPort,
       mode: 'read-write',
       origin: `http://localhost:${originPort}`,
     })
     await mocker.listen()
 
-    try {
-      const [request, responsePromise] = await createRequest({
-        url: `http://localhost:${mockerPort}/`,
-        method: 'GET',
-        headers: {
-          'x-forwarded-proto': 'https',
-        },
-      })
-      request.end()
-      const response = await responsePromise
-      const body = JSON.parse(`${await getBody(response)}`)
-      expect(body['x-forwarded-proto']).toBe('https')
-    } finally {
-      await mocker.close()
-      await origin.close()
-    }
+    const [request, responsePromise] = await createRequest({
+      url: `http://localhost:${mockerPort}/`,
+      method: 'GET',
+      headers: {
+        'x-forwarded-proto': 'https',
+      },
+    })
+    request.end()
+    const response = await responsePromise
+    const body = JSON.parse(`${await getBody(response)}`)
+    expect(body['x-forwarded-proto']).toBe('https')
   })
 })
 
 describe('HTTP method forwarding', () => {
   it.each(['GET', 'POST', 'PUT', 'DELETE', 'PATCH'])('forwards %s method to origin', async (method) => {
     const originPort = await getPort()
-    const origin = createEchoServer()
+    await using origin = createEchoServer()
     await origin.listen(originPort)
 
     const mockerPort = await getPort()
-    const mocker = await createMocker({
+    await using mocker = await createMocker({
       port: mockerPort,
       mode: 'pass',
       origin: `http://localhost:${originPort}`,
     })
     await mocker.listen()
 
-    try {
-      const [request, responsePromise] = await createRequest({
-        url: `http://localhost:${mockerPort}/test-path`,
-        method,
-      })
-      request.end()
-      const response = await responsePromise
-      const body = JSON.parse(`${await getBody(response)}`)
-      expect(body.method).toBe(method)
-    } finally {
-      await mocker.close()
-      await origin.close()
-    }
+    const [request, responsePromise] = await createRequest({
+      url: `http://localhost:${mockerPort}/test-path`,
+      method,
+    })
+    request.end()
+    const response = await responsePromise
+    const body = JSON.parse(`${await getBody(response)}`)
+    expect(body.method).toBe(method)
   })
 
   it('forwards HEAD method and returns no body', async () => {
     const originPort = await getPort()
-    const origin = createEchoServer()
+    await using origin = createEchoServer()
     await origin.listen(originPort)
 
     const mockerPort = await getPort()
-    const mocker = await createMocker({
+    await using mocker = await createMocker({
       port: mockerPort,
       mode: 'pass',
       origin: `http://localhost:${originPort}`,
     })
     await mocker.listen()
 
-    try {
-      const [request, responsePromise] = await createRequest({
-        url: `http://localhost:${mockerPort}/`,
-        method: 'HEAD',
-      })
-      request.end()
-      const response = await responsePromise
-      expect(response.statusCode).toBe(200)
-      const body = await getBody(response)
-      expect(body.length).toBe(0)
-    } finally {
-      await mocker.close()
-      await origin.close()
-    }
+    const [request, responsePromise] = await createRequest({
+      url: `http://localhost:${mockerPort}/`,
+      method: 'HEAD',
+    })
+    request.end()
+    const response = await responsePromise
+    expect(response.statusCode).toBe(200)
+    const body = await getBody(response)
+    expect(body.length).toBe(0)
   })
 })
 
 describe('request body integrity', () => {
   it('forwards JSON body intact', async () => {
     const originPort = await getPort()
-    const origin = createEchoServer()
+    await using origin = createEchoServer()
     await origin.listen(originPort)
 
     const mockerPort = await getPort()
-    const mocker = await createMocker({
+    await using mocker = await createMocker({
       port: mockerPort,
       mode: 'pass',
       origin: `http://localhost:${originPort}`,
@@ -266,29 +243,24 @@ describe('request body integrity', () => {
 
     const payload = JSON.stringify({ key: 'value', nested: { a: 1 } })
 
-    try {
-      const [request, responsePromise] = await createRequest({
-        url: `http://localhost:${mockerPort}/`,
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-      })
-      request.end(payload)
-      const response = await responsePromise
-      const body = JSON.parse(`${await getBody(response)}`)
-      expect(body.body).toBe(payload)
-    } finally {
-      await mocker.close()
-      await origin.close()
-    }
+    const [request, responsePromise] = await createRequest({
+      url: `http://localhost:${mockerPort}/`,
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+    })
+    request.end(payload)
+    const response = await responsePromise
+    const body = JSON.parse(`${await getBody(response)}`)
+    expect(body.body).toBe(payload)
   })
 
   it('forwards form-encoded body intact', async () => {
     const originPort = await getPort()
-    const origin = createEchoServer()
+    await using origin = createEchoServer()
     await origin.listen(originPort)
 
     const mockerPort = await getPort()
-    const mocker = await createMocker({
+    await using mocker = await createMocker({
       port: mockerPort,
       mode: 'pass',
       origin: `http://localhost:${originPort}`,
@@ -297,59 +269,49 @@ describe('request body integrity', () => {
 
     const payload = 'username=admin&password=secret'
 
-    try {
-      const [request, responsePromise] = await createRequest({
-        url: `http://localhost:${mockerPort}/`,
-        method: 'POST',
-        headers: {
-          'content-type': 'application/x-www-form-urlencoded',
-        },
-      })
-      request.end(payload)
-      const response = await responsePromise
-      const body = JSON.parse(`${await getBody(response)}`)
-      expect(body.body).toBe(payload)
-    } finally {
-      await mocker.close()
-      await origin.close()
-    }
+    const [request, responsePromise] = await createRequest({
+      url: `http://localhost:${mockerPort}/`,
+      method: 'POST',
+      headers: {
+        'content-type': 'application/x-www-form-urlencoded',
+      },
+    })
+    request.end(payload)
+    const response = await responsePromise
+    const body = JSON.parse(`${await getBody(response)}`)
+    expect(body.body).toBe(payload)
   })
 
   it('forwards empty body on POST', async () => {
     const originPort = await getPort()
-    const origin = createEchoServer()
+    await using origin = createEchoServer()
     await origin.listen(originPort)
 
     const mockerPort = await getPort()
-    const mocker = await createMocker({
+    await using mocker = await createMocker({
       port: mockerPort,
       mode: 'pass',
       origin: `http://localhost:${originPort}`,
     })
     await mocker.listen()
 
-    try {
-      const [request, responsePromise] = await createRequest({
-        url: `http://localhost:${mockerPort}/`,
-        method: 'POST',
-      })
-      request.end()
-      const response = await responsePromise
-      const body = JSON.parse(`${await getBody(response)}`)
-      expect(body.body).toBe('')
-    } finally {
-      await mocker.close()
-      await origin.close()
-    }
+    const [request, responsePromise] = await createRequest({
+      url: `http://localhost:${mockerPort}/`,
+      method: 'POST',
+    })
+    request.end()
+    const response = await responsePromise
+    const body = JSON.parse(`${await getBody(response)}`)
+    expect(body.body).toBe('')
   })
 
   it('forwards large body (>64KB)', async () => {
     const originPort = await getPort()
-    const origin = createEchoServer()
+    await using origin = createEchoServer()
     await origin.listen(originPort)
 
     const mockerPort = await getPort()
-    const mocker = await createMocker({
+    await using mocker = await createMocker({
       port: mockerPort,
       mode: 'pass',
       origin: `http://localhost:${originPort}`,
@@ -358,263 +320,218 @@ describe('request body integrity', () => {
 
     const payload = 'x'.repeat(128 * 1024)
 
-    try {
-      const [request, responsePromise] = await createRequest({
-        url: `http://localhost:${mockerPort}/`,
-        method: 'POST',
-        headers: { 'content-type': 'text/plain' },
-      })
-      request.end(payload)
-      const response = await responsePromise
-      const body = JSON.parse(`${await getBody(response)}`)
-      expect(body.body).toBe(payload)
-    } finally {
-      await mocker.close()
-      await origin.close()
-    }
+    const [request, responsePromise] = await createRequest({
+      url: `http://localhost:${mockerPort}/`,
+      method: 'POST',
+      headers: { 'content-type': 'text/plain' },
+    })
+    request.end(payload)
+    const response = await responsePromise
+    const body = JSON.parse(`${await getBody(response)}`)
+    expect(body.body).toBe(payload)
   })
 })
 
 describe('status code forwarding', () => {
   it.each([200, 201, 204, 301, 302, 400, 401, 403, 404, 500, 502, 503])('relays %i status code from origin', async (statusCode) => {
     const originPort = await getPort()
-    const origin = createStatusCodeServer()
+    await using origin = createStatusCodeServer()
     await origin.listen(originPort)
 
     const mockerPort = await getPort()
-    const mocker = await createMocker({
+    await using mocker = await createMocker({
       port: mockerPort,
       mode: 'pass',
       origin: `http://localhost:${originPort}`,
     })
     await mocker.listen()
 
-    try {
-      const [request, responsePromise] = await createRequest({
-        url: `http://localhost:${mockerPort}/`,
-        method: 'GET',
-        headers: { 'response-status-code': `${statusCode}` },
-      })
-      request.end()
-      const response = await responsePromise
-      expect(response.statusCode).toBe(statusCode)
-    } finally {
-      await mocker.close()
-      await origin.close()
-    }
+    const [request, responsePromise] = await createRequest({
+      url: `http://localhost:${mockerPort}/`,
+      method: 'GET',
+      headers: { 'response-status-code': `${statusCode}` },
+    })
+    request.end()
+    const response = await responsePromise
+    expect(response.statusCode).toBe(statusCode)
   })
 })
 
 describe('end-to-end header forwarding', () => {
   it('forwards custom headers to origin', async () => {
     const originPort = await getPort()
-    const origin = createHeaderEchoServer()
+    await using origin = createHeaderEchoServer()
     await origin.listen(originPort)
 
     const mockerPort = await getPort()
-    const mocker = await createMocker({
+    await using mocker = await createMocker({
       port: mockerPort,
       mode: 'pass',
       origin: `http://localhost:${originPort}`,
     })
     await mocker.listen()
 
-    try {
-      const [request, responsePromise] = await createRequest({
-        url: `http://localhost:${mockerPort}/`,
-        method: 'GET',
-        headers: {
-          'x-custom-header': 'custom-value',
-          'x-request-id': 'abc-123-def',
-        },
-      })
-      request.end()
-      const response = await responsePromise
-      const body = JSON.parse(`${await getBody(response)}`)
-      expect(body['x-custom-header']).toBe('custom-value')
-      expect(body['x-request-id']).toBe('abc-123-def')
-    } finally {
-      await mocker.close()
-      await origin.close()
-    }
+    const [request, responsePromise] = await createRequest({
+      url: `http://localhost:${mockerPort}/`,
+      method: 'GET',
+      headers: {
+        'x-custom-header': 'custom-value',
+        'x-request-id': 'abc-123-def',
+      },
+    })
+    request.end()
+    const response = await responsePromise
+    const body = JSON.parse(`${await getBody(response)}`)
+    expect(body['x-custom-header']).toBe('custom-value')
+    expect(body['x-request-id']).toBe('abc-123-def')
   })
 
   it('forwards Accept header to origin', async () => {
     const originPort = await getPort()
-    const origin = createHeaderEchoServer()
+    await using origin = createHeaderEchoServer()
     await origin.listen(originPort)
 
     const mockerPort = await getPort()
-    const mocker = await createMocker({
+    await using mocker = await createMocker({
       port: mockerPort,
       mode: 'pass',
       origin: `http://localhost:${originPort}`,
     })
     await mocker.listen()
 
-    try {
-      const [request, responsePromise] = await createRequest({
-        url: `http://localhost:${mockerPort}/`,
-        method: 'GET',
-        headers: {
-          accept: 'application/json',
-        },
-      })
-      request.end()
-      const response = await responsePromise
-      const body = JSON.parse(`${await getBody(response)}`)
-      expect(body.accept).toBe('application/json')
-    } finally {
-      await mocker.close()
-      await origin.close()
-    }
+    const [request, responsePromise] = await createRequest({
+      url: `http://localhost:${mockerPort}/`,
+      method: 'GET',
+      headers: {
+        accept: 'application/json',
+      },
+    })
+    request.end()
+    const response = await responsePromise
+    const body = JSON.parse(`${await getBody(response)}`)
+    expect(body.accept).toBe('application/json')
   })
 
   it('forwards Authorization header to origin', async () => {
     const originPort = await getPort()
-    const origin = createHeaderEchoServer()
+    await using origin = createHeaderEchoServer()
     await origin.listen(originPort)
 
     const mockerPort = await getPort()
-    const mocker = await createMocker({
+    await using mocker = await createMocker({
       port: mockerPort,
       mode: 'pass',
       origin: `http://localhost:${originPort}`,
     })
     await mocker.listen()
 
-    try {
-      const [request, responsePromise] = await createRequest({
-        url: `http://localhost:${mockerPort}/`,
-        method: 'GET',
-        headers: {
-          authorization: 'Bearer eyJhbGciOiJIUzI1NiJ9.test',
-        },
-      })
-      request.end()
-      const response = await responsePromise
-      const body = JSON.parse(`${await getBody(response)}`)
-      expect(body.authorization).toBe('Bearer eyJhbGciOiJIUzI1NiJ9.test')
-    } finally {
-      await mocker.close()
-      await origin.close()
-    }
+    const [request, responsePromise] = await createRequest({
+      url: `http://localhost:${mockerPort}/`,
+      method: 'GET',
+      headers: {
+        authorization: 'Bearer eyJhbGciOiJIUzI1NiJ9.test',
+      },
+    })
+    request.end()
+    const response = await responsePromise
+    const body = JSON.parse(`${await getBody(response)}`)
+    expect(body.authorization).toBe('Bearer eyJhbGciOiJIUzI1NiJ9.test')
   })
 })
 
 describe('URL path and query string forwarding', () => {
   it('forwards path segments to origin', async () => {
     const originPort = await getPort()
-    const origin = createEchoServer()
+    await using origin = createEchoServer()
     await origin.listen(originPort)
 
     const mockerPort = await getPort()
-    const mocker = await createMocker({
+    await using mocker = await createMocker({
       port: mockerPort,
       mode: 'pass',
       origin: `http://localhost:${originPort}`,
     })
     await mocker.listen()
 
-    try {
-      const [request, responsePromise] = await createRequest({
-        url: `http://localhost:${mockerPort}/api/v2/users/42`,
-        method: 'GET',
-      })
-      request.end()
-      const response = await responsePromise
-      const body = JSON.parse(`${await getBody(response)}`)
-      expect(body.url).toBe('/api/v2/users/42')
-    } finally {
-      await mocker.close()
-      await origin.close()
-    }
+    const [request, responsePromise] = await createRequest({
+      url: `http://localhost:${mockerPort}/api/v2/users/42`,
+      method: 'GET',
+    })
+    request.end()
+    const response = await responsePromise
+    const body = JSON.parse(`${await getBody(response)}`)
+    expect(body.url).toBe('/api/v2/users/42')
   })
 
   it('forwards query string to origin', async () => {
     const originPort = await getPort()
-    const origin = createEchoServer()
+    await using origin = createEchoServer()
     await origin.listen(originPort)
 
     const mockerPort = await getPort()
-    const mocker = await createMocker({
+    await using mocker = await createMocker({
       port: mockerPort,
       mode: 'pass',
       origin: `http://localhost:${originPort}`,
     })
     await mocker.listen()
 
-    try {
-      const [request, responsePromise] = await createRequest({
-        url: `http://localhost:${mockerPort}/search?q=hello+world&page=2&limit=10`,
-        method: 'GET',
-      })
-      request.end()
-      const response = await responsePromise
-      const body = JSON.parse(`${await getBody(response)}`)
-      expect(body.url).toBe('/search?q=hello+world&page=2&limit=10')
-    } finally {
-      await mocker.close()
-      await origin.close()
-    }
+    const [request, responsePromise] = await createRequest({
+      url: `http://localhost:${mockerPort}/search?q=hello+world&page=2&limit=10`,
+      method: 'GET',
+    })
+    request.end()
+    const response = await responsePromise
+    const body = JSON.parse(`${await getBody(response)}`)
+    expect(body.url).toBe('/search?q=hello+world&page=2&limit=10')
   })
 
   it('preserves URL-encoded characters in path', async () => {
     const originPort = await getPort()
-    const origin = createEchoServer()
+    await using origin = createEchoServer()
     await origin.listen(originPort)
 
     const mockerPort = await getPort()
-    const mocker = await createMocker({
+    await using mocker = await createMocker({
       port: mockerPort,
       mode: 'pass',
       origin: `http://localhost:${originPort}`,
     })
     await mocker.listen()
 
-    try {
-      const [request, responsePromise] = await createRequest({
-        url: `http://localhost:${mockerPort}/path%20with%20spaces/file%2Fname`,
-        method: 'GET',
-      })
-      request.end()
-      const response = await responsePromise
-      const body = JSON.parse(`${await getBody(response)}`)
-      expect(body.url).toBe('/path%20with%20spaces/file%2Fname')
-    } finally {
-      await mocker.close()
-      await origin.close()
-    }
+    const [request, responsePromise] = await createRequest({
+      url: `http://localhost:${mockerPort}/path%20with%20spaces/file%2Fname`,
+      method: 'GET',
+    })
+    request.end()
+    const response = await responsePromise
+    const body = JSON.parse(`${await getBody(response)}`)
+    expect(body.url).toBe('/path%20with%20spaces/file%2Fname')
   })
 })
 
 describe('content-encoding pass-through', () => {
   it('forwards gzip-encoded response from origin', async () => {
     const originPort = await getPort()
-    const origin = createGzipServer()
+    await using origin = createGzipServer()
     await origin.listen(originPort)
 
     const mockerPort = await getPort()
-    const mocker = await createMocker({
+    await using mocker = await createMocker({
       port: mockerPort,
       mode: 'pass',
       origin: `http://localhost:${originPort}`,
     })
     await mocker.listen()
 
-    try {
-      const [request, responsePromise] = await createRequest({
-        url: `http://localhost:${mockerPort}/`,
-        method: 'POST',
-        headers: { 'content-type': 'text/plain' },
-      })
-      request.end('hello gzip')
-      const response = await responsePromise
-      expect(response.statusCode).toBe(200)
-      expect(response.headers['content-encoding']).toBe('gzip')
-    } finally {
-      await mocker.close()
-      await origin.close()
-    }
+    const [request, responsePromise] = await createRequest({
+      url: `http://localhost:${mockerPort}/`,
+      method: 'POST',
+      headers: { 'content-type': 'text/plain' },
+    })
+    request.end('hello gzip')
+    const response = await responsePromise
+    expect(response.statusCode).toBe(200)
+    expect(response.headers['content-encoding']).toBe('gzip')
   })
 })

@@ -3,7 +3,7 @@ import { fs as memFs } from 'memfs';
 import http from 'http';
 import stream from 'stream';
 
-export interface AsyncHttpServer {
+export interface AsyncHttpServer extends AsyncDisposable {
   listen: (port: number) => Promise<void>;
   close: () => Promise<void>;
   listening: boolean;

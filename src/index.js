@@ -313,6 +313,10 @@ class Mocker {
     })
   }
 
+  async [Symbol.asyncDispose]() {
+    await this.close()
+  }
+
   /**
    * @returns {void}
    */

@@ -98,6 +98,13 @@ function createServer() {
     get listening() {
       return server.listening
     },
+    async [Symbol.asyncDispose]() {
+      if (server.listening) {
+        await new Promise((resolve, reject) => {
+          server.close((error) => (error ? reject(error) : resolve()))
+        })
+      }
+    },
   }
 }
 
