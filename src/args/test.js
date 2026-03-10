@@ -1,5 +1,4 @@
-import { describe, it } from 'node:test'
-import assert from 'node:assert/strict'
+import { describe, it, expect } from '@jest/globals'
 import path from 'node:path'
 import {
   parseArgv,
@@ -22,18 +21,12 @@ describe('behavior', () => {
     await parseArgv(argv1)
 
     const argv2 = ['', '', ...getRequiredArgs(), '--foo', 'bar']
-    await assert.rejects(parseArgv(argv2), (err) => {
-      assert.match(err.message, /invalid arg/)
-      return true
-    })
+    await expect(parseArgv(argv2)).rejects.toThrow(/invalid arg/)
   })
 
   it('throws an error if argv doesnt respect the `--key value` pattern', async () => {
     const argv1 = ['', '', '--origin', 'http://example.com', '--delay']
-    await assert.rejects(parseArgv(argv1), (err) => {
-      assert.match(err.message, /args has invalid shape/)
-      return true
-    })
+    await expect(parseArgv(argv1)).rejects.toThrow(/args has invalid shape/)
 
     const argv2 = ['', '', ...getRequiredArgs(), '--delay', '100']
     await parseArgv(argv2)
@@ -46,36 +39,24 @@ describe('behavior', () => {
       '--delay',
       '--origin',
     ]
-    await assert.rejects(parseArgv(argv3), (err) => {
-      assert.match(err.message, /args has invalid shape/)
-      return true
-    })
+    await expect(parseArgv(argv3)).rejects.toThrow(/args has invalid shape/)
   })
 })
 
 describe('--origin', () => {
   it('throws an error if not set', async () => {
     const argv = ['', '', '--port', '8273']
-    await assert.rejects(parseArgv(argv), (err) => {
-      assert.match(err.message, /invalid --origin/)
-      return true
-    })
+    await expect(parseArgv(argv)).rejects.toThrow(/invalid --origin/)
   })
 
   it('throws an error if not a valid URL', async () => {
     const argv = ['', '', '--origin', 'lorem-ipsum']
-    await assert.rejects(parseArgv(argv), (err) => {
-      assert.match(err.message, /invalid --origin/)
-      return true
-    })
+    await expect(parseArgv(argv)).rejects.toThrow(/invalid --origin/)
   })
 
   it('throws an error if protocol is not http: or https:', async () => {
     const argv = ['', '', '--origin', 'lorem://ipsum.com']
-    await assert.rejects(parseArgv(argv), (err) => {
-      assert.match(err.message, /invalid --origin/)
-      return true
-    })
+    await expect(parseArgv(argv)).rejects.toThrow(/invalid --origin/)
   })
 })
 
@@ -84,23 +65,17 @@ describe('--port', () => {
     const argv = ['', '', ...getRequiredArgs()]
     const args = await parseArgv(argv)
 
-    assert.deepStrictEqual(args.port, PORT_DEFAULT)
+    expect(args.port).toEqual(PORT_DEFAULT)
   })
 
   it('throws an error if not a positive number', async () => {
     const argv = ['', '', ...getRequiredArgs(), '--port', '-8273']
-    await assert.rejects(parseArgv(argv), (err) => {
-      assert.match(err.message, /invalid --port/)
-      return true
-    })
+    await expect(parseArgv(argv)).rejects.toThrow(/invalid --port/)
   })
 
   it('throws an error if not an integer', async () => {
     const argv = ['', '', ...getRequiredArgs(), '--port', 'lorem-ipsum']
-    await assert.rejects(parseArgv(argv), (err) => {
-      assert.match(err.message, /invalid --port/)
-      return true
-    })
+    await expect(parseArgv(argv)).rejects.toThrow(/invalid --port/)
   })
 
   it('throws an error if port is already in use', async () => {
@@ -117,7 +92,7 @@ describe('--port', () => {
 
     try {
       // Then it should throw an error
-      await assert.rejects(parseArgv(argv), /invalid --port/)
+      await expect(parseArgv(argv)).rejects.toThrow(/invalid --port/)
     } finally {
       await new Promise((resolve) => server.close(resolve))
     }
@@ -129,23 +104,17 @@ describe('--delay', () => {
     const argv = ['', '', ...getRequiredArgs()]
     const args = await parseArgv(argv)
 
-    assert.strictEqual(args.delay, 0)
+    expect(args.delay).toBe(0)
   })
 
   it('throws an error if not a positive number', async () => {
     const argv = ['', '', ...getRequiredArgs(), '--delay', '-8273']
-    await assert.rejects(parseArgv(argv), (err) => {
-      assert.match(err.message, /invalid --delay/)
-      return true
-    })
+    await expect(parseArgv(argv)).rejects.toThrow(/invalid --delay/)
   })
 
   it('throws an error if not an integer', async () => {
     const argv = ['', '', ...getRequiredArgs(), '--delay', 'lorem-ipsum']
-    await assert.rejects(parseArgv(argv), (err) => {
-      assert.match(err.message, /invalid --delay/)
-      return true
-    })
+    await expect(parseArgv(argv)).rejects.toThrow(/invalid --delay/)
   })
 })
 
@@ -153,23 +122,17 @@ describe('--throttle', () => {
   it('receives a default value if not set', async () => {
     const argv = ['', '', ...getRequiredArgs()]
     const args = await parseArgv(argv)
-    assert.deepStrictEqual(args.throttle, Infinity)
+    expect(args.throttle).toEqual(Infinity)
   })
 
   it('throws an error if not a positive number', async () => {
     const argv = ['', '', ...getRequiredArgs(), '--throttle', '-8273']
-    await assert.rejects(parseArgv(argv), (err) => {
-      assert.match(err.message, /invalid --throttle/)
-      return true
-    })
+    await expect(parseArgv(argv)).rejects.toThrow(/invalid --throttle/)
   })
 
   it('throws an error if not an integer', async () => {
     const argv = ['', '', ...getRequiredArgs(), '--throttle', 'lorem-ipsum']
-    await assert.rejects(parseArgv(argv), (err) => {
-      assert.match(err.message, /invalid --throttle/)
-      return true
-    })
+    await expect(parseArgv(argv)).rejects.toThrow(/invalid --throttle/)
   })
 })
 
@@ -178,7 +141,7 @@ describe('--mode', () => {
     const argv = ['', '', ...getRequiredArgs()]
     const args = await parseArgv(argv)
 
-    assert.strictEqual(args.mode, 'pass')
+    expect(args.mode).toBe('pass')
   })
 
   it('doesnt throw an error for a valid value', async () => {
@@ -207,10 +170,7 @@ describe('--mode', () => {
       'lorem-ipsum',
     ]
     // @ts-ignore
-    await assert.rejects(parseArgv(argv), (err) => {
-      assert.match(err.message, /invalid --mode/)
-      return true
-    })
+    await expect(parseArgv(argv)).rejects.toThrow(/invalid --mode/)
   })
 })
 
@@ -219,7 +179,7 @@ describe('--update', () => {
     const argv = ['', '', ...getRequiredArgs()]
     const args = await parseArgv(argv)
 
-    assert.strictEqual(args.update, 'off')
+    expect(args.update).toBe('off')
   })
 
   it('doesnt throw an error for a valid value', async () => {
@@ -241,10 +201,7 @@ describe('--update', () => {
       'lorem-ipsum',
     ]
     // @ts-ignore
-    await assert.rejects(parseArgv(argv), (err) => {
-      assert.match(err.message, /invalid --update/)
-      return true
-    })
+    await expect(parseArgv(argv)).rejects.toThrow(/invalid --update/)
   })
 })
 
@@ -253,31 +210,25 @@ describe('--workers', () => {
     const argv = ['', '', ...getRequiredArgs()]
     const args = await parseArgv(argv)
 
-    assert.strictEqual(args.workers, 1)
+    expect(args.workers).toBe(1)
   })
 
   it('throws an error if not a positive number', async () => {
     const argv = ['', '', ...getRequiredArgs(), '--workers', '-6']
-    await assert.rejects(parseArgv(argv), (err) => {
-      assert.match(err.message, /invalid --workers/)
-      return true
-    })
+    await expect(parseArgv(argv)).rejects.toThrow(/invalid --workers/)
   })
 
   it('throws an error if not an integer', async () => {
     const argv = ['', '', ...getRequiredArgs(), '--workers', 'lorem-ipsum']
-    await assert.rejects(parseArgv(argv), (err) => {
-      assert.match(err.message, /invalid --workers/)
-      return true
-    })
+    await expect(parseArgv(argv)).rejects.toThrow(/invalid --workers/)
   })
 
   it('is always a positive Number', async () => {
     const argv = ['', '', ...getRequiredArgs(), '--workers', '123']
     const args = await parseArgv(argv)
 
-    assert.strictEqual(typeof args.workers, 'number')
-    assert.ok(args.workers > 0)
+    expect(typeof args.workers).toBe('number')
+    expect(args.workers).toBeGreaterThan(0)
   })
 })
 
@@ -286,7 +237,7 @@ describe('--responsesDir', () => {
     const argv = ['', '', ...getRequiredArgs()]
     const args = await parseArgv(argv)
 
-    assert.notStrictEqual(args.responsesDir, undefined)
+    expect(args.responsesDir).not.toBe(undefined)
   })
 
   it('doesnt throw an error for a valid value', async () => {
@@ -310,17 +261,14 @@ describe('--responsesDir', () => {
       '--responsesDir',
       'non-existing-folder',
     ]
-    await assert.rejects(parseArgv(argv), (err) => {
-      assert.match(err.message, /invalid --responsesDir/)
-      return true
-    })
+    await expect(parseArgv(argv)).rejects.toThrow(/invalid --responsesDir/)
   })
 
   it('normalizes to an absolute path', async () => {
     const argv = ['', '', ...getRequiredArgs()]
     const args = await parseArgv(argv)
 
-    assert.strictEqual(path.isAbsolute(args.responsesDir), true)
+    expect(path.isAbsolute(args.responsesDir)).toBe(true)
   })
 })
 
@@ -329,15 +277,12 @@ describe('--logging', () => {
     const argv = ['', '', ...getRequiredArgs()]
     const args = await parseArgv(argv)
 
-    assert.deepStrictEqual(args.logging, LOGGING_DEFAULT)
+    expect(args.logging).toEqual(LOGGING_DEFAULT)
   })
 
   it('throws an error for invalid values', async () => {
     const argv = ['', '', ...getRequiredArgs(), '--logging', 'lorem-ipsum']
-    await assert.rejects(parseArgv(argv), (err) => {
-      assert.match(err.message, /invalid --logging/)
-      return true
-    })
+    await expect(parseArgv(argv)).rejects.toThrow(/invalid --logging/)
   })
 
   it('accepts valid values', async () => {
@@ -355,15 +300,12 @@ describe('--mockKeys', () => {
     const argv = ['', '', ...getRequiredArgs()]
     const args = await parseArgv(argv)
 
-    assert.deepStrictEqual(args.mockKeys, new Set(['url', 'method']))
+    expect(args.mockKeys).toEqual(new Set(['url', 'method']))
   })
 
   it('throws an error for invalid values', async () => {
     const argv = ['', '', ...getRequiredArgs(), '--mockKeys', 'lorem-ipsum']
-    await assert.rejects(parseArgv(argv), (err) => {
-      assert.match(err.message, /invalid --mockKeys/)
-      return true
-    })
+    await expect(parseArgv(argv)).rejects.toThrow(/invalid --mockKeys/)
   })
 
   it('accepts valid combination', async () => {
@@ -411,30 +353,24 @@ describe('--retries', () => {
     const argv = ['', '', ...getRequiredArgs()]
     const args = await parseArgv(argv)
 
-    assert.deepStrictEqual(args.retries, RETRIES_DEFAULT)
+    expect(args.retries).toEqual(RETRIES_DEFAULT)
   })
 
   it('accepts a positive integer', async () => {
     const argv = ['', '', ...getRequiredArgs(), '--retries', '3']
     const args = await parseArgv(argv)
 
-    assert.strictEqual(args.retries, 3)
+    expect(args.retries).toBe(3)
   })
 
   it('throws an error if a negative integer', async () => {
     const argv = ['', '', ...getRequiredArgs(), '--retries', '-8273']
-    await assert.rejects(parseArgv(argv), (err) => {
-      assert.match(err.message, /invalid --retries/)
-      return true
-    })
+    await expect(parseArgv(argv)).rejects.toThrow(/invalid --retries/)
   })
 
   it('throws an error if not an integer', async () => {
     const argv = ['', '', ...getRequiredArgs(), '--retries', 'lorem-ipsum']
-    await assert.rejects(parseArgv(argv), (err) => {
-      assert.match(err.message, /invalid --retries/)
-      return true
-    })
+    await expect(parseArgv(argv)).rejects.toThrow(/invalid --retries/)
   })
 })
 
@@ -442,7 +378,7 @@ describe('--redactedHeaders', () => {
   it('receives a default value if not set', async () => {
     const argv = ['', '', ...getRequiredArgs()]
     const args = await parseArgv(argv)
-    assert.deepStrictEqual(args.redactedHeaders, REDACTED_HEADERS_DEFAULT)
+    expect(args.redactedHeaders).toEqual(REDACTED_HEADERS_DEFAULT)
   })
 
   it('parses value to an object', async () => {
@@ -454,7 +390,7 @@ describe('--redactedHeaders', () => {
       '{"example-token": null}',
     ]
     const args = await parseArgv(argv)
-    assert.deepStrictEqual(args.redactedHeaders, {
+    expect(args.redactedHeaders).toEqual({
       'example-token': null,
     })
   })
@@ -469,10 +405,7 @@ describe('--redactedHeaders', () => {
       '--redactedHeaders',
       redactedHeaders1,
     ]
-    await assert.rejects(parseArgv(argv1), (err) => {
-      assert.match(err.message, /invalid --redactedHeaders/)
-      return true
-    })
+    await expect(parseArgv(argv1)).rejects.toThrow(/invalid --redactedHeaders/)
 
     // undefined is not a valid JSON value
     const redactedHeaders2 = '{"content-type": undefined }'
@@ -483,10 +416,7 @@ describe('--redactedHeaders', () => {
       '--redactedHeaders',
       redactedHeaders2,
     ]
-    await assert.rejects(parseArgv(argv2), (err) => {
-      assert.match(err.message, /invalid --redactedHeaders/)
-      return true
-    })
+    await expect(parseArgv(argv2)).rejects.toThrow(/invalid --redactedHeaders/)
   })
 
   it('throws an error if not a valid Header type', async () => {
@@ -499,10 +429,7 @@ describe('--redactedHeaders', () => {
       '--redactedHeaders',
       redactedHeaders1,
     ]
-    await assert.rejects(parseArgv(argv1), (err) => {
-      assert.match(err.message, /invalid --redactedHeaders/)
-      return true
-    })
+    await expect(parseArgv(argv1)).rejects.toThrow(/invalid --redactedHeaders/)
 
     // Invalid since it cannot have a depth larger than 2
     const redactedHeaders2 = '{"lorem": { "ipsum": "dolor" }}'
@@ -513,10 +440,7 @@ describe('--redactedHeaders', () => {
       '--redactedHeaders',
       redactedHeaders2,
     ]
-    await assert.rejects(parseArgv(argv2), (err) => {
-      assert.match(err.message, /invalid --redactedHeaders/)
-      return true
-    })
+    await expect(parseArgv(argv2)).rejects.toThrow(/invalid --redactedHeaders/)
 
     // Invalid since it has an array of numbers
     const redactedHeaders3 = '{"lorem": [1, 2, 3]}'
@@ -527,10 +451,7 @@ describe('--redactedHeaders', () => {
       '--redactedHeaders',
       redactedHeaders3,
     ]
-    await assert.rejects(parseArgv(argv3), (err) => {
-      assert.match(err.message, /invalid --redactedHeaders/)
-      return true
-    })
+    await expect(parseArgv(argv3)).rejects.toThrow(/invalid --redactedHeaders/)
 
     // Invalid since it has a number as key
     const redactedHeaders4 = '{1: "lorem"}'
@@ -541,10 +462,7 @@ describe('--redactedHeaders', () => {
       '--redactedHeaders',
       redactedHeaders4,
     ]
-    await assert.rejects(parseArgv(argv4), (err) => {
-      assert.match(err.message, /invalid --redactedHeaders/)
-      return true
-    })
+    await expect(parseArgv(argv4)).rejects.toThrow(/invalid --redactedHeaders/)
   })
 })
 
@@ -552,8 +470,7 @@ describe('--overwriteResponseHeaders', () => {
   it('receives a default value if not set', async () => {
     const argv = ['', '', ...getRequiredArgs()]
     const args = await parseArgv(argv)
-    assert.deepStrictEqual(
-      args.overwriteResponseHeaders,
+    expect(args.overwriteResponseHeaders).toEqual(
       OVERWRITE_RESPONSE_HEADERS_DEFAULT,
     )
   })
@@ -567,7 +484,7 @@ describe('--overwriteResponseHeaders', () => {
       '{"content-type": "application/json", "host": "example.com"}',
     ]
     const args = await parseArgv(argv)
-    assert.deepStrictEqual(args.overwriteResponseHeaders, {
+    expect(args.overwriteResponseHeaders).toEqual({
       'content-type': 'application/json',
       host: 'example.com',
     })
@@ -583,10 +500,7 @@ describe('--overwriteResponseHeaders', () => {
       '--overwriteResponseHeaders',
       overwriteResponseHeaders1,
     ]
-    await assert.rejects(parseArgv(argv1), (err) => {
-      assert.match(err.message, /invalid --overwriteResponseHeaders/)
-      return true
-    })
+    await expect(parseArgv(argv1)).rejects.toThrow(/invalid --overwriteResponseHeaders/)
 
     // undefined is not a valid JSON value
     const overwriteResponseHeaders2 = '{"content-type": undefined }'
@@ -597,10 +511,7 @@ describe('--overwriteResponseHeaders', () => {
       '--overwriteResponseHeaders',
       overwriteResponseHeaders2,
     ]
-    await assert.rejects(parseArgv(argv2), (err) => {
-      assert.match(err.message, /invalid --overwriteResponseHeaders/)
-      return true
-    })
+    await expect(parseArgv(argv2)).rejects.toThrow(/invalid --overwriteResponseHeaders/)
   })
 
   it('throws an error if not a valid Header type', async () => {
@@ -613,10 +524,7 @@ describe('--overwriteResponseHeaders', () => {
       '--overwriteResponseHeaders',
       overwriteResponseHeaders1,
     ]
-    await assert.rejects(parseArgv(argv1), (err) => {
-      assert.match(err.message, /invalid --overwriteResponseHeaders/)
-      return true
-    })
+    await expect(parseArgv(argv1)).rejects.toThrow(/invalid --overwriteResponseHeaders/)
 
     // Invalid since it cannot have a depth larger than 2
     const overwriteResponseHeaders2 = '{"lorem": { "ipsum": "dolor" }}'
@@ -627,10 +535,7 @@ describe('--overwriteResponseHeaders', () => {
       '--overwriteResponseHeaders',
       overwriteResponseHeaders2,
     ]
-    await assert.rejects(parseArgv(argv2), (err) => {
-      assert.match(err.message, /invalid --overwriteResponseHeaders/)
-      return true
-    })
+    await expect(parseArgv(argv2)).rejects.toThrow(/invalid --overwriteResponseHeaders/)
 
     // Invalid since it has an array of numbers
     const overwriteResponseHeaders3 = '{"lorem": [1, 2, 3]}'
@@ -641,10 +546,7 @@ describe('--overwriteResponseHeaders', () => {
       '--overwriteResponseHeaders',
       overwriteResponseHeaders3,
     ]
-    await assert.rejects(parseArgv(argv3), (err) => {
-      assert.match(err.message, /invalid --overwriteResponseHeaders/)
-      return true
-    })
+    await expect(parseArgv(argv3)).rejects.toThrow(/invalid --overwriteResponseHeaders/)
 
     // Invalid since it has a number as key
     const overwriteResponseHeaders4 = '{1: "lorem"}'
@@ -655,10 +557,7 @@ describe('--overwriteResponseHeaders', () => {
       '--overwriteResponseHeaders',
       overwriteResponseHeaders4,
     ]
-    await assert.rejects(parseArgv(argv4), (err) => {
-      assert.match(err.message, /invalid --overwriteResponseHeaders/)
-      return true
-    })
+    await expect(parseArgv(argv4)).rejects.toThrow(/invalid --overwriteResponseHeaders/)
   })
 })
 
@@ -666,7 +565,7 @@ describe('--overwriteRequestHeaders', () => {
   it('receives a default value if not set', async () => {
     const argv = ['', '', ...getRequiredArgs()]
     const args = await parseArgv(argv)
-    assert.deepStrictEqual(args.overwriteRequestHeaders, { host: 'example.com' })
+    expect(args.overwriteRequestHeaders).toEqual({ host: 'example.com' })
   })
 
   it('parses value to an object', async () => {
@@ -678,7 +577,7 @@ describe('--overwriteRequestHeaders', () => {
       '{"content-type": "application/json", "host": "example.com"}',
     ]
     const args = await parseArgv(argv)
-    assert.deepStrictEqual(args.overwriteRequestHeaders, {
+    expect(args.overwriteRequestHeaders).toEqual({
       'content-type': 'application/json',
       host: 'example.com',
     })
@@ -694,10 +593,7 @@ describe('--overwriteRequestHeaders', () => {
       '--overwriteRequestHeaders',
       overwriteRequestHeaders1,
     ]
-    await assert.rejects(parseArgv(argv1), (err) => {
-      assert.match(err.message, /invalid --overwriteRequestHeaders/)
-      return true
-    })
+    await expect(parseArgv(argv1)).rejects.toThrow(/invalid --overwriteRequestHeaders/)
 
     // undefined is not a valid JSON value
     const overwriteRequestHeaders2 = '{"content-type": undefined }'
@@ -708,10 +604,7 @@ describe('--overwriteRequestHeaders', () => {
       '--overwriteRequestHeaders',
       overwriteRequestHeaders2,
     ]
-    await assert.rejects(parseArgv(argv2), (err) => {
-      assert.match(err.message, /invalid --overwriteRequestHeaders/)
-      return true
-    })
+    await expect(parseArgv(argv2)).rejects.toThrow(/invalid --overwriteRequestHeaders/)
   })
 
   it('throws an error if not a valid Header type', async () => {
@@ -724,10 +617,7 @@ describe('--overwriteRequestHeaders', () => {
       '--overwriteRequestHeaders',
       overwriteRequestHeaders1,
     ]
-    await assert.rejects(parseArgv(argv1), (err) => {
-      assert.match(err.message, /invalid --overwriteRequestHeaders/)
-      return true
-    })
+    await expect(parseArgv(argv1)).rejects.toThrow(/invalid --overwriteRequestHeaders/)
 
     // Invalid since it cannot have a depth larger than 2
     const overwriteRequestHeaders2 = '{"lorem": { "ipsum": "dolor" }}'
@@ -738,10 +628,7 @@ describe('--overwriteRequestHeaders', () => {
       '--overwriteRequestHeaders',
       overwriteRequestHeaders2,
     ]
-    await assert.rejects(parseArgv(argv2), (err) => {
-      assert.match(err.message, /invalid --overwriteRequestHeaders/)
-      return true
-    })
+    await expect(parseArgv(argv2)).rejects.toThrow(/invalid --overwriteRequestHeaders/)
 
     // Invalid since it has an array of numbers
     const overwriteRequestHeaders3 = '{"lorem": [1, 2, 3]}'
@@ -752,10 +639,7 @@ describe('--overwriteRequestHeaders', () => {
       '--overwriteRequestHeaders',
       overwriteRequestHeaders3,
     ]
-    await assert.rejects(parseArgv(argv3), (err) => {
-      assert.match(err.message, /invalid --overwriteRequestHeaders/)
-      return true
-    })
+    await expect(parseArgv(argv3)).rejects.toThrow(/invalid --overwriteRequestHeaders/)
 
     // Invalid since it has a number as key
     const overwriteRequestHeaders4 = '{1: "lorem"}'
@@ -766,10 +650,7 @@ describe('--overwriteRequestHeaders', () => {
       '--overwriteRequestHeaders',
       overwriteRequestHeaders4,
     ]
-    await assert.rejects(parseArgv(argv4), (err) => {
-      assert.match(err.message, /invalid --overwriteRequestHeaders/)
-      return true
-    })
+    await expect(parseArgv(argv4)).rejects.toThrow(/invalid --overwriteRequestHeaders/)
   })
 })
 
@@ -777,26 +658,24 @@ describe('--cors', () => {
   it('receives a default value if not set', async () => {
     const argv = ['', '', ...getRequiredArgs()]
     const args = await parseArgv(argv)
-    assert.deepStrictEqual(args.cors, CORS_DEFAULT)
+    expect(args.cors).toEqual(CORS_DEFAULT)
   })
 
-  for (const [input, expected] of [
+  it.each([
     ['t', true],
     ['y', true],
     ['true', true],
     ['1', true],
     ['false', false],
     ['0', false],
-  ]) {
-    it(`is casted to boolean ${input}`, async () => {
-      const args = await parseArgv([
-        '',
-        '',
-        ...getRequiredArgs(),
-        '--cors',
-        input,
-      ])
-      assert.deepStrictEqual(args.cors, expected)
-    })
-  }
+  ])('is casted to boolean %s', async (input, expected) => {
+    const args = await parseArgv([
+      '',
+      '',
+      ...getRequiredArgs(),
+      '--cors',
+      input,
+    ])
+    expect(args.cors).toEqual(expected)
+  })
 })

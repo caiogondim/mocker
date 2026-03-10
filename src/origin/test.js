@@ -1,5 +1,4 @@
-import { describe, it } from 'node:test'
-import assert from 'node:assert/strict'
+import { describe, it, expect } from '@jest/globals'
 import getPort from '../__tests__/helpers/get-port.js'
 import { createOrigin } from './index.js'
 import { getBody } from '../shared/http/index.js'
@@ -26,9 +25,9 @@ describe('origin', () => {
       const responseJson = JSON.parse(responseBody)
 
       try {
-        assert.strictEqual(responseJson.host, 'dolor')
-        assert.strictEqual(responseJson.lorem, 'ipsum')
-        assert.strictEqual(responseJson.dolor, '5')
+        expect(responseJson.host).toBe('dolor')
+        expect(responseJson.lorem).toBe('ipsum')
+        expect(responseJson.dolor).toBe('5')
       } finally {
         await requestHeaderOnResponseBodyServer.close()
       }
@@ -56,9 +55,9 @@ describe('origin', () => {
       const responseJson = JSON.parse(responseBody)
 
       try {
-        assert.strictEqual(responseJson.lorem, 'ipsum')
-        assert.strictEqual(responseJson.dolor, '5')
-        assert.strictEqual(responseJson.via, undefined)
+        expect(responseJson.lorem).toBe('ipsum')
+        expect(responseJson.dolor).toBe('5')
+        expect(responseJson.via).toBeUndefined()
       } finally {
         await requestHeaderOnResponseBodyServer.close()
       }
@@ -84,10 +83,10 @@ describe('origin', () => {
 
       try {
         const response = await responsePromise
-        assert.strictEqual(response.statusCode, 200)
+        expect(response.statusCode).toBe(200)
 
         const responseBody = await getBody(response)
-        assert.strictEqual(responseBody.toString(), 'lorem ipsum dolor sit amet')
+        expect(responseBody.toString()).toBe('lorem ipsum dolor sit amet')
       } finally {
         await flakyServer.close()
       }
@@ -111,10 +110,10 @@ describe('origin', () => {
       // Then it should work as it does for relative URLs
       try {
         const response = await responsePromise
-        assert.strictEqual(response.statusCode, 200)
+        expect(response.statusCode).toBe(200)
 
         const responseBody = await getBody(response)
-        assert.strictEqual(responseBody.toString(), '3')
+        expect(responseBody.toString()).toBe('3')
       } finally {
         await mathServer.close()
       }

@@ -1,5 +1,4 @@
-import { describe, it } from 'node:test'
-import assert from 'node:assert/strict'
+import { describe, it, expect } from '@jest/globals'
 import getPort from '../../__tests__/helpers/get-port.js'
 import { createServer as createMathServer } from '../../../tools/math-server/index.js'
 import isPortTaken from './index.js'
@@ -12,7 +11,7 @@ describe('isPortTaken', () => {
       const port = await getPort()
       await mathServer.listen(port)
 
-      assert.strictEqual(await isPortTaken(port), true)
+      expect(await isPortTaken(port)).toBe(true)
     } finally {
       await mathServer.close()
     }
@@ -20,7 +19,7 @@ describe('isPortTaken', () => {
 
   it('returns `false` if a port is available', async () => {
     const port = await getPort()
-    assert.strictEqual(await isPortTaken(port), false)
+    expect(await isPortTaken(port)).toBe(false)
   })
 
   // Regression test. There was a bug when running `isPortTaken` inside a loop
@@ -29,7 +28,7 @@ describe('isPortTaken', () => {
   it('returns `false` correctly if inside a loop', async () => {
     const port = await getPort()
     for (let i = 0; i < 100; i += 1) {
-      assert.strictEqual(await isPortTaken(port), false)
+      expect(await isPortTaken(port)).toBe(false)
     }
   })
 
@@ -44,7 +43,7 @@ describe('isPortTaken', () => {
       await mathServer.listen(port)
 
       for (let i = 0; i < 100; i += 1) {
-        assert.strictEqual(await isPortTaken(port), true)
+        expect(await isPortTaken(port)).toBe(true)
       }
     } finally {
       await mathServer.close()

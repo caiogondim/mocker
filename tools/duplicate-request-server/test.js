@@ -1,5 +1,4 @@
-import { describe, it } from 'node:test'
-import assert from 'node:assert/strict'
+import { describe, it, expect } from '@jest/globals'
 import getPort from '../../src/__tests__/helpers/get-port.js'
 import { createServer, createPayload } from './index.js'
 import { createRequest, getBody } from '../../src/shared/http/index.js'
@@ -23,7 +22,7 @@ describe('duplicate-request-server', () => {
     const responseBody1 = (await getBody(response1)).toString()
 
     try {
-      assert.strictEqual(responseBody1, `${payload}${payload}`)
+      expect(responseBody1).toBe(`${payload}${payload}`)
     } finally {
       await server.close()
     }

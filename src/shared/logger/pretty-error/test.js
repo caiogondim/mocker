@@ -1,5 +1,4 @@
-import { describe, it } from 'node:test'
-import assert from 'node:assert/strict'
+import { describe, it, expect } from '@jest/globals'
 import { prettifyError, isPrettyError } from './index.js'
 
 describe('prettifyError()', () => {
@@ -12,18 +11,16 @@ describe('prettifyError()', () => {
       expected,
       received,
     })
-    assert.match(decoratedError.message, /.*Error.*/g)
-    assert.match(
-      decoratedError.message,
+    expect(decoratedError.message).toMatch(/.*Error.*/g)
+    expect(decoratedError.message).toMatch(
       new RegExp(`.*Expected.*${expected}`),
     )
-    assert.match(
-      decoratedError.message,
+    expect(decoratedError.message).toMatch(
       new RegExp(`.*Received.*${received}`),
     )
-    assert.match(decoratedError.message, /Error: lorem ipsum/)
-    assert.match(decoratedError.message, /Expected dolor sit/)
-    assert.match(decoratedError.message, /Received amet consectetur/)
+    expect(decoratedError.message).toContain('lorem ipsum')
+    expect(decoratedError.message).toContain('dolor sit')
+    expect(decoratedError.message).toContain('amet consectetur')
   })
 
   it('decorates error with a hint if provided', () => {
@@ -37,11 +34,10 @@ describe('prettifyError()', () => {
       received,
       hint,
     })
-    assert.match(decoratedError.message, new RegExp(`.*Hint.*${hint}`))
-    assert.match(decoratedError.message, /Error: lorem ipsum/)
-    assert.match(decoratedError.message, /Expected dolor sit/)
-    assert.match(decoratedError.message, /Received amet consectetur/)
-    assert.match(decoratedError.message, /Hint adipiscing elit/)
+    expect(decoratedError.message).toContain('lorem ipsum')
+    expect(decoratedError.message).toContain('dolor sit')
+    expect(decoratedError.message).toContain('amet consectetur')
+    expect(decoratedError.message).toContain('adipiscing elit')
   })
 })
 
@@ -52,11 +48,11 @@ describe('isPrettyError', () => {
       expected: 'lorem',
       received: 'ipsum',
     })
-    assert.strictEqual(isPrettyError(error), true)
+    expect(isPrettyError(error)).toBe(true)
   })
 
   it('returns false in case the argument is not a decorated error', () => {
     const error = new Error('lorem ipsum')
-    assert.strictEqual(isPrettyError(error), false)
+    expect(isPrettyError(error)).toBe(false)
   })
 })

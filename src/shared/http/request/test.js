@@ -1,5 +1,4 @@
-import { describe, it, mock } from 'node:test'
-import assert from 'node:assert/strict'
+import { describe, it, expect, jest } from '@jest/globals'
 import getPort from '../../../__tests__/helpers/get-port.js'
 import { createServer as createDuplicateRequestServer } from '../../../../tools/duplicate-request-server/index.js'
 import { createServer as createFlakyServer } from '../../../../tools/flaky-server/index.js'
@@ -25,7 +24,7 @@ describe('createRequest', () => {
       const response = await responsePromise
 
       const responseBody = await getBody(response)
-      assert.strictEqual(responseBody.toString(), 'lorem ipsumlorem ipsum')
+      expect(responseBody.toString()).toBe('lorem ipsumlorem ipsum')
     } finally {
       duplicateRequestServer.close()
     }
@@ -34,11 +33,11 @@ describe('createRequest', () => {
   it('throws an error in case a connection cannot be made', async () => {
     const port = await getPort()
 
-    await assert.rejects(
+    await expect(
       createRequest({
         url: `http://localhost:${port}`,
       }),
-    )
+    ).rejects.toThrow()
   })
 
   it('retries up to `retries`', async () => {
@@ -63,10 +62,10 @@ describe('createRequest', () => {
       request.end()
 
       const response = await responsePromise
-      assert.strictEqual(response.statusCode, 200)
+      expect(response.statusCode).toBe(200)
 
       const responseBody = await getBody(response)
-      assert.strictEqual(responseBody.toString(), 'dolor sit amet')
+      expect(responseBody.toString()).toBe('dolor sit amet')
     } finally {
       flakyServer.close()
     }
@@ -89,10 +88,10 @@ describe('createRequest', () => {
       request.end()
 
       const response = await responsePromise
-      assert.strictEqual(response.statusCode, 500)
+      expect(response.statusCode).toBe(500)
 
       const responseBody = await getBody(response)
-      assert.strictEqual(responseBody.toString(), '')
+      expect(responseBody.toString()).toBe('')
     } finally {
       flakyServer.close()
     }
@@ -103,7 +102,7 @@ describe('createRequest', () => {
     const port = await getPort()
     await flakyServer.listen(port)
 
-    const mockBackoff = mock.fn()
+    const mockBackoff = jest.fn()
 
     try {
       const [request, responsePromise] = await createRequest({
@@ -118,7 +117,7 @@ describe('createRequest', () => {
 
       await responsePromise
 
-      assert.strictEqual(mockBackoff.mock.calls.length, 2)
+      expect(mockBackoff.mock.calls.length).toBe(2)
     } finally {
       flakyServer.close()
     }
@@ -157,10 +156,10 @@ describe('createRequest', () => {
       ])
 
       const response = await responsePromise
-      assert.strictEqual(response.statusCode, 200)
+      expect(response.statusCode).toBe(200)
 
       const responseBody = await getBody(response)
-      assert.strictEqual(responseBody.toString(), 'dolor sit amet')
+      expect(responseBody.toString()).toBe('dolor sit amet')
     } finally {
       flakyServer.close()
     }

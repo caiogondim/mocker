@@ -1,5 +1,4 @@
-import { describe, it } from 'node:test'
-import assert from 'node:assert/strict'
+import { describe, it, expect } from '@jest/globals'
 
 /** @typedef {import('./index.js').Console} Console */
 
@@ -19,65 +18,65 @@ const logger = createLogger({ console: consoleMock })
 describe('logger.log', () => {
   it('doesnt log on level "silent"', () => {
     setLevel('silent')
-    assert.strictEqual(logger.log('lorem ipsum'), false)
+    expect(logger.log('lorem ipsum')).toBe(false)
   })
 
   it('does log on level "verbose"', () => {
     setLevel('verbose')
-    assert.strictEqual(logger.log('lorem ipsum'), true)
+    expect(logger.log('lorem ipsum')).toBe(true)
   })
 
   it('doesnt log on level "error"', () => {
     setLevel('error')
-    assert.strictEqual(logger.log('lorem ipsum'), false)
+    expect(logger.log('lorem ipsum')).toBe(false)
   })
 
   it('doesnt log on level "warn"', () => {
     setLevel('warn')
-    assert.strictEqual(logger.log('lorem ipsum'), false)
+    expect(logger.log('lorem ipsum')).toBe(false)
   })
 })
 
 describe('logger.warn', () => {
   it('doesnt log on level "silent"', () => {
     setLevel('silent')
-    assert.strictEqual(logger.warn('lorem ipsum'), false)
+    expect(logger.warn('lorem ipsum')).toBe(false)
   })
 
   it('does log on level "verbose"', () => {
     setLevel('verbose')
-    assert.strictEqual(logger.warn('lorem ipsum'), true)
+    expect(logger.warn('lorem ipsum')).toBe(true)
   })
 
   it('doesnt log on level "error"', () => {
     setLevel('error')
-    assert.strictEqual(logger.warn('lorem ipsum'), false)
+    expect(logger.warn('lorem ipsum')).toBe(false)
   })
 
   it('does log on level "warn"', () => {
     setLevel('warn')
-    assert.strictEqual(logger.warn('lorem ipsum'), true)
+    expect(logger.warn('lorem ipsum')).toBe(true)
   })
 })
 
 describe('logger.error', () => {
   it('doesnt log on level "silent"', () => {
     setLevel('silent')
-    assert.strictEqual(logger.error('lorem ipsum'), false)
+    expect(logger.error('lorem ipsum')).toBe(false)
   })
 
   it('does log on level "verbose"', () => {
     setLevel('verbose')
-    assert.strictEqual(logger.error('lorem ipsum'), true)
+    expect(logger.error('lorem ipsum')).toBe(true)
   })
 
   it('does log on level "error"', () => {
     setLevel('error')
-    assert.strictEqual(logger.error('lorem ipsum'), true)
+    expect(logger.error('lorem ipsum')).toBe(true)
   })
 
   it('does log on level "warn"', () => {
     setLevel('warn')
-    assert.strictEqual(logger.error('lorem ipsum'), true)
+    expect(logger.error('lorem ipsum')).toBe(true)
   })
 })

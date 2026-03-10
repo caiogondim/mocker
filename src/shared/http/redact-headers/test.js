@@ -1,12 +1,11 @@
-import { describe, it } from 'node:test'
-import assert from 'node:assert/strict'
+import { describe, it, expect } from '@jest/globals'
 import { redactHeaders, unredactHeaders, SecretNotFoundError } from './index.js'
 
 describe('redactHeaders', () => {
   it('redact secrets from headers', () => {
     const headers = { host: ` lorem ipsum` }
     const redactedHeaders = { host: null }
-    assert.deepStrictEqual(redactHeaders(headers, redactedHeaders), {
+    expect(redactHeaders(headers, redactedHeaders)).toEqual({
       host: `[REDACTED]`,
     })
   })
@@ -16,8 +15,8 @@ describe('redactHeaders', () => {
     const inputSnapshot = JSON.stringify(input)
     const redactedHeaders = { host: null }
     const output = redactHeaders(input, redactedHeaders)
-    assert.notStrictEqual(output, input)
-    assert.deepStrictEqual(JSON.stringify(input), inputSnapshot)
+    expect(output).not.toBe(input)
+    expect(JSON.stringify(input)).toEqual(inputSnapshot)
   })
 
   it('is symmetrical with unredactHeaders', () => {
@@ -28,13 +27,12 @@ describe('redactHeaders', () => {
       host: 'example.com',
     }
     const redactedHeaders1 = { 'example-token': '12341234', foo: 'ipsum' }
-    assert.deepStrictEqual(
+    expect(
       redactHeaders(
         unredactHeaders(headers1, redactedHeaders1),
         redactedHeaders1,
       ),
-      headers1,
-    )
+    ).toEqual(headers1)
 
     // g(f(x)) === x
     const headers2 = {
@@ -43,13 +41,12 @@ describe('redactHeaders', () => {
       host: 'example.com',
     }
     const redactedHeaders2 = { 'example-token': '12341234' }
-    assert.deepStrictEqual(
+    expect(
       unredactHeaders(
         redactHeaders(headers2, redactedHeaders2),
         redactedHeaders2,
       ),
-      headers2,
-    )
+    ).toEqual(headers2)
   })
 })
 
@@ -61,10 +58,10 @@ describe('unredactHeaders', () => {
       host: 'example.com',
     }
     const redactedHeaders = { 'example-token': '12341234' }
-    assert.throws(() => unredactHeaders(headers, redactedHeaders), (err) => {
-      assert.ok(err instanceof SecretNotFoundError)
-      return true
-    })
+    expect(() => unredactHeaders(headers, redactedHeaders)).toThrow()
+    expect(() => unredactHeaders(headers, redactedHeaders)).toThrow(
+      expect.any(SecretNotFoundError),
+    )
   })
 
   it('unredacts secrets from headers', async () => {
@@ -74,7 +71,7 @@ describe('unredactHeaders', () => {
       host: 'example.com',
     }
     const redactedHeaders = { 'example-token': '12341234', foo: 'ipsum' }
-    assert.deepStrictEqual(unredactHeaders(headers, redactedHeaders), {
+    expect(unredactHeaders(headers, redactedHeaders)).toEqual({
       'example-token': '12341234',
       foo: 'ipsum',
       host: 'example.com',
@@ -90,8 +87,8 @@ describe('unredactHeaders', () => {
     const inputSnapshot = JSON.stringify(input)
     const redactedHeaders = { 'example-token': '12341234', foo: 'ipsum' }
     const output = unredactHeaders(input, redactedHeaders)
-    assert.notStrictEqual(output, input)
-    assert.deepStrictEqual(JSON.stringify(input), inputSnapshot)
+    expect(output).not.toBe(input)
+    expect(JSON.stringify(input)).toEqual(inputSnapshot)
   })
 
   it('is symmetrical with redactHeaders', () => {
@@ -102,13 +99,12 @@ describe('unredactHeaders', () => {
       host: 'example.com',
     }
     const redactedHeaders1 = { 'example-token': '12341234', foo: 'ipsum' }
-    assert.deepStrictEqual(
+    expect(
       redactHeaders(
         unredactHeaders(headers1, redactedHeaders1),
         redactedHeaders1,
       ),
-      headers1,
-    )
+    ).toEqual(headers1)
 
     // g(f(x)) === x
     const headers2 = {
@@ -117,12 +113,11 @@ describe('unredactHeaders', () => {
       host: 'example.com',
     }
     const redactedHeaders2 = { 'example-token': '12341234' }
-    assert.deepStrictEqual(
+    expect(
       unredactHeaders(
         redactHeaders(headers2, redactedHeaders2),
         redactedHeaders2,
       ),
-      headers2,
-    )
+    ).toEqual(headers2)
   })
 })

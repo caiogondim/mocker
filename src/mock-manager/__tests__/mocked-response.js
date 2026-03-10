@@ -1,5 +1,4 @@
-import { describe, it } from 'node:test'
-import assert from 'node:assert/strict'
+import { describe, it, expect } from '@jest/globals'
 import { getBody } from '../../shared/http/index.js'
 import { createMockedResponse } from './helpers/mocked-response.js'
 
@@ -15,6 +14,6 @@ describe('mockedResponse', () => {
     // Read the written values
     const body = `${await getBody(mockedResponse)}`
 
-    assert.strictEqual(body, 'lorem ipsum dolor')
+    expect(body).toBe('lorem ipsum dolor')
   })
 })

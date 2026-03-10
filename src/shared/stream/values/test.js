@@ -1,5 +1,4 @@
-import { describe, it } from 'node:test'
-import assert from 'node:assert/strict'
+import { describe, it, expect } from '@jest/globals'
 import { Readable } from 'node:stream'
 import values from './index.js'
 import sleep from '../../sleep/index.js'
@@ -18,7 +17,7 @@ describe('values', () => {
         readableStream.push(null)
       })(),
     ])
-    assert.deepStrictEqual(readableStreamValues.map(String), ['1', '2', '3'])
+    expect(readableStreamValues.map(String)).toEqual(['1', '2', '3'])
   })
 
   it('works with async generators', async () => {
@@ -36,7 +35,7 @@ describe('values', () => {
     }
 
     const generatorValues = await values(numberGenerator(5))
-    assert.deepStrictEqual(generatorValues, [0, 1, 2, 3, 4])
+    expect(generatorValues).toEqual([0, 1, 2, 3, 4])
   })
 
   it('works with sync generators', async () => {
@@ -53,6 +52,6 @@ describe('values', () => {
     }
 
     const generatorValues = await values(numberGenerator(5))
-    assert.deepStrictEqual(generatorValues, [0, 1, 2, 3, 4])
+    expect(generatorValues).toEqual([0, 1, 2, 3, 4])
   })
 })

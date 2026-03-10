@@ -1,52 +1,51 @@
-import { describe, it } from 'node:test'
-import assert from 'node:assert/strict'
+import { describe, it, expect } from '@jest/globals'
 import getConstructorName from './index.js'
 
 describe('getConstructorName', () => {
   it(`returns the constructor's name as a string`, () => {
     // Object
-    assert.strictEqual(getConstructorName({}), 'Object')
-    assert.strictEqual(getConstructorName(new Object()), 'Object')
+    expect(getConstructorName({})).toBe('Object')
+    expect(getConstructorName(new Object())).toBe('Object')
 
     // Number
-    assert.strictEqual(getConstructorName(1), 'Number')
-    assert.strictEqual(getConstructorName(1.2), 'Number')
-    assert.strictEqual(getConstructorName(new Number(1.2)), 'Number')
+    expect(getConstructorName(1)).toBe('Number')
+    expect(getConstructorName(1.2)).toBe('Number')
+    expect(getConstructorName(new Number(1.2))).toBe('Number')
 
     // String
-    assert.strictEqual(getConstructorName('lorem'), 'String')
-    assert.strictEqual(getConstructorName(new String('lorem')), 'String')
+    expect(getConstructorName('lorem')).toBe('String')
+    expect(getConstructorName(new String('lorem'))).toBe('String')
 
     // Array
-    assert.strictEqual(getConstructorName([]), 'Array')
-    assert.strictEqual(getConstructorName([1, 2, 3]), 'Array')
-    assert.strictEqual(getConstructorName(new Array(1, 2, 3)), 'Array')
+    expect(getConstructorName([])).toBe('Array')
+    expect(getConstructorName([1, 2, 3])).toBe('Array')
+    expect(getConstructorName(new Array(1, 2, 3))).toBe('Array')
 
     // Function
-    assert.strictEqual(getConstructorName(() => {}), 'Function')
-    assert.strictEqual(getConstructorName(function foo() {}), 'Function')
-    assert.strictEqual(getConstructorName(class Foo {}), 'Function')
+    expect(getConstructorName(() => {})).toBe('Function')
+    expect(getConstructorName(function foo() {})).toBe('Function')
+    expect(getConstructorName(class Foo {})).toBe('Function')
 
     // Boolean
-    assert.strictEqual(getConstructorName(true), 'Boolean')
-    assert.strictEqual(getConstructorName(false), 'Boolean')
-    assert.strictEqual(getConstructorName(new Boolean(false)), 'Boolean')
+    expect(getConstructorName(true)).toBe('Boolean')
+    expect(getConstructorName(false)).toBe('Boolean')
+    expect(getConstructorName(new Boolean(false))).toBe('Boolean')
 
     // RegExp
-    assert.strictEqual(getConstructorName(/abc/g), 'RegExp')
-    assert.strictEqual(getConstructorName(/abc/), 'RegExp')
-    assert.strictEqual(getConstructorName(new RegExp('abc', 'g')), 'RegExp')
+    expect(getConstructorName(/abc/g)).toBe('RegExp')
+    expect(getConstructorName(/abc/)).toBe('RegExp')
+    expect(getConstructorName(new RegExp('abc', 'g'))).toBe('RegExp')
 
     // Date
-    assert.strictEqual(getConstructorName(new Date()), 'Date')
+    expect(getConstructorName(new Date())).toBe('Date')
 
     // Error
-    assert.strictEqual(getConstructorName(new Error()), 'Error')
+    expect(getConstructorName(new Error())).toBe('Error')
 
     // Null
-    assert.strictEqual(getConstructorName(null), 'Null')
+    expect(getConstructorName(null)).toBe('Null')
 
     // Undefined
-    assert.strictEqual(getConstructorName(undefined), 'Undefined')
+    expect(getConstructorName(undefined)).toBe('Undefined')
   })
 })

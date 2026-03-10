@@ -8,8 +8,7 @@
 // - RFC 7239 (Forwarded HTTP Extension)
 //
 
-import { describe, it } from 'node:test'
-import assert from 'node:assert/strict'
+import { describe, it, expect } from '@jest/globals'
 import http from 'node:http'
 import getPort from './helpers/get-port.js'
 import { createMocker } from './helpers/mocker.js'
@@ -59,7 +58,6 @@ function createEchoServer() {
   }
 }
 
-describe('proxy-headers', { concurrency: 1 }, () => {
 describe('proxy headers', () => {
   /**
    * @see Spec https://tools.ietf.org/html/rfc7239
@@ -89,7 +87,7 @@ describe('proxy headers', () => {
       request.end()
       const response = await responsePromise
       const body = JSON.parse(`${await getBody(response)}`)
-      assert.strictEqual(body.forwarded, 'for=192.0.2.60;proto=http;by=203.0.113.43')
+      expect(body.forwarded).toBe('for=192.0.2.60;proto=http;by=203.0.113.43')
     } finally {
       await mocker.close()
       await origin.close()
@@ -121,7 +119,7 @@ describe('proxy headers', () => {
       request.end()
       const response = await responsePromise
       const body = JSON.parse(`${await getBody(response)}`)
-      assert.strictEqual(body['x-forwarded-for'], '203.0.113.195, 70.41.3.18')
+      expect(body['x-forwarded-for']).toBe('203.0.113.195, 70.41.3.18')
     } finally {
       await mocker.close()
       await origin.close()
@@ -153,7 +151,7 @@ describe('proxy headers', () => {
       request.end()
       const response = await responsePromise
       const body = JSON.parse(`${await getBody(response)}`)
-      assert.strictEqual(body['x-forwarded-host'], 'id42.example-cdn.com')
+      expect(body['x-forwarded-host']).toBe('id42.example-cdn.com')
     } finally {
       await mocker.close()
       await origin.close()
@@ -185,7 +183,7 @@ describe('proxy headers', () => {
       request.end()
       const response = await responsePromise
       const body = JSON.parse(`${await getBody(response)}`)
-      assert.strictEqual(body['x-forwarded-proto'], 'https')
+      expect(body['x-forwarded-proto']).toBe('https')
     } finally {
       await mocker.close()
       await origin.close()
@@ -194,35 +192,33 @@ describe('proxy headers', () => {
 })
 
 describe('HTTP method forwarding', () => {
-  for (const method of ['GET', 'POST', 'PUT', 'DELETE', 'PATCH']) {
-    it(`forwards ${method} method to origin`, async () => {
-      const originPort = await getPort()
-      const origin = createEchoServer()
-      await origin.listen(originPort)
+  it.each(['GET', 'POST', 'PUT', 'DELETE', 'PATCH'])('forwards %s method to origin', async (method) => {
+    const originPort = await getPort()
+    const origin = createEchoServer()
+    await origin.listen(originPort)
 
-      const mockerPort = await getPort()
-      const mocker = await createMocker({
-        port: mockerPort,
-        mode: 'pass',
-        origin: `http://localhost:${originPort}`,
-      })
-      await mocker.listen()
-
-      try {
-        const [request, responsePromise] = await createRequest({
-          url: `http://localhost:${mockerPort}/test-path`,
-          method,
-        })
-        request.end()
-        const response = await responsePromise
-        const body = JSON.parse(`${await getBody(response)}`)
-        assert.strictEqual(body.method, method)
-      } finally {
-        await mocker.close()
-        await origin.close()
-      }
+    const mockerPort = await getPort()
+    const mocker = await createMocker({
+      port: mockerPort,
+      mode: 'pass',
+      origin: `http://localhost:${originPort}`,
     })
-  }
+    await mocker.listen()
+
+    try {
+      const [request, responsePromise] = await createRequest({
+        url: `http://localhost:${mockerPort}/test-path`,
+        method,
+      })
+      request.end()
+      const response = await responsePromise
+      const body = JSON.parse(`${await getBody(response)}`)
+      expect(body.method).toBe(method)
+    } finally {
+      await mocker.close()
+      await origin.close()
+    }
+  })
 
   it('forwards HEAD method and returns no body', async () => {
     const originPort = await getPort()
@@ -244,9 +240,9 @@ describe('HTTP method forwarding', () => {
       })
       request.end()
       const response = await responsePromise
-      assert.strictEqual(response.statusCode, 200)
+      expect(response.statusCode).toBe(200)
       const body = await getBody(response)
-      assert.strictEqual(body.length, 0)
+      expect(body.length).toBe(0)
     } finally {
       await mocker.close()
       await origin.close()
@@ -279,7 +275,7 @@ describe('request body integrity', () => {
       request.end(payload)
       const response = await responsePromise
       const body = JSON.parse(`${await getBody(response)}`)
-      assert.strictEqual(body.body, payload)
+      expect(body.body).toBe(payload)
     } finally {
       await mocker.close()
       await origin.close()
@@ -312,7 +308,7 @@ describe('request body integrity', () => {
       request.end(payload)
       const response = await responsePromise
       const body = JSON.parse(`${await getBody(response)}`)
-      assert.strictEqual(body.body, payload)
+      expect(body.body).toBe(payload)
     } finally {
       await mocker.close()
       await origin.close()
@@ -340,7 +336,7 @@ describe('request body integrity', () => {
       request.end()
       const response = await responsePromise
       const body = JSON.parse(`${await getBody(response)}`)
-      assert.strictEqual(body.body, '')
+      expect(body.body).toBe('')
     } finally {
       await mocker.close()
       await origin.close()
@@ -371,7 +367,7 @@ describe('request body integrity', () => {
       request.end(payload)
       const response = await responsePromise
       const body = JSON.parse(`${await getBody(response)}`)
-      assert.strictEqual(body.body, payload)
+      expect(body.body).toBe(payload)
     } finally {
       await mocker.close()
       await origin.close()
@@ -380,35 +376,33 @@ describe('request body integrity', () => {
 })
 
 describe('status code forwarding', () => {
-  for (const statusCode of [200, 201, 204, 301, 302, 400, 401, 403, 404, 500, 502, 503]) {
-    it(`relays ${statusCode} status code from origin`, async () => {
-      const originPort = await getPort()
-      const origin = createStatusCodeServer()
-      await origin.listen(originPort)
+  it.each([200, 201, 204, 301, 302, 400, 401, 403, 404, 500, 502, 503])('relays %i status code from origin', async (statusCode) => {
+    const originPort = await getPort()
+    const origin = createStatusCodeServer()
+    await origin.listen(originPort)
 
-      const mockerPort = await getPort()
-      const mocker = await createMocker({
-        port: mockerPort,
-        mode: 'pass',
-        origin: `http://localhost:${originPort}`,
-      })
-      await mocker.listen()
-
-      try {
-        const [request, responsePromise] = await createRequest({
-          url: `http://localhost:${mockerPort}/`,
-          method: 'GET',
-          headers: { 'response-status-code': `${statusCode}` },
-        })
-        request.end()
-        const response = await responsePromise
-        assert.strictEqual(response.statusCode, statusCode)
-      } finally {
-        await mocker.close()
-        await origin.close()
-      }
+    const mockerPort = await getPort()
+    const mocker = await createMocker({
+      port: mockerPort,
+      mode: 'pass',
+      origin: `http://localhost:${originPort}`,
     })
-  }
+    await mocker.listen()
+
+    try {
+      const [request, responsePromise] = await createRequest({
+        url: `http://localhost:${mockerPort}/`,
+        method: 'GET',
+        headers: { 'response-status-code': `${statusCode}` },
+      })
+      request.end()
+      const response = await responsePromise
+      expect(response.statusCode).toBe(statusCode)
+    } finally {
+      await mocker.close()
+      await origin.close()
+    }
+  })
 })
 
 describe('end-to-end header forwarding', () => {
@@ -437,8 +431,8 @@ describe('end-to-end header forwarding', () => {
       request.end()
       const response = await responsePromise
       const body = JSON.parse(`${await getBody(response)}`)
-      assert.strictEqual(body['x-custom-header'], 'custom-value')
-      assert.strictEqual(body['x-request-id'], 'abc-123-def')
+      expect(body['x-custom-header']).toBe('custom-value')
+      expect(body['x-request-id']).toBe('abc-123-def')
     } finally {
       await mocker.close()
       await origin.close()
@@ -469,7 +463,7 @@ describe('end-to-end header forwarding', () => {
       request.end()
       const response = await responsePromise
       const body = JSON.parse(`${await getBody(response)}`)
-      assert.strictEqual(body.accept, 'application/json')
+      expect(body.accept).toBe('application/json')
     } finally {
       await mocker.close()
       await origin.close()
@@ -500,7 +494,7 @@ describe('end-to-end header forwarding', () => {
       request.end()
       const response = await responsePromise
       const body = JSON.parse(`${await getBody(response)}`)
-      assert.strictEqual(body.authorization, 'Bearer eyJhbGciOiJIUzI1NiJ9.test')
+      expect(body.authorization).toBe('Bearer eyJhbGciOiJIUzI1NiJ9.test')
     } finally {
       await mocker.close()
       await origin.close()
@@ -530,7 +524,7 @@ describe('URL path and query string forwarding', () => {
       request.end()
       const response = await responsePromise
       const body = JSON.parse(`${await getBody(response)}`)
-      assert.strictEqual(body.url, '/api/v2/users/42')
+      expect(body.url).toBe('/api/v2/users/42')
     } finally {
       await mocker.close()
       await origin.close()
@@ -558,7 +552,7 @@ describe('URL path and query string forwarding', () => {
       request.end()
       const response = await responsePromise
       const body = JSON.parse(`${await getBody(response)}`)
-      assert.strictEqual(body.url, '/search?q=hello+world&page=2&limit=10')
+      expect(body.url).toBe('/search?q=hello+world&page=2&limit=10')
     } finally {
       await mocker.close()
       await origin.close()
@@ -586,7 +580,7 @@ describe('URL path and query string forwarding', () => {
       request.end()
       const response = await responsePromise
       const body = JSON.parse(`${await getBody(response)}`)
-      assert.strictEqual(body.url, '/path%20with%20spaces/file%2Fname')
+      expect(body.url).toBe('/path%20with%20spaces/file%2Fname')
     } finally {
       await mocker.close()
       await origin.close()
@@ -616,12 +610,11 @@ describe('content-encoding pass-through', () => {
       })
       request.end('hello gzip')
       const response = await responsePromise
-      assert.strictEqual(response.statusCode, 200)
-      assert.strictEqual(response.headers['content-encoding'], 'gzip')
+      expect(response.statusCode).toBe(200)
+      expect(response.headers['content-encoding']).toBe('gzip')
     } finally {
       await mocker.close()
       await origin.close()
     }
   })
-})
 })

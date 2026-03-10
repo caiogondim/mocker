@@ -1,10 +1,9 @@
-import { describe, it } from 'node:test'
-import assert from 'node:assert/strict'
+import { describe, it, expect } from '@jest/globals'
 import safeGet from './index.js'
 
 describe('safeGet', () => {
   it('doesnt throw in case a property is queried on an undefined object', () => {
-    assert.strictEqual(safeGet({}, ['lorem', 'ipsum', 'dolor']), undefined)
+    expect(safeGet({}, ['lorem', 'ipsum', 'dolor'])).toBeUndefined()
   })
 
   it('returns value of deep properties', () => {
@@ -17,11 +16,10 @@ describe('safeGet', () => {
         },
       },
     }
-    assert.strictEqual(safeGet(obj, ['lorem', 'ipsum', 'dolor', 'sit']), 7)
-    assert.strictEqual(
+    expect(safeGet(obj, ['lorem', 'ipsum', 'dolor', 'sit'])).toBe(7)
+    expect(
       safeGet(obj, ['lorem', 'ipsum', 'dolor']),
-      obj.lorem.ipsum.dolor,
-    )
+    ).toBe(obj.lorem.ipsum.dolor)
   })
 
   it('returns undefined for not existing deep properties', () => {
@@ -32,20 +30,17 @@ describe('safeGet', () => {
         },
       },
     }
-    assert.strictEqual(safeGet(obj, ['quijotest']), undefined)
-    assert.strictEqual(safeGet(obj, ['lorem', 'quijotest']), undefined)
-    assert.strictEqual(
+    expect(safeGet(obj, ['quijotest'])).toBeUndefined()
+    expect(safeGet(obj, ['lorem', 'quijotest'])).toBeUndefined()
+    expect(
       safeGet(obj, ['lorem', 'ipsum', 'dolor', 'sit']),
-      undefined,
-    )
-    assert.strictEqual(
+    ).toBeUndefined()
+    expect(
       safeGet(obj, ['lorem', 'ipsum', 'dolor', 'sit', 'amet']),
-      undefined,
-    )
-    assert.strictEqual(
+    ).toBeUndefined()
+    expect(
       safeGet(obj, ['lorem', 'ipsum', 'dolor']),
-      obj.lorem.ipsum.dolor,
-    )
+    ).toBe(obj.lorem.ipsum.dolor)
   })
 
   it('works with arrays', () => {
@@ -56,8 +51,8 @@ describe('safeGet', () => {
         },
       },
     }
-    assert.strictEqual(safeGet(obj, ['lorem', 'ipsum', 'dolor', '0']), 1)
-    assert.strictEqual(safeGet(obj, ['lorem', 'ipsum', 'dolor', '1']), 2)
-    assert.strictEqual(safeGet(obj, ['lorem', 'ipsum', 'dolor', '2']), 3)
+    expect(safeGet(obj, ['lorem', 'ipsum', 'dolor', '0'])).toBe(1)
+    expect(safeGet(obj, ['lorem', 'ipsum', 'dolor', '1'])).toBe(2)
+    expect(safeGet(obj, ['lorem', 'ipsum', 'dolor', '2'])).toBe(3)
   })
 })

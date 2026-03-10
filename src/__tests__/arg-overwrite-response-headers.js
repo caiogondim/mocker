@@ -1,5 +1,4 @@
-import { describe, it } from 'node:test'
-import assert from 'node:assert/strict'
+import { describe, it, expect } from '@jest/globals'
 import getPort from './helpers/get-port.js'
 import { createRequest } from '../shared/http/index.js'
 import { createServer as createMathServer } from '../../tools/math-server/index.js'
@@ -31,7 +30,7 @@ describe('args.overwriteResponseHeaders', () => {
     const response1 = await response1Promise
 
     try {
-      assert.deepStrictEqual(response1.headers['content-type'], contentType)
+      expect(response1.headers['content-type']).toEqual(contentType)
     } finally {
       await closeServer(mocker)
       await closeServer(mathServer)
@@ -65,7 +64,7 @@ describe('args.overwriteResponseHeaders', () => {
 
     try {
       // 'content-type' header should not be present.
-      assert.strictEqual(response1.headers['content-type'], undefined)
+      expect(response1.headers['content-type']).toBeUndefined()
     } finally {
       await closeServer(mathServer)
       await closeServer(mocker)
@@ -100,8 +99,8 @@ describe('args.overwriteResponseHeaders', () => {
       request1.end()
       const response1 = await response1Promise
 
-      assert.deepStrictEqual(response1.headers['content-type'], contentType)
-      assert.strictEqual(response1.headers['x-mocker-response-from'], 'Origin')
+      expect(response1.headers['content-type']).toEqual(contentType)
+      expect(response1.headers['x-mocker-response-from']).toBe('Origin')
 
       //
       // Mocked response: client <-> proxy
@@ -114,8 +113,8 @@ describe('args.overwriteResponseHeaders', () => {
       request2.end()
       const response2 = await response2Promise
 
-      assert.deepStrictEqual(response2.headers['content-type'], contentType)
-      assert.strictEqual(response2.headers['x-mocker-response-from'], 'Mock')
+      expect(response2.headers['content-type']).toEqual(contentType)
+      expect(response2.headers['x-mocker-response-from']).toBe('Mock')
     } finally {
       await closeServer(mocker)
       await closeServer(mathServer)

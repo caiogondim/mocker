@@ -1,5 +1,4 @@
-import { describe, it, mock } from 'node:test'
-import assert from 'node:assert/strict'
+import { describe, it, expect, jest } from '@jest/globals'
 import sleep from '../../sleep/index.js'
 import retry from './index.js'
 
@@ -28,25 +27,23 @@ describe('retry', () => {
     //
 
     const throwUntil3 = createThrowUntilN(3)
-    await assert.rejects(throwUntil3(), Error)
-    await assert.rejects(throwUntil3(), Error)
-    assert.strictEqual(await throwUntil3(), 'lorem')
+    await expect(throwUntil3()).rejects.toThrow(Error)
+    await expect(throwUntil3()).rejects.toThrow(Error)
+    expect(await throwUntil3()).toBe('lorem')
 
     //
     // Test behavior with `retry`
     //
 
-    assert.strictEqual(
+    expect(
       await retry(createThrowUntilN(3), { backoff }),
-      'lorem',
-    )
+    ).toBe('lorem')
   })
 
   it('retries up to `retries`', async () => {
-    await assert.rejects(
+    await expect(
       retry(createThrowUntilN(3), { retries: 2, backoff }),
-      Error,
-    )
+    ).rejects.toThrow(Error)
   })
 
   it('retries in case `shouldRetry` returns true', async () => {
@@ -68,10 +65,9 @@ describe('retry', () => {
       return num < 2
     }
 
-    assert.strictEqual(
+    expect(
       await retry(numberGenerator, { shouldRetry, backoff }),
-      2,
-    )
+    ).toBe(2)
   })
 
   it('executes `onRetry` on each retry', async () => {
@@ -82,18 +78,18 @@ describe('retry', () => {
     }
     const throwUntil3 = createThrowUntilN(3)
     await retry(throwUntil3, { onRetry, retries, backoff })
-    assert.strictEqual(onRetryCalls, retries - 1)
+    expect(onRetryCalls).toBe(retries - 1)
   })
 
   it('backs off between each retry', async () => {
     const retries = 3
     const throwUntil3 = createThrowUntilN(3)
     // Passing a mock since we are not testing the backoff behavior
-    const mockBackoff = mock.fn()
+    const mockBackoff = jest.fn()
 
     const result = await retry(throwUntil3, { retries, backoff: mockBackoff })
 
-    assert.strictEqual(result, 'lorem')
-    assert.strictEqual(mockBackoff.mock.calls.length, 2)
+    expect(result).toBe('lorem')
+    expect(mockBackoff.mock.calls.length).toBe(2)
   })
 })

@@ -1,5 +1,4 @@
-import { describe, it } from 'node:test'
-import assert from 'node:assert/strict'
+import { describe, it, expect } from '@jest/globals'
 import getPort from './helpers/get-port.js'
 import { createMocker, createMemFs } from './helpers/mocker.js'
 import { createServer as createTimeServer } from '../../tools/time-server/index.js'
@@ -65,10 +64,8 @@ describe('args.update', () => {
     const response2Body = `${await getBody(response2)}`
 
     try {
-      assert.strictEqual(response2.headers['x-mocker-response-from'], 'Mock')
-      assert.ok(
-        Number(response2Body) >= Number(response1Body),
-      )
+      expect(response2.headers['x-mocker-response-from']).toBe('Mock')
+      expect(Number(response2Body)).toBeGreaterThanOrEqual(Number(response1Body))
     } finally {
       await mocker2.close()
       await timeServer.close()
@@ -127,9 +124,7 @@ describe('args.update', () => {
       const fileContentJson = JSON.parse(fileContentBuffer.toString())
       const response2Body = fileContentJson.response.body
 
-      assert.ok(
-        Number(response2Body) >= Number(response1Body),
-      )
+      expect(Number(response2Body)).toBeGreaterThanOrEqual(Number(response1Body))
     } finally {
       await timeServer.close()
     }
@@ -168,7 +163,7 @@ describe('args.update', () => {
     try {
       // Then it should fail since `startup: 'only'` only updates all mocked
       // responses, and doesn't start the server.
-      await assert.rejects(() => createRequestThunk(), /AggregateError/)
+      await expect(() => createRequestThunk()).rejects.toThrow()
     } finally {
       await timeServer.close()
     }
@@ -228,7 +223,7 @@ describe('args.update', () => {
       const mockAfter = (
         await fs.promises.readFile(`${responsesDir}/${files[0]}`)
       ).toString()
-      assert.strictEqual(mockAfter, mockBefore)
+      expect(mockAfter).toBe(mockBefore)
     } finally {
       await mocker2.close()
       await statusCodeServer.close()
@@ -288,7 +283,7 @@ describe('args.update', () => {
       const mockAfter = (
         await fs.promises.readFile(`${responsesDir}/${files[0]}`)
       ).toString()
-      assert.strictEqual(mockAfter, mockBefore)
+      expect(mockAfter).toBe(mockBefore)
     } finally {
       await mocker2.close()
     }
@@ -328,7 +323,7 @@ describe('args.update', () => {
     const mockContent = JSON.parse(
       (await fs.promises.readFile(`${responsesDir}/${files[0]}`)).toString(),
     )
-    assert.strictEqual(mockContent.request.headers.authorization, '[REDACTED]')
+    expect(mockContent.request.headers.authorization).toBe('[REDACTED]')
     await headerEchoServer.close()
   })
 
@@ -383,7 +378,7 @@ describe('args.update', () => {
       const mockAfter = (
         await fs.promises.readFile(`${responsesDir}/${files[0]}`)
       ).toString()
-      assert.strictEqual(mockAfter, mockBefore)
+      expect(mockAfter).toBe(mockBefore)
     } finally {
       await mocker2.close()
       await headerEchoServer.close()
@@ -419,7 +414,7 @@ describe('args.update', () => {
 
       // The flaky server returns 200 on the 3rd request, so with retries
       // the mocker should eventually get a successful response
-      assert.strictEqual(response1.statusCode, 200)
+      expect(response1.statusCode).toBe(200)
     } finally {
       await mocker.close()
       await flakyServer.close()

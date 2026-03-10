@@ -1,5 +1,4 @@
-import { describe, it } from 'node:test'
-import assert from 'node:assert/strict'
+import { describe, it, expect } from '@jest/globals'
 import { Readable, Transform } from 'node:stream'
 import pipeline from '../pipeline/index.js'
 import createPassAndSave from './index.js'
@@ -25,7 +24,7 @@ describe('passAndSave', () => {
     )
     const val = (await valPromise).reduce((prev, cur) => `${prev}${cur}`, '')
 
-    assert.deepStrictEqual(val, input.join(''))
+    expect(val).toEqual(input.join(''))
   })
 
   it('behaves as a PassThrough stream', async () => {
@@ -47,6 +46,6 @@ describe('passAndSave', () => {
       }),
     )
 
-    assert.deepStrictEqual(output.join(''), input.join(''))
+    expect(output.join('')).toEqual(input.join(''))
   })
 })

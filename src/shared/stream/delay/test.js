@@ -1,5 +1,4 @@
-import { describe, it } from 'node:test'
-import assert from 'node:assert/strict'
+import { describe, it, expect } from '@jest/globals'
 import { Readable, Transform, PassThrough } from 'node:stream'
 import pipeline from '../pipeline/index.js'
 import delay from './index.js'
@@ -11,8 +10,8 @@ describe('delay', () => {
     await pipeline(Readable.from(input), delay({ ms: 2000 }))
     const t2 = Date.now()
 
-    assert.ok(t2 - t1 >= 2000)
-    assert.ok(t2 - t1 <= 3000)
+    expect(t2 - t1).toBeGreaterThanOrEqual(2000)
+    expect(t2 - t1).toBeLessThanOrEqual(3000)
   })
 
   // Regression test to prevent a delay on each chunk of a stream
@@ -22,8 +21,8 @@ describe('delay', () => {
     await pipeline(Readable.from(input), delay({ ms: 2000 }))
     const t2 = Date.now()
 
-    assert.ok(t2 - t1 >= 2000)
-    assert.ok(t2 - t1 <= 3000)
+    expect(t2 - t1).toBeGreaterThanOrEqual(2000)
+    expect(t2 - t1).toBeLessThanOrEqual(3000)
   })
 
   it('behaves as a PassThrough stream', async () => {
@@ -43,12 +42,12 @@ describe('delay', () => {
       }),
     )
 
-    assert.deepStrictEqual(output.join(''), input.join(''))
+    expect(output.join('')).toEqual(input.join(''))
   })
 
   it('returns a vanilla PassThrough stream if delay equals 0', () => {
     const stream = delay({ ms: 0 })
 
-    assert.deepStrictEqual(stream.constructor, PassThrough)
+    expect(stream.constructor).toEqual(PassThrough)
   })
 })

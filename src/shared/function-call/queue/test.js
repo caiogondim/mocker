@@ -1,5 +1,4 @@
-import { describe, it } from 'node:test'
-import assert from 'node:assert/strict'
+import { describe, it, expect } from '@jest/globals'
 import queueCalls from './index.js'
 
 describe('queue', () => {
@@ -17,15 +16,15 @@ describe('queue', () => {
     //
 
     const promise1 = count()
-    assert.strictEqual(counter, 1)
+    expect(counter).toBe(1)
     const promise2 = count()
-    assert.strictEqual(counter, 2)
+    expect(counter).toBe(2)
     const promise3 = count()
-    assert.strictEqual(counter, 3)
+    expect(counter).toBe(3)
     const promise4 = count()
-    assert.strictEqual(counter, 4)
+    expect(counter).toBe(4)
     await Promise.all([promise1, promise2, promise3, promise4])
-    assert.strictEqual(counter, 4)
+    expect(counter).toBe(4)
 
     //
     // Decorated `count`
@@ -34,15 +33,15 @@ describe('queue', () => {
     counter = 0
     const queuedCount = queueCalls(count)
     const promise5 = queuedCount()
-    assert.strictEqual(counter, 0)
+    expect(counter).toBe(0)
     const promise6 = queuedCount()
-    assert.strictEqual(counter, 0)
+    expect(counter).toBe(0)
     const promise7 = queuedCount()
-    assert.strictEqual(counter, 0)
+    expect(counter).toBe(0)
     const promise8 = queuedCount()
-    assert.strictEqual(counter, 0)
+    expect(counter).toBe(0)
     await Promise.all([promise5, promise6, promise7, promise8])
-    assert.strictEqual(counter, 4)
+    expect(counter).toBe(4)
   })
 
   it('has a function name that describes decorator and encapsulated function names', async () => {
@@ -55,7 +54,7 @@ describe('queue', () => {
       return a + b
     }
 
-    assert.strictEqual(sum.name, 'sum')
-    assert.strictEqual(queueCalls(sum).name, 'queueCalls(sum)')
+    expect(sum.name).toBe('sum')
+    expect(queueCalls(sum).name).toBe('queueCalls(sum)')
   })
 })

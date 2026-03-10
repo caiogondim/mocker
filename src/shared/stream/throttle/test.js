@@ -1,5 +1,4 @@
-import { describe, it } from 'node:test'
-import assert from 'node:assert/strict'
+import { describe, it, expect } from '@jest/globals'
 import { Readable, Transform, PassThrough } from 'node:stream'
 import pipeline from '../pipeline/index.js'
 import throttle from './index.js'
@@ -14,7 +13,7 @@ describe('throttle', () => {
     await pipeline(Readable.from(input), throttle({ bps: 128 }))
     const t2 = Date.now()
 
-    assert.strictEqual(Math.floor((t2 - t1) / 1000), 2)
+    expect(Math.floor((t2 - t1) / 1000)).toBe(2)
   })
 
   it('behaves as a PassThrough stream', async () => {
@@ -34,12 +33,12 @@ describe('throttle', () => {
       }),
     )
 
-    assert.deepStrictEqual(output.join(''), input.join(''))
+    expect(output.join('')).toEqual(input.join(''))
   })
 
   it('returns a vanilla PassThrough stream if bps equals Infinity', () => {
     const stream = throttle({ bps: Infinity })
 
-    assert.deepStrictEqual(stream.constructor, PassThrough)
+    expect(stream.constructor).toEqual(PassThrough)
   })
 })

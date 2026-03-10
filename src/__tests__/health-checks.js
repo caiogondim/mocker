@@ -1,5 +1,4 @@
-import { describe, it } from 'node:test'
-import assert from 'node:assert/strict'
+import { describe, it, expect } from '@jest/globals'
 import getPort from './helpers/get-port.js'
 import { createMocker } from './helpers/mocker.js'
 import { createRequest, getBody } from '../shared/http/index.js'
@@ -30,9 +29,9 @@ describe('health checks endpoints', () => {
 
     try {
       // Then it should return HTTP 200
-      assert.strictEqual(response.statusCode, 200)
+      expect(response.statusCode).toBe(200)
       // And an empty body
-      assert.strictEqual(responseBody, '')
+      expect(responseBody).toBe('')
     } finally {
       await closeServer(mocker)
     }
@@ -61,9 +60,9 @@ describe('health checks endpoints', () => {
 
     try {
       // Then it should return HTTP 200
-      assert.strictEqual(response.statusCode, 200)
+      expect(response.statusCode).toBe(200)
       // And an empty body
-      assert.strictEqual(responseBody, '')
+      expect(responseBody).toBe('')
     } finally {
       await closeServer(mocker)
     }
@@ -96,11 +95,11 @@ describe('health checks endpoints', () => {
 
     try {
       // Then it should behave normally proxying the request to origin.
-      assert.strictEqual(response.statusCode, 200)
+      expect(response.statusCode).toBe(200)
 
       // And it should not have an empty response body, since the response comes
       // from origin.
-      assert.notStrictEqual(responseBody, '')
+      expect(responseBody).not.toBe('')
     } finally {
       await closeServer(mocker)
       await closeServer(origin)
