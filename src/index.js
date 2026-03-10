@@ -149,7 +149,6 @@ class Mocker {
       redactedHeaders: args.redactedHeaders,
       fs: args.fs,
     })
-
   }
 
   /**

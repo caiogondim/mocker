@@ -1,13 +1,12 @@
 /** @typedef {import('../../src/shared/types.js').AsyncHttpServer} AsyncHttpServer */
 
-import http from 'node:http'
 import { createAsyncHttpServer } from '../../src/shared/async-http-server/index.js'
 
 const commonHeaders = { 'content-type': 'text/plain' }
 
 /**
- * @param {http.IncomingMessage} req
- * @param {http.ServerResponse} res
+ * @param {import('node:http').IncomingMessage} req
+ * @param {import('node:http').ServerResponse} res
  * @returns {Promise<void>}
  */
 async function handleGet(req, res) {
@@ -35,8 +34,8 @@ async function handleGet(req, res) {
 }
 
 /**
- * @param {http.IncomingMessage} req
- * @param {http.ServerResponse} res
+ * @param {import('node:http').IncomingMessage} req
+ * @param {import('node:http').ServerResponse} res
  * @returns {Promise<void>}
  */
 async function handlePost(req, res) {

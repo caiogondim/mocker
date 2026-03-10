@@ -165,7 +165,13 @@ async function requestToMockPath(
       fileName = `${fileName} ${reqBody}`
     } else if (mockKey.startsWith('body.') && typeof body === 'object') {
       const props = mockKey.split('.').slice(1)
-      const bodyVal = props.reduce((obj, key) => obj?.[key], body)
+      const bodyVal = props.reduce(
+        (/** @type {unknown} */ obj, key) =>
+          obj !== null && typeof obj === 'object'
+            ? /** @type {Record<string, unknown>} */ (obj)[key]
+            : undefined,
+        /** @type {unknown} */ (body),
+      )
 
       if (bodyVal === undefined) {
         continue

@@ -81,11 +81,12 @@ describe('retry', () => {
     const retries = 3
     const throwUntil3 = createThrowUntilN(3)
     // Passing a mock since we are not testing the backoff behavior
+    /** @type {jest.Mock<() => Promise<void>>} */
     const mockBackoff = jest.fn()
 
     const result = await retry(throwUntil3, { retries, backoff: mockBackoff })
 
     expect(result).toBe('lorem')
-    expect(mockBackoff.mock.calls.length).toBe(2)
+    expect(mockBackoff).toHaveBeenCalledTimes(2)
   })
 })

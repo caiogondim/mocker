@@ -90,6 +90,7 @@ describe('createRequest', () => {
     const port = await getPort()
     await flakyServer.listen(port)
 
+    /** @type {jest.Mock<() => Promise<void>>} */
     const mockBackoff = jest.fn()
 
     const [request, responsePromise] = await createRequest({
@@ -104,7 +105,7 @@ describe('createRequest', () => {
 
     await responsePromise
 
-    expect(mockBackoff.mock.calls.length).toBe(2)
+    expect(mockBackoff).toHaveBeenCalledTimes(2)
   })
 
   // Regression test

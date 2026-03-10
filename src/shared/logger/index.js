@@ -1,8 +1,4 @@
-/**
- * @callback ConsoleMethod
- * @param {{ (...data: any[]): void; (message?: any, ...optionalParams: any[]): void; }} [args]
- * @returns {void}
- */
+/** @typedef {(...args: unknown[]) => void} ConsoleMethod */
 /** @typedef {{ log: ConsoleMethod; error: ConsoleMethod; warn: ConsoleMethod }} Console */
 /** @typedef {'silent' | 'error' | 'warn' | 'verbose'} LoggerLevels */
 
@@ -74,7 +70,6 @@ function createLogger({
       return false
     }
 
-    // @ts-expect-error
     _console.warn(yellow('warn'), ...args)
 
     return true
@@ -96,7 +91,6 @@ function createLogger({
       return false
     }
 
-    // @ts-expect-error
     _console.error(red('erro'), ...args)
 
     return true
@@ -111,7 +105,6 @@ function createLogger({
       return false
     }
 
-    // @ts-expect-error
     _console.log(blue('info'), ...args)
 
     return true
@@ -126,7 +119,6 @@ function createLogger({
       return false
     }
 
-    // @ts-expect-error
     _console.log(green('succ'), ...args)
 
     return true
