@@ -6,7 +6,7 @@ import { createServer as createStatusCodeServer } from '../../tools/status-code-
 import { createServer as createFlakyServer } from '../../tools/flaky-server/index.js'
 import { createServer as createHeaderEchoServer } from '../../tools/request-header-on-response-body-server/index.js'
 import { createRequest, getBody } from '../shared/http/index.js'
-import sleep from '../shared/sleep/index.js'
+import { setTimeout as sleep } from 'node:timers/promises'
 
 describe('args.update', () => {
   it('updates all mocks with origin in case update=startup', async () => {

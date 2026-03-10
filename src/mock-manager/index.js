@@ -24,7 +24,6 @@ import {
 import { pipeline, rewindable } from '../shared/stream/index.js'
 import createLogger from '../shared/logger/index.js'
 import { dim } from '../shared/logger/format/index.js'
-import safeGet from '../shared/safe-get/index.js'
 import MockedRequest from './mocked-request.js'
 
 const logger = createLogger()
@@ -166,7 +165,7 @@ async function requestToMockPath(
       fileName = `${fileName} ${reqBody}`
     } else if (mockKey.startsWith('body.') && typeof body === 'object') {
       const props = mockKey.split('.').slice(1)
-      const bodyVal = safeGet(body, props)
+      const bodyVal = props.reduce((obj, key) => obj?.[key], body)
 
       if (bodyVal === undefined) {
         continue

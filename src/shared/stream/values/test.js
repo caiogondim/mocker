@@ -1,7 +1,7 @@
 import { describe, it, expect } from '@jest/globals'
 import { Readable } from 'node:stream'
 import values from './index.js'
-import sleep from '../../sleep/index.js'
+import { setTimeout as sleep } from 'node:timers/promises'
 
 describe('values', () => {
   it('consumes the stream and return an array with all generated values', async () => {

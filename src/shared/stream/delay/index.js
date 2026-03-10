@@ -1,5 +1,5 @@
 import { PassThrough, Transform } from 'node:stream'
-import sleep from '../../sleep/index.js'
+import { setTimeout as sleep } from 'node:timers/promises'
 
 /**
  * Adds an artifical delay to a stream pipeline.

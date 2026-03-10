@@ -1,6 +1,6 @@
 import { describe, it, expect } from '@jest/globals'
 import { PassThrough, Readable } from 'node:stream'
-import sleep from '../../sleep/index.js'
+import { setTimeout as sleep } from 'node:timers/promises'
 import values from '../values/index.js'
 import rewindable from './index.js'
 

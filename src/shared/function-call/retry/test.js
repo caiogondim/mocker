@@ -1,5 +1,5 @@
 import { describe, it, expect, jest } from '@jest/globals'
-import sleep from '../../sleep/index.js'
+import { setTimeout as sleep } from 'node:timers/promises'
 import retry from './index.js'
 
 async function backoff() {}

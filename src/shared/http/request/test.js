@@ -3,7 +3,7 @@ import getPort from '../../../__tests__/helpers/get-port.js'
 import { createServer as createDuplicateRequestServer } from '../../../../tools/duplicate-request-server/index.js'
 import { createServer as createFlakyServer } from '../../../../tools/flaky-server/index.js'
 import createBackoff from '../../backoff/index.js'
-import sleep from '../../sleep/index.js'
+import { setTimeout as sleep } from 'node:timers/promises'
 import { getBody } from '../index.js'
 import createRequest from './index.js'
 
