@@ -1,7 +1,7 @@
 /** @typedef {import('../../args/types.js').Args} Args */
+/** @typedef {import('../../args/types.js').UnbrandedArgs} UnbrandedArgs */
 /** @typedef {import('../../shared/types.js').FsLike} FsLike */
 
-import getPort from './get-port.js'
 import { Volume, createFsFromVolume } from 'memfs'
 import Mocker from '../../index.js'
 
@@ -38,12 +38,12 @@ async function getCommonArgs() {
     redactedHeaders: {},
     overwriteResponseHeaders: {},
     overwriteRequestHeaders: {},
-    port: await getPort(),
+    port: 0,
   }
 }
 
 /**
- * @param {Partial<Args & { fs: FsLike }>} args
+ * @param {Partial<UnbrandedArgs & { fs: FsLike }>} args
  * @returns {Promise<Mocker>}
  */
 async function createMocker(args = {}) {
@@ -52,15 +52,16 @@ async function createMocker(args = {}) {
   }
 
   const { responsesDir, fs } = await createMemFs()
-  return new Mocker({
+  return new Mocker(/** @type {Args & { fs: FsLike }} */ ({
     responsesDir,
     fs,
     origin: '',
     mode: 'read-write',
     cors: false,
+    proxy: '',
     ...(await getCommonArgs()),
     ...args,
-  })
+  }))
 }
 
 export { createMocker, createMemFs }

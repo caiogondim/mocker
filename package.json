@@ -14,7 +14,9 @@
     "type-check": "tsc --p './tsconfig.json'",
     "fmt": "prettier --print-width 80 --prose-wrap always --write './**/*.{js,md,yml,json}' --ignore-path .gitignore",
     "fmt:check": "prettier --check './**/*.{js,md,yml,json}' --ignore-path .gitignore",
-    "lint": "eslint --report-unused-disable-directives ."
+    "lint": "eslint --report-unused-disable-directives .",
+    "proxy:rust": "cd proxies/rust-proxy && cargo run",
+    "proxy:swift": "cd proxies/swift-proxy && swift run"
   },
   "license": "UNLICENSED",
   "private": true,
@@ -31,7 +33,7 @@
     "typescript-eslint": "^8.57.0"
   },
   "engines": {
-    "node": ">=24"
+    "node": ">=24.0.0"
   },
   "bin": "./mocker",
   "jest": {

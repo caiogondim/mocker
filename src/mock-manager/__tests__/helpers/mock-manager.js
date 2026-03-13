@@ -1,8 +1,10 @@
+/** @typedef {import('../../../args/types.js').AbsoluteDirPath} AbsoluteDirPath */
+
 import { Volume, createFsFromVolume } from 'memfs'
 import { createMockManager as createMockManagerFactory } from '../../index.js'
 
 async function createMemFs() {
-  const responsesDir = '/tmp'
+  const responsesDir = /** @type {AbsoluteDirPath} */ ('/tmp')
   const volume = new Volume()
   const fs = createFsFromVolume(volume)
   await fs.promises.mkdir(responsesDir)

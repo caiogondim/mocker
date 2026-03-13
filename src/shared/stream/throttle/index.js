@@ -66,8 +66,6 @@ class TokenBucket {
 }
 
 /**
- * Throttles a stream pipeline.
- *
  * @param {Object} options
  * @param {number} options.bps
  * @returns {Transform}

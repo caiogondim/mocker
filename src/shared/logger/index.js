@@ -26,9 +26,6 @@ export function setLevel(newLevel) {
 }
 
 /**
- * Simple wrapper around `console` to consolidate the decision about when a
- * given `console` method should print or not.
- *
  * @param {Object} [options]
  * @param {Console} [options.console]
  * @param {boolean} [options.forceLog]

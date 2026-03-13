@@ -1,5 +1,4 @@
 import { describe, it, expect, jest } from '@jest/globals'
-import getPort from '../../../__tests__/helpers/get-port.js'
 import { createServer as createDuplicateRequestServer } from '../../../../tools/duplicate-request-server/index.js'
 import { createServer as createFlakyServer } from '../../../../tools/flaky-server/index.js'
 import createBackoff from '../../backoff/index.js'
@@ -10,11 +9,10 @@ import createRequest from './index.js'
 describe('createRequest', () => {
   it('makes a request and receives a response', async () => {
     await using duplicateRequestServer = createDuplicateRequestServer()
-    const port = await getPort()
-    await duplicateRequestServer.listen(port)
+    await duplicateRequestServer.listen()
 
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${port}`,
+      url: `http://localhost:${duplicateRequestServer.port}`,
       method: 'POST',
     })
     request.write('lorem ipsum')
@@ -27,19 +25,22 @@ describe('createRequest', () => {
   })
 
   it('throws an error in case a connection cannot be made', async () => {
-    const port = await getPort()
+    // Get a free port by briefly listening then closing
+    await using tempServer = createDuplicateRequestServer()
+    await tempServer.listen()
+    const freePort = tempServer.port
+    await tempServer.close()
 
     await expect(
       createRequest({
-        url: `http://localhost:${port}`,
+        url: `http://localhost:${freePort}`,
       }),
     ).rejects.toThrow()
   })
 
   it('retries up to `retries`', async () => {
     await using flakyServer = createFlakyServer()
-    const port = await getPort()
-    await flakyServer.listen(port)
+    await flakyServer.listen()
 
     //
     // Even though flaky server returns a successful response on the
@@ -47,7 +48,7 @@ describe('createRequest', () => {
     //
 
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${port}`,
+      url: `http://localhost:${flakyServer.port}`,
       method: 'POST',
       retries: 3,
       backoff: async () => {},
@@ -65,11 +66,10 @@ describe('createRequest', () => {
 
   it('returns the last non-successful request if number of tries equals to `retries`', async () => {
     await using flakyServer = createFlakyServer()
-    const port = await getPort()
-    await flakyServer.listen(port)
+    await flakyServer.listen()
 
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${port}`,
+      url: `http://localhost:${flakyServer.port}`,
       method: 'POST',
       retries: 2,
       backoff: async () => {},
@@ -87,14 +87,13 @@ describe('createRequest', () => {
 
   it('backs off between retries', async () => {
     await using flakyServer = createFlakyServer()
-    const port = await getPort()
-    await flakyServer.listen(port)
+    await flakyServer.listen()
 
     /** @type {jest.Mock<() => Promise<void>>} */
     const mockBackoff = jest.fn()
 
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${port}`,
+      url: `http://localhost:${flakyServer.port}`,
       method: 'POST',
       retries: 3,
       backoff: mockBackoff,
@@ -110,7 +109,12 @@ describe('createRequest', () => {
 
   // Regression test
   it('retries even if server cannot be reached', async () => {
-    const port = await getPort()
+    // Get a free port by briefly listening then closing
+    await using tempServer = createDuplicateRequestServer()
+    await tempServer.listen()
+    const port = tempServer.port
+    await tempServer.close()
+
     await using flakyServer = createFlakyServer()
 
     async function sendRequest() {

@@ -1,6 +1,4 @@
 /**
- * Tried and true way for getting a constructor's name of any reference.
- *
  * @param {any} x
  * @returns {string}
  */

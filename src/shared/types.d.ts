@@ -4,9 +4,10 @@ import http from 'http';
 import stream from 'stream';
 
 export interface AsyncHttpServer extends AsyncDisposable {
-  listen: (port: number) => Promise<void>;
+  listen: (port?: number) => Promise<void>;
   close: () => Promise<void>;
   listening: boolean;
+  port: number;
 }
 
 export type HttpIncomingMessage = http.IncomingMessage;

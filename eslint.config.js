@@ -3,7 +3,7 @@ import tseslint from 'typescript-eslint'
 import nodePlugin from 'eslint-plugin-n'
 
 export default [
-  { ignores: ['node_modules/', 'out/'] },
+  { ignores: ['node_modules/', 'out/', 'eslint.config.js'] },
 
   js.configs.recommended,
   nodePlugin.configs['flat/recommended-module'],
@@ -15,6 +15,9 @@ export default [
       ...tseslint.configs.base.languageOptions,
       ecmaVersion: 2024,
       sourceType: 'module',
+      parserOptions: {
+        project: './tsconfig.json',
+      },
       globals: {
         console: 'readonly',
         process: 'readonly',
@@ -31,7 +34,11 @@ export default [
       // Variables
       'no-unused-vars': [
         'error',
-        { argsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
       ],
 
       // Style
@@ -53,6 +60,10 @@ export default [
       'n/prefer-promises/fs': 'error',
       'n/prefer-global/url-search-params': 'error',
       'n/no-missing-import': 'off',
+      'n/no-unsupported-features/node-builtins': [
+        'error',
+        { ignores: ['util.styleText'] },
+      ],
     },
   },
 ]

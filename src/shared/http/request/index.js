@@ -57,9 +57,6 @@ function prepareRequestParams(urlObj, method, headers) {
 }
 
 /**
- * Returns a stream with an open request and a promise that will be resolved
- * with the response once it is available.
- *
  * @param {Object} options
  * @param {string} options.url
  * @param {Object} [options.headers]
@@ -93,8 +90,6 @@ async function createRequest({ url, headers = {}, method = 'GET' }) {
 }
 
 /**
- * Same as `createRequest`, but retries if the response is not a 200.
- *
  * @param {Object} options
  * @param {string} options.url
  * @param {Object} [options.headers]

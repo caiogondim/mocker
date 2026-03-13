@@ -22,6 +22,7 @@ import {
   isHeaders,
   SecretNotFoundError,
 } from './shared/http/index.js'
+import { MODE } from './args/index.js'
 
 const packageJson = createRequire(import.meta.url)('../package.json')
 const logger = createLogger()
@@ -129,6 +130,9 @@ class Mocker {
   /** @type {http.Server | null} */
   #httpServer = null
 
+  /** @type {(() => Promise<void>)[] } */
+  #signalHandlers = []
+
   #state = {
     isClosing: false,
   }
@@ -141,6 +145,7 @@ class Mocker {
       host: args.origin,
       retries: args.retries,
       overwriteRequestHeaders: args.overwriteRequestHeaders,
+      ...(args.proxy !== '' ? { proxyUrl: args.proxy } : {}),
     })
 
     this.#mockManager = createMockManager({
@@ -151,20 +156,20 @@ class Mocker {
     })
   }
 
-  /**
-   * Returns `true` if the server is running and listening on a TCP port.
-   * `false` otherwise.
-   *
-   * @returns {boolean}
-   */
+  /** @returns {boolean} */
   get listening() {
     if (!this.#httpServer) return false
     return this.#httpServer.listening
   }
 
+  /** @returns {number} */
+  get port() {
+    const addr = this.#httpServer?.address()
+    if (addr && typeof addr === 'object') return addr.port
+    return 0
+  }
+
   /**
-   * Binds server to a TCP port.
-   *
    * @param {number} port
    * @returns {Promise<void>}
    */
@@ -271,11 +276,7 @@ class Mocker {
     })
   }
 
-  /**
-   * Closes server and releases all used resources.
-   *
-   * @returns {Promise<void>}
-   */
+  /** @returns {Promise<void>} */
   async close() {
     const state = this.#state
     const httpServer = this.#httpServer
@@ -317,10 +318,12 @@ class Mocker {
    */
   #addListeners() {
     for (const signal of terminationSignals) {
-      process.on(signal, async () => {
+      const handler = async () => {
         logger.log(closingMockerText)
         await this.close()
-      })
+      }
+      this.#signalHandlers.push(handler)
+      process.on(signal, handler)
     }
   }
 
@@ -328,9 +331,10 @@ class Mocker {
    * @returns {void}
    */
   #removeListeners() {
-    for (const signal of terminationSignals) {
-      process.removeAllListeners(signal)
+    for (let i = 0; i < this.#signalHandlers.length; i++) {
+      process.removeListener(terminationSignals[i], this.#signalHandlers[i])
     }
+    this.#signalHandlers = []
   }
 
   /**
@@ -370,7 +374,7 @@ class Mocker {
 
     try {
       switch (args.mode) {
-        case 'read': {
+        case MODE.READ: {
           await this.#handleConnectionWithReadMode(
             requestRewindable,
             response,
@@ -378,7 +382,7 @@ class Mocker {
           )
           return
         }
-        case 'read-write': {
+        case MODE.READ_WRITE: {
           await this.#handleConnectionWithReadWriteMode(
             requestRewindable,
             response,
@@ -386,7 +390,7 @@ class Mocker {
           )
           return
         }
-        case 'read-pass': {
+        case MODE.READ_PASS: {
           await this.#handleConnectionWithReadPassMode(
             requestRewindable,
             response,
@@ -394,8 +398,8 @@ class Mocker {
           )
           return
         }
-        case 'write':
-        case 'pass': {
+        case MODE.WRITE:
+        case MODE.PASS: {
           await this.#respondFromOrigin(
             requestRewindable,
             response,
@@ -403,7 +407,7 @@ class Mocker {
           )
           return
         }
-        case 'pass-read': {
+        case MODE.PASS_READ: {
           await this.#handleConnectionWithPassReadMode(
             requestRewindable,
             response,
@@ -504,7 +508,7 @@ class Mocker {
     )
     response.setHeader(
       'access-control-allow-headers',
-      'Content-Type, x-cf-source-id, x-cf-corr-id',
+      request.headers['access-control-request-headers'] || '*',
     )
     response.end()
   }
@@ -667,7 +671,7 @@ class Mocker {
 
     const originToProxyResponseStatusCode =
       originToProxyResponse?.statusCode ?? 500
-    if (args.mode === 'pass-read' && originToProxyResponseStatusCode >= 500) {
+    if (args.mode === MODE.PASS_READ && originToProxyResponseStatusCode >= 500) {
       throw new OriginResponseError(`${originToProxyResponseStatusCode}`)
     }
 
@@ -728,7 +732,7 @@ class Mocker {
     const args = this.#args
     const mockManager = this.#mockManager
 
-    if (!(args.mode === 'write' || args.mode === 'read-write')) return
+    if (!(args.mode === MODE.WRITE || args.mode === MODE.READ_WRITE)) return
 
     if (
       response.statusCode &&

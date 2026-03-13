@@ -6,7 +6,7 @@ export default function getPort() {
     const server = net.createServer()
     server.unref()
     server.on('error', reject)
-    server.listen(0, () => {
+    server.listen({ port: 0, exclusive: true }, () => {
       const addr = /** @type {net.AddressInfo} */ (server.address())
       server.close(() => resolve(addr.port))
     })

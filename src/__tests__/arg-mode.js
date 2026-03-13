@@ -1,5 +1,4 @@
 import { describe, it, expect } from '@jest/globals'
-import getPort from './helpers/get-port.js'
 import { createMocker, createMemFs } from './helpers/mocker.js'
 import { createServer } from './helpers/async-http-server.js'
 import { createServer as createMathServer } from '../../tools/math-server/index.js'
@@ -8,20 +7,17 @@ import { createRequest, getBody } from '../shared/http/index.js'
 
 describe(`mode = 'pass'`, () => {
   it('works as a pass-through proxy', async () => {
-    const originPort = await getPort()
     await using mathServer = createMathServer()
-    await mathServer.listen(originPort)
+    await mathServer.listen()
 
-    const mockerPort = await getPort()
     await using mocker = await createMocker({
-      port: mockerPort,
-      origin: `http://localhost:${originPort}`,
+      origin: `http://localhost:${mathServer.port}`,
       mode: 'pass',
     })
     await mocker.listen()
 
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${mockerPort}/?a=1&b=3&operation=sum`,
+      url: `http://localhost:${mocker.port}/?a=1&b=3&operation=sum`,
     })
     request.end()
     const response = await responsePromise
@@ -33,14 +29,11 @@ describe(`mode = 'pass'`, () => {
 
 describe(`mode = 'read-pass`, () => {
   it('returns a mocked response when `mode === "read-pass"` and there is a saved response for the request', async () => {
-    const originPort = await getPort()
     await using mathServer = createMathServer()
-    await mathServer.listen(originPort)
+    await mathServer.listen()
 
-    const mockerPort = await getPort()
     await using mocker = await createMocker({
-      port: mockerPort,
-      origin: `http://localhost:${originPort}`,
+      origin: `http://localhost:${mathServer.port}`,
       mode: 'read-pass',
     })
     await mocker.listen()
@@ -50,7 +43,7 @@ describe(`mode = 'read-pass`, () => {
     //
 
     const [request1, response1Promise] = await createRequest({
-      url: `http://localhost:${mockerPort}/?a=5&b=9&operation=sum`,
+      url: `http://localhost:${mocker.port}/?a=5&b=9&operation=sum`,
     })
     request1.end()
     const response1 = await response1Promise
@@ -63,7 +56,7 @@ describe(`mode = 'read-pass`, () => {
     //
 
     const [request2, response2Promise] = await createRequest({
-      url: `http://localhost:${mockerPort}/?a=5&b=9&operation=sum`,
+      url: `http://localhost:${mocker.port}/?a=5&b=9&operation=sum`,
     })
     request2.end()
     const response2 = await response2Promise
@@ -73,20 +66,17 @@ describe(`mode = 'read-pass`, () => {
   })
 
   it('works as a pass-through proxy if `mode === "read-pass" and there is no saved response for the request`', async () => {
-    const originPort = await getPort()
     await using mathServer = createMathServer()
-    await mathServer.listen(originPort)
+    await mathServer.listen()
 
-    const mockerPort = await getPort()
     await using mocker = await createMocker({
-      port: mockerPort,
-      origin: `http://localhost:${originPort}`,
+      origin: `http://localhost:${mathServer.port}`,
       mode: 'read-pass',
     })
     await mocker.listen()
 
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${mockerPort}/?a=1&b=3&operation=sum`,
+      url: `http://localhost:${mocker.port}/?a=1&b=3&operation=sum`,
     })
     request.end()
     const response = await responsePromise
@@ -98,14 +88,11 @@ describe(`mode = 'read-pass`, () => {
 
 describe(`mode = 'read-write`, () => {
   it('saves and returns a mocked response when `mode === "read-write"`', async () => {
-    const originPort = await getPort()
     await using mathServer = createMathServer()
-    await mathServer.listen(originPort)
+    await mathServer.listen()
 
-    const mockerPort = await getPort()
     await using mocker = await createMocker({
-      port: mockerPort,
-      origin: `http://localhost:${originPort}`,
+      origin: `http://localhost:${mathServer.port}`,
       mode: 'read-write',
     })
     await mocker.listen()
@@ -115,7 +102,7 @@ describe(`mode = 'read-write`, () => {
     //
 
     const [request1, response1Promise] = await createRequest({
-      url: `http://localhost:${mockerPort}/?a=2&b=5&operation=multiply`,
+      url: `http://localhost:${mocker.port}/?a=2&b=5&operation=multiply`,
     })
     request1.end()
 
@@ -133,7 +120,7 @@ describe(`mode = 'read-write`, () => {
     //
 
     const [request2, response2Promise] = await createRequest({
-      url: `http://localhost:${mockerPort}/?a=2&b=5&operation=multiply`,
+      url: `http://localhost:${mocker.port}/?a=2&b=5&operation=multiply`,
     })
     request2.end()
     const response2 = await response2Promise
@@ -143,14 +130,11 @@ describe(`mode = 'read-write`, () => {
   })
 
   it('returns a mocked response when there is a saved response for the request', async () => {
-    const originPort = await getPort()
     await using mathServer = createMathServer()
-    await mathServer.listen(originPort)
+    await mathServer.listen()
 
-    const mockerPort = await getPort()
     await using mocker = await createMocker({
-      port: mockerPort,
-      origin: `http://localhost:${originPort}`,
+      origin: `http://localhost:${mathServer.port}`,
       mode: 'read-write',
     })
     await mocker.listen()
@@ -160,7 +144,7 @@ describe(`mode = 'read-write`, () => {
     //
 
     const [request1, response1Promise] = await createRequest({
-      url: `http://localhost:${mockerPort}/?a=5&b=9&operation=sum`,
+      url: `http://localhost:${mocker.port}/?a=5&b=9&operation=sum`,
     })
     request1.end()
     const response1 = await response1Promise
@@ -173,7 +157,7 @@ describe(`mode = 'read-write`, () => {
     //
 
     const [request2, response2Promise] = await createRequest({
-      url: `http://localhost:${mockerPort}/?a=5&b=9&operation=sum`,
+      url: `http://localhost:${mocker.port}/?a=5&b=9&operation=sum`,
     })
     request2.end()
     const response2 = await response2Promise
@@ -185,20 +169,17 @@ describe(`mode = 'read-write`, () => {
 
 describe(`mode = 'read'`, () => {
   it('returns 404 when there is no saved response for the request', async () => {
-    const originPort = await getPort()
     await using mathServer = createMathServer()
-    await mathServer.listen(originPort)
+    await mathServer.listen()
 
-    const mockerPort = await getPort()
     await using mocker = await createMocker({
-      port: mockerPort,
-      origin: `http://localhost:${originPort}`,
+      origin: `http://localhost:${mathServer.port}`,
       mode: 'read',
     })
     await mocker.listen()
 
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${mockerPort}/?a=34&b=35&operation=sum`,
+      url: `http://localhost:${mocker.port}/?a=34&b=35&operation=sum`,
       method: 'GET',
     })
     request.end()
@@ -211,15 +192,12 @@ describe(`mode = 'read'`, () => {
 describe(`mode = 'pass-read'`, () => {
   it('fetches from origin first', async () => {
     // Creates and starts origin server
-    const originPort = await getPort()
     await using originServer = createTimeServer()
-    await originServer.listen(originPort)
+    await originServer.listen()
 
     // Creates and starts mocker server
-    const mockerPort = await getPort()
     await using mocker = await createMocker({
-      port: mockerPort,
-      origin: `http://localhost:${originPort}`,
+      origin: `http://localhost:${originServer.port}`,
       mode: 'pass-read',
     })
     await mocker.listen()
@@ -227,7 +205,7 @@ describe(`mode = 'pass-read'`, () => {
     // All responses should come from origin as long as origin is available
     for (let i = 0; i < 3; i += 1) {
       const [request1, response1Promise] = await createRequest({
-        url: `http://localhost:${mockerPort}/`,
+        url: `http://localhost:${mocker.port}/`,
         method: 'GET',
       })
       request1.end()
@@ -241,9 +219,8 @@ describe(`mode = 'pass-read'`, () => {
 
   it('reads from a mocked response if origin is not available', async () => {
     // Creates and starts origin server
-    const originPort = await getPort()
     await using originServer = createTimeServer()
-    await originServer.listen(originPort)
+    await originServer.listen()
 
     // Creates a shared `responsesDir` and `fs`. We will first populate `fs`
     // in a mocker instance with `mode: 'write'` and then reuse the same `fs`
@@ -252,10 +229,8 @@ describe(`mode = 'pass-read'`, () => {
 
     // Creates and starts mocker server with `mode: 'write'` to populate
     // `fs` with a mocked response
-    const mocker1Port = await getPort()
     await using mocker1 = await createMocker({
-      port: mocker1Port,
-      origin: `http://localhost:${originPort}`,
+      origin: `http://localhost:${originServer.port}`,
       mode: 'write',
       responsesDir,
       fs,
@@ -264,10 +239,8 @@ describe(`mode = 'pass-read'`, () => {
 
     // Creates and starts mocker server with `mode: 'pass-read'` using an
     // already populated `fs`
-    const mocker2Port = await getPort()
     await using mocker2 = await createMocker({
-      port: mocker2Port,
-      origin: `http://localhost:${originPort}`,
+      origin: `http://localhost:${originServer.port}`,
       mode: 'pass-read',
       responsesDir,
       fs,
@@ -276,7 +249,7 @@ describe(`mode = 'pass-read'`, () => {
 
     // Fires request to `mocker1` in order to populate `fs` with a mocked response
     const [request1, response1Promise] = await createRequest({
-      url: `http://localhost:${mocker1Port}/`,
+      url: `http://localhost:${mocker1.port}/`,
       method: 'GET',
     })
     request1.end()
@@ -287,7 +260,7 @@ describe(`mode = 'pass-read'`, () => {
     // Now we fire a request to `mocker2` with `mode: 'pass-read` to confirm
     // it is getting a response from origin
     const [request2, response2Promise] = await createRequest({
-      url: `http://localhost:${mocker2Port}/`,
+      url: `http://localhost:${mocker2.port}/`,
       method: 'GET',
     })
     request2.end()
@@ -301,7 +274,7 @@ describe(`mode = 'pass-read'`, () => {
     // Fires a request to `mocker2` with origin not available. It should
     // return a mocked response.
     const [request3, response3Promise] = await createRequest({
-      url: `http://localhost:${mocker2Port}/`,
+      url: `http://localhost:${mocker2.port}/`,
       method: 'GET',
     })
     request3.end()
@@ -312,14 +285,13 @@ describe(`mode = 'pass-read'`, () => {
 
   it('reads from a mocked response if origin returns a 500', async () => {
     // Creates and starts origin server
-    const originPort = await getPort()
     let shouldOriginReturn500 = false
     await using originServer = createServer(async (req, res) => {
       const statusCode = shouldOriginReturn500 ? 500 : 200
       res.writeHead(statusCode, {})
       res.end()
     })
-    await originServer.listen(originPort)
+    await originServer.listen()
 
     // Creates a shared `responsesDir` and `fs`. We will first populate `fs`
     // in a mocker instance with `mode: 'write'` and then reuse the same `fs`
@@ -328,10 +300,8 @@ describe(`mode = 'pass-read'`, () => {
 
     // Creates and starts mocker server with `mode: 'write'` to populate
     // `fs` with a mocked response
-    const mocker1Port = await getPort()
     await using mocker1 = await createMocker({
-      port: mocker1Port,
-      origin: `http://localhost:${originPort}`,
+      origin: `http://localhost:${originServer.port}`,
       mode: 'write',
       responsesDir,
       fs,
@@ -340,10 +310,8 @@ describe(`mode = 'pass-read'`, () => {
 
     // Creates and starts mocker server with `mode: 'pass-read'` using an
     // already populated `fs`
-    const mocker2Port = await getPort()
     await using mocker2 = await createMocker({
-      port: mocker2Port,
-      origin: `http://localhost:${originPort}`,
+      origin: `http://localhost:${originServer.port}`,
       mode: 'pass-read',
       responsesDir,
       fs,
@@ -352,7 +320,7 @@ describe(`mode = 'pass-read'`, () => {
 
     // Fires request to `mocker1` in order to populate `fs` with a mocked response
     const [request1, response1Promise] = await createRequest({
-      url: `http://localhost:${mocker1Port}/`,
+      url: `http://localhost:${mocker1.port}/`,
       method: 'GET',
     })
     request1.end()
@@ -363,7 +331,7 @@ describe(`mode = 'pass-read'`, () => {
     // Now we fire a request to `mocker2` with `mode: 'pass-read` to confirm
     // it is getting a response from origin
     const [request2, response2Promise] = await createRequest({
-      url: `http://localhost:${mocker2Port}/`,
+      url: `http://localhost:${mocker2.port}/`,
       method: 'GET',
     })
     request2.end()
@@ -377,7 +345,7 @@ describe(`mode = 'pass-read'`, () => {
     // Fires a request to `mocker2` with origin returning 500. It should
     // return a mocked response.
     const [request3, response3Promise] = await createRequest({
-      url: `http://localhost:${mocker2Port}/`,
+      url: `http://localhost:${mocker2.port}/`,
       method: 'GET',
     })
     request3.end()
@@ -387,14 +355,10 @@ describe(`mode = 'pass-read'`, () => {
   })
 
   it('returns 404 if origin is not available and there is no mocked response for the request', async () => {
-    // We reserve a port for origin, but we don't listen for anything on this port.
-    const originPort = await getPort()
-
-    // Creates and starts a mocker instance
-    const mockerPort = await getPort()
+    // We use a port where nothing is listening to simulate an unavailable origin.
+    // Port 1 is virtually guaranteed to be unavailable.
     await using mocker = await createMocker({
-      port: mockerPort,
-      origin: `http://localhost:${originPort}`,
+      origin: `http://localhost:1`,
       mode: 'pass-read',
     })
     await mocker.listen()
@@ -402,7 +366,7 @@ describe(`mode = 'pass-read'`, () => {
     // Fires a request to a mocker instance without an available origin and
     // without mocks
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${mockerPort}/`,
+      url: `http://localhost:${mocker.port}/`,
       method: 'GET',
     })
     request.end()

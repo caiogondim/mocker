@@ -1,15 +1,13 @@
 import { describe, it, expect } from '@jest/globals'
-import getPort from '../../src/__tests__/helpers/get-port.js'
 import { createServer, createPayload } from './index.js'
 import { createRequest, getBody } from '../../src/shared/http/index.js'
 
 describe('duplicate-request-server', () => {
   it('responds with double the payload passed on request', async () => {
     // Configure server
-    const port = await getPort()
     await using server = createServer()
-    await server.listen(port)
-    const serverUrl = `http://localhost:${port}`
+    await server.listen()
+    const serverUrl = `http://localhost:${server.port}`
 
     // Fire request
     const [request1, responsePromise1] = await createRequest({

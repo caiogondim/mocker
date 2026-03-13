@@ -1,5 +1,4 @@
 import { describe, it, expect } from '@jest/globals'
-import getPort from './helpers/get-port.js'
 import { createMocker, createMemFs } from './helpers/mocker.js'
 import { createServer as createTimeServer } from '../../tools/time-server/index.js'
 import { createServer as createStatusCodeServer } from '../../tools/status-code-server/index.js'
@@ -11,17 +10,14 @@ import { setTimeout as sleep } from 'node:timers/promises'
 describe('args.update', () => {
   it('updates all mocks with origin in case update=startup', async () => {
     // Creates origin server
-    const originPort = await getPort()
     await using timeServer = createTimeServer()
-    await timeServer.listen(originPort)
+    await timeServer.listen()
 
     // Creates mocker server
     const { fs, responsesDir } = await createMemFs()
-    const mockerPort = await getPort()
     await using mocker1 = await createMocker({
-      port: mockerPort,
       mode: 'read-write',
-      origin: `http://localhost:${originPort}`,
+      origin: `http://localhost:${timeServer.port}`,
       fs,
       responsesDir,
     })
@@ -29,7 +25,7 @@ describe('args.update', () => {
 
     // First request to mocker to create a new mocked response
     const [request1, response1Promise] = await createRequest({
-      url: `http://localhost:${mockerPort}/`,
+      url: `http://localhost:${mocker1.port}/`,
       method: 'GET',
     })
     request1.end()
@@ -44,9 +40,8 @@ describe('args.update', () => {
     // Create a new mocker instance with same file system as previous instance
     // and `update:'startup'`
     await using mocker2 = await createMocker({
-      port: mockerPort,
       mode: 'read-write',
-      origin: `http://localhost:${originPort}`,
+      origin: `http://localhost:${timeServer.port}`,
       update: 'startup',
       fs,
       responsesDir,
@@ -56,7 +51,7 @@ describe('args.update', () => {
     // Generates the same request to mocker. The response should come from a
     // mock and with an updated body due to `update: startup`
     const [request2, response2Promise] = await createRequest({
-      url: `http://localhost:${mockerPort}/`,
+      url: `http://localhost:${mocker2.port}/`,
       method: 'GET',
     })
     request2.end()
@@ -69,17 +64,14 @@ describe('args.update', () => {
 
   it('updates all mocks with origin in case update=only', async () => {
     // Given I have an origin server
-    const originPort = await getPort()
     await using timeServer = createTimeServer()
-    await timeServer.listen(originPort)
+    await timeServer.listen()
 
     // And a mocker instance configured with `{ mode: 'write' }`
     const { fs, responsesDir } = await createMemFs()
-    const mockerPort = await getPort()
     await using mocker1 = await createMocker({
-      port: mockerPort,
       mode: 'write',
-      origin: `http://localhost:${originPort}`,
+      origin: `http://localhost:${timeServer.port}`,
       fs,
       responsesDir,
     })
@@ -87,7 +79,7 @@ describe('args.update', () => {
 
     // And I create a request to mocker in order to generate a mocked response
     const [request1, response1Promise] = await createRequest({
-      url: `http://localhost:${mockerPort}/`,
+      url: `http://localhost:${mocker1.port}/`,
       method: 'GET',
     })
     request1.end()
@@ -101,9 +93,8 @@ describe('args.update', () => {
     // When I create a new mocker instance with same file system as previous instance
     // and `update:'only'`
     await using mocker2 = await createMocker({
-      port: mockerPort,
       mode: 'read-write',
-      origin: `http://localhost:${originPort}`,
+      origin: `http://localhost:${timeServer.port}`,
       update: 'only',
       fs,
       responsesDir,
@@ -123,17 +114,14 @@ describe('args.update', () => {
 
   it('terminates process after updating all mocks in case startup=only', async () => {
     // Given I have an origin server
-    const originPort = await getPort()
     await using timeServer = createTimeServer()
-    await timeServer.listen(originPort)
+    await timeServer.listen()
 
     // And I have a mocker instance configured with `{ update: 'only' }`
     const { fs, responsesDir } = await createMemFs()
-    const mockerPort = await getPort()
     const mocker = await createMocker({
-      port: mockerPort,
       mode: 'read-write',
-      origin: `http://localhost:${originPort}`,
+      origin: `http://localhost:${timeServer.port}`,
       fs,
       responsesDir,
       update: 'only',
@@ -145,7 +133,7 @@ describe('args.update', () => {
     // And send a request to it
     async function createRequestThunk() {
       const [request1] = await createRequest({
-        url: `http://localhost:${mockerPort}/`,
+        url: `http://localhost:${mocker.port}/`,
         method: 'GET',
       })
       request1.end()
@@ -158,24 +146,21 @@ describe('args.update', () => {
 
   it('preserves old mock in case origin doesnt return an HTTP 200', async () => {
     // Create origin that returns 200
-    const originPort = await getPort()
     await using timeServer = createTimeServer()
-    await timeServer.listen(originPort)
+    await timeServer.listen()
 
     // Create mocker and generate a mock
     const { fs, responsesDir } = await createMemFs()
-    const mockerPort = await getPort()
     await using mocker1 = await createMocker({
-      port: mockerPort,
       mode: 'write',
-      origin: `http://localhost:${originPort}`,
+      origin: `http://localhost:${timeServer.port}`,
       fs,
       responsesDir,
     })
     await mocker1.listen()
 
     const [request1, response1Promise] = await createRequest({
-      url: `http://localhost:${mockerPort}/`,
+      url: `http://localhost:${mocker1.port}/`,
       method: 'GET',
     })
     request1.end()
@@ -190,16 +175,13 @@ describe('args.update', () => {
 
     // Start a new origin that returns 404 on a different port
     await timeServer.close()
-    const originPort2 = await getPort()
     await using statusCodeServer = createStatusCodeServer()
-    await statusCodeServer.listen(originPort2)
+    await statusCodeServer.listen()
 
     // Start mocker with update:'startup' — origin returns 404, mock should be preserved
-    const mockerPort2 = await getPort()
     await using mocker2 = await createMocker({
-      port: mockerPort2,
       mode: 'read-write',
-      origin: `http://localhost:${originPort2}`,
+      origin: `http://localhost:${statusCodeServer.port}`,
       update: 'startup',
       fs,
       responsesDir,
@@ -214,23 +196,20 @@ describe('args.update', () => {
 
   it('preserves old mock in case there is an error while updating', async () => {
     // Create origin and generate a mock
-    const originPort = await getPort()
     await using timeServer = createTimeServer()
-    await timeServer.listen(originPort)
+    await timeServer.listen()
 
     const { fs, responsesDir } = await createMemFs()
-    const mockerPort = await getPort()
     await using mocker1 = await createMocker({
-      port: mockerPort,
       mode: 'write',
-      origin: `http://localhost:${originPort}`,
+      origin: `http://localhost:${timeServer.port}`,
       fs,
       responsesDir,
     })
     await mocker1.listen()
 
     const [request1, response1Promise] = await createRequest({
-      url: `http://localhost:${mockerPort}/`,
+      url: `http://localhost:${mocker1.port}/`,
       method: 'GET',
     })
     request1.end()
@@ -246,15 +225,11 @@ describe('args.update', () => {
     // Shut down origin so update fails with a connection error
     await timeServer.close()
 
-    // Point to a port with nothing listening — connection will be refused
-    const deadPort = await getPort()
-
+    // Point to the closed server's port — connection will be refused
     // Start mocker with update:'startup' — origin is down, mock should be preserved
-    const mockerPort2 = await getPort()
     await using mocker2 = await createMocker({
-      port: mockerPort2,
       mode: 'read-write',
-      origin: `http://localhost:${deadPort}`,
+      origin: `http://localhost:${timeServer.port}`,
       update: 'startup',
       fs,
       responsesDir,
@@ -269,17 +244,14 @@ describe('args.update', () => {
 
   it('unredacts secrets on mocks before making a request to origin', async () => {
     // Use header echo server as origin — it returns request headers as JSON body
-    const originPort = await getPort()
     await using headerEchoServer = createHeaderEchoServer()
-    await headerEchoServer.listen(originPort)
+    await headerEchoServer.listen()
 
     // Create mocker with redactedHeaders so the secret header gets redacted on disk
     const { fs, responsesDir } = await createMemFs()
-    const mockerPort = await getPort()
     await using mocker1 = await createMocker({
-      port: mockerPort,
       mode: 'write',
-      origin: `http://localhost:${originPort}`,
+      origin: `http://localhost:${headerEchoServer.port}`,
       fs,
       responsesDir,
       redactedHeaders: { authorization: 'Bearer secret-token' },
@@ -288,7 +260,7 @@ describe('args.update', () => {
 
     // Make a request with the secret header
     const [request1, response1Promise] = await createRequest({
-      url: `http://localhost:${mockerPort}/`,
+      url: `http://localhost:${mocker1.port}/`,
       method: 'GET',
       headers: { authorization: 'Bearer secret-token' },
     })
@@ -307,17 +279,14 @@ describe('args.update', () => {
 
   it('doesnt update mock if it has a redacted secret that is not present on env', async () => {
     // Use header echo server as origin
-    const originPort = await getPort()
     await using headerEchoServer = createHeaderEchoServer()
-    await headerEchoServer.listen(originPort)
+    await headerEchoServer.listen()
 
     // Create mocker with redactedHeaders to generate a mock with redacted secrets
     const { fs, responsesDir } = await createMemFs()
-    const mockerPort = await getPort()
     await using mocker1 = await createMocker({
-      port: mockerPort,
       mode: 'write',
-      origin: `http://localhost:${originPort}`,
+      origin: `http://localhost:${headerEchoServer.port}`,
       fs,
       responsesDir,
       redactedHeaders: { authorization: 'Bearer secret-token' },
@@ -325,7 +294,7 @@ describe('args.update', () => {
     await mocker1.listen()
 
     const [request1, response1Promise] = await createRequest({
-      url: `http://localhost:${mockerPort}/`,
+      url: `http://localhost:${mocker1.port}/`,
       method: 'GET',
       headers: { authorization: 'Bearer secret-token' },
     })
@@ -342,9 +311,8 @@ describe('args.update', () => {
     // Start mocker with update:'startup' but WITHOUT providing the redacted secret
     // This should trigger SecretNotFoundError and preserve the mock
     await using mocker2 = await createMocker({
-      port: mockerPort,
       mode: 'read-write',
-      origin: `http://localhost:${originPort}`,
+      origin: `http://localhost:${headerEchoServer.port}`,
       update: 'startup',
       fs,
       responsesDir,
@@ -360,17 +328,14 @@ describe('args.update', () => {
 
   it('retries in case origin returns a non-200', async () => {
     // Flaky server returns 200 on every 3rd request, 500 otherwise
-    const originPort = await getPort()
     await using flakyServer = createFlakyServer()
-    await flakyServer.listen(originPort)
+    await flakyServer.listen()
 
     // Create mocker with retries=3 so it will eventually get a 200
     const { fs, responsesDir } = await createMemFs()
-    const mockerPort = await getPort()
     await using mocker = await createMocker({
-      port: mockerPort,
       mode: 'write',
-      origin: `http://localhost:${originPort}`,
+      origin: `http://localhost:${flakyServer.port}`,
       fs,
       responsesDir,
       retries: 3,
@@ -378,7 +343,7 @@ describe('args.update', () => {
     await mocker.listen()
 
     const [request1, response1Promise] = await createRequest({
-      url: `http://localhost:${mockerPort}/`,
+      url: `http://localhost:${mocker.port}/`,
       method: 'GET',
     })
     request1.end()

@@ -17,7 +17,7 @@ function queueCalls(fn) {
       reject(error)
     }
 
-    setTimeout(loop, 0).unref()
+    setImmediate(loop)
   }
 
   /**
@@ -30,7 +30,7 @@ function queueCalls(fn) {
     })
 
     if (queue.length === 1) {
-      setTimeout(loop, 0).unref()
+      setImmediate(loop)
     }
 
     return promise

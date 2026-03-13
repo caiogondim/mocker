@@ -1,28 +1,24 @@
 import { describe, it, expect } from '@jest/globals'
-import getPort from './helpers/get-port.js'
 import { createRequest } from '../shared/http/index.js'
 import { createServer as createMathServer } from '../../tools/math-server/index.js'
 import { createMocker } from './helpers/mocker.js'
 
 describe('args.overwriteResponseHeaders', () => {
   it('overwrites headers from response coming directly from origin', async () => {
-    const originPort = await getPort()
     await using mathServer = createMathServer()
-    await mathServer.listen(originPort)
+    await mathServer.listen()
 
-    const mockerPort = await getPort()
     const contentType = 'text/lorem-ipsum'
     const overwriteResponseHeaders = { 'content-type': contentType }
     await using mocker = await createMocker({
-      port: mockerPort,
       mode: 'pass',
       overwriteResponseHeaders,
-      origin: `http://localhost:${originPort}`,
+      origin: `http://localhost:${mathServer.port}`,
     })
     await mocker.listen()
 
     const [request1, response1Promise] = await createRequest({
-      url: `http://localhost:${mockerPort}/?a=34&b=35&operation=sum`,
+      url: `http://localhost:${mocker.port}/?a=34&b=35&operation=sum`,
       method: 'GET',
     })
     request1.end()
@@ -32,25 +28,22 @@ describe('args.overwriteResponseHeaders', () => {
   })
 
   it('removes header if it has a value of `null`', async () => {
-    const originPort = await getPort()
     await using mathServer = createMathServer()
-    await mathServer.listen(originPort)
+    await mathServer.listen()
 
     // Creates a 'pass' mocker instance with `overwriteResponseHeaders`
     // arg set to remove 'content-type' header.
-    const mockerPort = await getPort()
     const overwriteResponseHeaders = { 'content-type': null }
     await using mocker = await createMocker({
       mode: 'pass',
       overwriteResponseHeaders,
-      port: mockerPort,
-      origin: `http://localhost:${originPort}`,
+      origin: `http://localhost:${mathServer.port}`,
     })
     await mocker.listen()
 
     // Fires a request to mocker.
     const [request1, response1Promise] = await createRequest({
-      url: `http://localhost:${mockerPort}/?a=34&b=35&operation=sum`,
+      url: `http://localhost:${mocker.port}/?a=34&b=35&operation=sum`,
       method: 'GET',
     })
     request1.end()
@@ -61,18 +54,15 @@ describe('args.overwriteResponseHeaders', () => {
   })
 
   it('overwrites headers from response coming from a mock', async () => {
-    const originPort = await getPort()
     await using mathServer = createMathServer()
-    await mathServer.listen(originPort)
+    await mathServer.listen()
 
-    const mockerPort = await getPort()
     const contentType = 'text/lorem-ipsum'
     const overwriteResponseHeaders = { 'content-type': contentType }
     await using mocker = await createMocker({
       overwriteResponseHeaders,
       mode: 'read-write',
-      port: mockerPort,
-      origin: `http://localhost:${originPort}`,
+      origin: `http://localhost:${mathServer.port}`,
     })
     await mocker.listen()
 
@@ -81,7 +71,7 @@ describe('args.overwriteResponseHeaders', () => {
     //
 
     const [request1, response1Promise] = await createRequest({
-      url: `http://localhost:${mockerPort}/?a=34&b=35&operation=sum`,
+      url: `http://localhost:${mocker.port}/?a=34&b=35&operation=sum`,
       method: 'GET',
     })
     request1.end()
@@ -95,7 +85,7 @@ describe('args.overwriteResponseHeaders', () => {
     //
 
     const [request2, response2Promise] = await createRequest({
-      url: `http://localhost:${mockerPort}/?a=34&b=35&operation=sum`,
+      url: `http://localhost:${mocker.port}/?a=34&b=35&operation=sum`,
       method: 'GET',
     })
     request2.end()

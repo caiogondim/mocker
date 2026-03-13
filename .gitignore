@@ -21,3 +21,9 @@ coverage/
 Icon?
 notes.md
 responses/httpbin
+
+# Rust
+proxies/rust-proxy/target/
+
+# Swift
+proxies/swift-proxy/.build/

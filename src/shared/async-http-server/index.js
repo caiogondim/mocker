@@ -11,10 +11,10 @@ function createAsyncHttpServer(connectionHandler) {
 
   return {
     /**
-     * @param {number} port
+     * @param {number} [port]
      * @returns {Promise<void>}
      */
-    listen(port) {
+    listen(port = 0) {
       return new Promise((resolve) => {
         server.listen(port, resolve)
       })
@@ -27,6 +27,11 @@ function createAsyncHttpServer(connectionHandler) {
     },
     get listening() {
       return server.listening
+    },
+    get port() {
+      const addr = server.address()
+      if (addr && typeof addr === 'object') return addr.port
+      return 0
     },
     async [Symbol.asyncDispose]() {
       await this.close()

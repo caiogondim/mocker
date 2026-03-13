@@ -33,10 +33,6 @@ function dim(str) {
 }
 
 /**
- * Based on stripMargin from Scala
- * https://docs.scala-lang.org/overviews/scala-book/two-notes-about-strings.html#multiline-strings.
- *
- *
  * @param {string} str
  * @param {string} [marginChar]
  * @returns {string}

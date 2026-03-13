@@ -1,4 +1,9 @@
 /** @typedef {import('./types.js').Args} Args */
+/** @typedef {import('./types.js').HttpUrl} HttpUrl */
+/** @typedef {import('./types.js').AbsoluteDirPath} AbsoluteDirPath */
+/** @typedef {import('./types.js').NonNegativeInteger} NonNegativeInteger */
+/** @typedef {import('./types.js').HttpPort} HttpPort */
+/** @typedef {import('./types.js').ThrottleValue} ThrottleValue */
 /** @typedef {import('../shared/http/types.js').Headers} Headers */
 /** @typedef {Map<string, string>} ArgvMap */
 
@@ -14,15 +19,17 @@ import { stringify } from '../shared/logger/format/index.js'
 import isPortTaken from '../shared/is-port-taken/index.js'
 import { isHeaders } from '../shared/http/index.js'
 
+const MODE = /** @type {const} */ ({
+  READ: 'read',
+  WRITE: 'write',
+  READ_WRITE: 'read-write',
+  PASS: 'pass',
+  READ_PASS: 'read-pass',
+  PASS_READ: 'pass-read',
+})
+
 /** @type {Readonly<string[]>} */
-const MODE_VALID_VALUES = [
-  'read',
-  'write',
-  'read-write',
-  'pass',
-  'read-pass',
-  'pass-read',
-]
+const MODE_VALID_VALUES = Object.values(MODE)
 
 /** @type {Readonly<string[]>} */
 const UPDATE_VALID_VALUES = ['off', 'startup', 'only']
@@ -35,7 +42,7 @@ const MOCK_KEYS_BODY_REGEX = /^body(?:\.[A-Za-z0-9\-_]+)*$/
 
 const RESPONSES_DIR_DEFAULT = '.'
 /** @type {Args['mode']} */
-const MODE_DEFAULT = 'pass'
+const MODE_DEFAULT = MODE.PASS
 /** @type {Args['update']} */
 const UPDATE_DEFAULT = 'off'
 const MOCK_KEYS_DEFAULT = new Set(['method', 'url'])
@@ -50,6 +57,8 @@ const RETRIES_DEFAULT = 0
 /** @type {Args['overwriteResponseHeaders']} */
 const OVERWRITE_RESPONSE_HEADERS_DEFAULT = {}
 const CORS_DEFAULT = false
+
+const PROXY_DEFAULT = /** @type {HttpUrl} */ ('')
 
 /**
  * @param {ArgvMap} argvMap
@@ -106,6 +115,7 @@ function validateArgvKeys(argv) {
     '--overwriteResponseHeaders',
     '--overwriteRequestHeaders',
     '--cors',
+    '--proxy',
   ]
 
   for (let i = 2; i < argv.length; i += 2) {
@@ -237,32 +247,31 @@ function getMockKeys(argvMap) {
 
 /**
  * @param {ArgvMap} argvMap
- * @returns {Args['redactedHeaders']}
+ * @param {string} argName
+ * @param {Headers} defaultValue
+ * @returns {Headers}
  */
-function getRedactedHeaders(argvMap) {
-  const redactedHeadersArgv = argvMap.get('redactedHeaders')
+function getJsonHeadersArg(argvMap, argName, defaultValue) {
+  const argvValue = argvMap.get(argName)
 
   try {
-    const redactedHeaders =
-      redactedHeadersArgv === undefined
-        ? REDACTED_HEADERS_DEFAULT
-        : JSON.parse(redactedHeadersArgv)
-    if (!isHeaders(redactedHeaders)) {
+    const headers =
+      argvValue === undefined ? defaultValue : JSON.parse(argvValue)
+    if (!isHeaders(headers)) {
       throw prettifyError({
-        error: new TypeError(`invalid --redactedHeaders`),
+        error: new TypeError(`invalid --${argName}`),
         expected: `valid Header type { [header: string]: string[] | string | number | null | undefined }`,
-        received: stringify(redactedHeaders),
+        received: stringify(headers),
       })
     }
 
-    return redactedHeaders
+    return headers
   } catch (error) {
-    // Error from JSON.parse()
     if (error instanceof SyntaxError) {
       throw prettifyError({
-        error: new TypeError('invalid --redactedHeaders'),
+        error: new TypeError(`invalid --${argName}`),
         expected: `valid JSON string`,
-        received: stringify(redactedHeadersArgv),
+        received: stringify(argvValue),
       })
     } else {
       throw error
@@ -272,7 +281,15 @@ function getRedactedHeaders(argvMap) {
 
 /**
  * @param {ArgvMap} argvMap
- * @returns {Args['retries']}
+ * @returns {Args['redactedHeaders']}
+ */
+function getRedactedHeaders(argvMap) {
+  return getJsonHeadersArg(argvMap, 'redactedHeaders', REDACTED_HEADERS_DEFAULT)
+}
+
+/**
+ * @param {ArgvMap} argvMap
+ * @returns {NonNegativeInteger}
  */
 function getRetries(argvMap) {
   const retriesArgv = argvMap.get('retries')
@@ -290,7 +307,7 @@ function getRetries(argvMap) {
     })
   }
 
-  return retries
+  return /** @type {NonNegativeInteger} */ (retries)
 }
 
 /**
@@ -298,33 +315,11 @@ function getRetries(argvMap) {
  * @returns {Args['overwriteResponseHeaders']}
  */
 function getOverwriteResponseHeaders(argvMap) {
-  const overwriteResponseHeadersArgv = argvMap.get('overwriteResponseHeaders')
-  try {
-    const overwriteResponseHeaders =
-      overwriteResponseHeadersArgv === undefined
-        ? OVERWRITE_RESPONSE_HEADERS_DEFAULT
-        : JSON.parse(overwriteResponseHeadersArgv)
-
-    if (!isHeaders(overwriteResponseHeaders)) {
-      throw prettifyError({
-        error: new TypeError(`invalid --overwriteResponseHeaders`),
-        expected: `valid Header type { [header: string]: string[] | string | number | null | undefined }`,
-        received: stringify(overwriteResponseHeaders),
-      })
-    }
-
-    return overwriteResponseHeaders
-  } catch (error) {
-    if (error instanceof SyntaxError) {
-      throw prettifyError({
-        error: new TypeError('invalid --overwriteResponseHeaders'),
-        expected: `valid JSON string`,
-        received: stringify(overwriteResponseHeadersArgv),
-      })
-    } else {
-      throw error
-    }
-  }
+  return getJsonHeadersArg(
+    argvMap,
+    'overwriteResponseHeaders',
+    OVERWRITE_RESPONSE_HEADERS_DEFAULT,
+  )
 }
 
 /**
@@ -332,38 +327,16 @@ function getOverwriteResponseHeaders(argvMap) {
  * @returns {Args['overwriteRequestHeaders']}
  */
 function getOverwriteRequestHeaders(argvMap) {
-  const overwriteRequestHeadersArgv = argvMap.get('overwriteRequestHeaders')
-  try {
-    const overwriteRequestHeaders =
-      overwriteRequestHeadersArgv === undefined
-        ? getDefaultOverwriteRequestHeaders(argvMap)
-        : JSON.parse(overwriteRequestHeadersArgv)
-
-    if (!isHeaders(overwriteRequestHeaders)) {
-      throw prettifyError({
-        error: new TypeError(`invalid --overwriteRequestHeaders`),
-        expected: `valid Header type { [header: string]: string[] | string | number | null | undefined }`,
-        received: stringify(overwriteRequestHeaders),
-      })
-    }
-
-    return overwriteRequestHeaders
-  } catch (error) {
-    if (error instanceof SyntaxError) {
-      throw prettifyError({
-        error: new TypeError('invalid --overwriteRequestHeaders'),
-        expected: `valid JSON string`,
-        received: stringify(overwriteRequestHeadersArgv),
-      })
-    } else {
-      throw error
-    }
-  }
+  return getJsonHeadersArg(
+    argvMap,
+    'overwriteRequestHeaders',
+    getDefaultOverwriteRequestHeaders(argvMap),
+  )
 }
 
 /**
  * @param {ArgvMap} argvMap
- * @returns {Promise<Args['port']>}
+ * @returns {Promise<HttpPort>}
  */
 async function getPort(argvMap) {
   const portArgv = argvMap.get('port')
@@ -387,12 +360,12 @@ async function getPort(argvMap) {
     })
   }
 
-  return port
+  return /** @type {HttpPort} */ (port)
 }
 
 /**
  * @param {ArgvMap} argvMap
- * @returns {Args['origin']}
+ * @returns {HttpUrl}
  */
 function getOrigin(argvMap) {
   const originArgv = argvMap.get('origin')
@@ -418,12 +391,12 @@ function getOrigin(argvMap) {
     })
   }
 
-  return origin
+  return /** @type {HttpUrl} */ (origin)
 }
 
 /**
  * @param {ArgvMap} argvMap
- * @returns {Args['delay']}
+ * @returns {NonNegativeInteger}
  */
 function getDelay(argvMap) {
   const argvDelay = argvMap.get('delay')
@@ -439,12 +412,12 @@ function getDelay(argvMap) {
     })
   }
 
-  return delay
+  return /** @type {NonNegativeInteger} */ (delay)
 }
 
 /**
  * @param {ArgvMap} argvMap
- * @returns {Args['throttle']}
+ * @returns {ThrottleValue}
  */
 function getThrottle(argvMap) {
   const argvThrottle = argvMap.get('throttle')
@@ -461,12 +434,12 @@ function getThrottle(argvMap) {
     })
   }
 
-  return throttle
+  return /** @type {ThrottleValue} */ (throttle)
 }
 
 /**
  * @param {ArgvMap} argvMap
- * @returns {Promise<Args['responsesDir']>}
+ * @returns {Promise<AbsoluteDirPath>}
  */
 async function getResponsesDir(argvMap) {
   const responsesDir = argvMap.get('responsesDir') ?? RESPONSES_DIR_DEFAULT
@@ -488,12 +461,12 @@ async function getResponsesDir(argvMap) {
     throw error
   }
 
-  return resolvedPath
+  return /** @type {AbsoluteDirPath} */ (resolvedPath)
 }
 
 /**
  * @param {ArgvMap} argvMap
- * @returns {Args['workers']}
+ * @returns {NonNegativeInteger}
  */
 function getWorkers(argvMap) {
   const argvWorkers = argvMap.get('workers')
@@ -511,7 +484,7 @@ function getWorkers(argvMap) {
     })
   }
 
-  return workers
+  return /** @type {NonNegativeInteger} */ (workers)
 }
 
 /**
@@ -553,6 +526,39 @@ function getCors(argvMap) {
 }
 
 /**
+ * @param {ArgvMap} argvMap
+ * @returns {HttpUrl}
+ */
+function getProxy(argvMap) {
+  const proxy = argvMap.get('proxy') ?? PROXY_DEFAULT
+
+  if (proxy === '') {
+    return /** @type {HttpUrl} */ (proxy)
+  }
+
+  let url
+  try {
+    url = new URL(proxy)
+  } catch {
+    throw prettifyError({
+      error: new TypeError(`invalid --proxy`),
+      expected: `valid HTTP or HTTPS URL`,
+      received: stringify(proxy),
+    })
+  }
+
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+    throw prettifyError({
+      error: new TypeError(`invalid --proxy`),
+      expected: `URL with HTTP or HTTPS protocol`,
+      received: stringify(proxy),
+    })
+  }
+
+  return /** @type {HttpUrl} */ (proxy)
+}
+
+/**
  * @param {string[]} argv
  * @returns {Promise<Args>}
  */
@@ -579,6 +585,7 @@ async function parseArgv(argv) {
   const overwriteResponseHeaders = getOverwriteResponseHeaders(argvMap)
   const overwriteRequestHeaders = getOverwriteRequestHeaders(argvMap)
   const cors = getCors(argvMap)
+  const proxy = getProxy(argvMap)
 
   /** @type {Args} */
   const args = {
@@ -597,6 +604,7 @@ async function parseArgv(argv) {
     overwriteResponseHeaders,
     overwriteRequestHeaders,
     cors,
+    proxy,
   }
 
   return args
@@ -604,6 +612,7 @@ async function parseArgv(argv) {
 
 export {
   parseArgv,
+  MODE,
   RESPONSES_DIR_DEFAULT,
   PORT_DEFAULT,
   DELAY_DEFAULT,
@@ -621,4 +630,5 @@ export {
   LOGGING_VALID_VALUES,
   OVERWRITE_RESPONSE_HEADERS_DEFAULT,
   CORS_DEFAULT,
+  PROXY_DEFAULT,
 }

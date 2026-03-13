@@ -20,6 +20,7 @@ import {
   LOGGING_DEFAULT,
   LOGGING_VALID_VALUES,
   OVERWRITE_RESPONSE_HEADERS_DEFAULT,
+  PROXY_DEFAULT,
 } from './src/args/index.js'
 import Mocker from './src/index.js'
 import createLogger from './src/shared/logger/index.js'
@@ -123,6 +124,12 @@ function printHelp() {
         `  [--mockKeys <val1,val2>]`,
         `Set of: ${stringify([...MOCK_KEYS_VALID_VALUES, 'body.**'])} ${dim(
           `[default: ${stringify(mockKeysDefaultStr)}]`,
+        )}`,
+      ],
+      [
+        `  [--proxy <proxy>]`,
+        `An HTTP/HTTPS URL ${dim(
+          `[default: ${stringify(PROXY_DEFAULT)}]`,
         )}`,
       ],
     ),

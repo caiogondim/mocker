@@ -2,8 +2,6 @@ import { PassThrough, Transform } from 'node:stream'
 import { setTimeout as sleep } from 'node:timers/promises'
 
 /**
- * Adds an artifical delay to a stream pipeline.
- *
  * @param {Object} options
  * @param {number} options.ms
  * @returns {Transform}
