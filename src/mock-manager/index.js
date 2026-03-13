@@ -34,8 +34,8 @@ const RESPONSE_FILE_REGEX = /\.json$/
  * @param {string} input
  * @returns {string}
  */
-function sha256(input) {
-  return crypto.hash('sha256', input, 'hex')
+function shortHash(input) {
+  return crypto.hash('sha256', input, 'hex').slice(0, 12)
 }
 
 /**
@@ -182,7 +182,7 @@ async function requestToMockPath(
   }
 
   fileName = fileName.trim()
-  fileName = `${sha256(fileName)}.json`
+  fileName = `${shortHash(fileName)}.json`
 
   const filePath = path.join(responsesDir, fileName)
   return filePath
