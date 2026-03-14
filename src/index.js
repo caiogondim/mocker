@@ -172,7 +172,7 @@ class Mocker {
     })
 
     this.#mockManager = createMockManager({
-      responsesDir: args.responsesDir,
+      mocksDir: args.mocksDir,
       mockKeys: args.mockKeys,
       redactedHeaders: args.redactedHeaders,
       fs: args.fs,

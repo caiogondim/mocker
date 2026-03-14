@@ -203,12 +203,12 @@ describe('--update', () => {
   })
 })
 
-describe('--responsesDir', () => {
+describe('--mocksDir', () => {
   it('receives a default value if not set', async () => {
     const argv = ['', '', ...getRequiredArgs()]
     const args = await parseArgv(argv)
 
-    expect(args.responsesDir).not.toBe(undefined)
+    expect(args.mocksDir).not.toBe(undefined)
   })
 
   it('doesnt throw an error for a valid value', async () => {
@@ -217,7 +217,7 @@ describe('--responsesDir', () => {
       '',
       '--origin',
       'https://example.com',
-      '--responsesDir',
+      '--mocksDir',
       'src/',
     ]
     await parseArgv(argv)
@@ -229,17 +229,17 @@ describe('--responsesDir', () => {
       '',
       '--origin',
       'https://example.com',
-      '--responsesDir',
+      '--mocksDir',
       'non-existing-folder',
     ]
-    await expect(parseArgv(argv)).rejects.toThrow(/invalid --responsesDir/)
+    await expect(parseArgv(argv)).rejects.toThrow(/invalid --mocksDir/)
   })
 
   it('normalizes to an absolute path', async () => {
     const argv = ['', '', ...getRequiredArgs()]
     const args = await parseArgv(argv)
 
-    expect(path.isAbsolute(args.responsesDir)).toBe(true)
+    expect(path.isAbsolute(args.mocksDir)).toBe(true)
   })
 })
 

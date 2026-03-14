@@ -261,17 +261,17 @@ describe(`mode = 'pass-read'`, () => {
     await using originServer = createTimeServer()
     await originServer.listen()
 
-    // Creates a shared `responsesDir` and `fs`. We will first populate `fs`
+    // Creates a shared `mocksDir` and `fs`. We will first populate `fs`
     // in a mocker instance with `mode: 'write'` and then reuse the same `fs`
     // in another instance with `mode: 'pass-read'`
-    const { responsesDir, fs } = await createMemFs()
+    const { mocksDir, fs } = await createMemFs()
 
     // Creates and starts mocker server with `mode: 'write'` to populate
     // `fs` with a mocked response
     await using mocker1 = await createMocker({
       origin: `http://localhost:${originServer.port}`,
       mode: 'write',
-      responsesDir,
+      mocksDir,
       fs,
     })
     await mocker1.listen()
@@ -281,7 +281,7 @@ describe(`mode = 'pass-read'`, () => {
     await using mocker2 = await createMocker({
       origin: `http://localhost:${originServer.port}`,
       mode: 'pass-read',
-      responsesDir,
+      mocksDir,
       fs,
     })
     await mocker2.listen()
@@ -338,17 +338,17 @@ describe(`mode = 'pass-read'`, () => {
     })
     await originServer.listen()
 
-    // Creates a shared `responsesDir` and `fs`. We will first populate `fs`
+    // Creates a shared `mocksDir` and `fs`. We will first populate `fs`
     // in a mocker instance with `mode: 'write'` and then reuse the same `fs`
     // in another instance with `mode: 'pass-read'`
-    const { responsesDir, fs } = await createMemFs()
+    const { mocksDir, fs } = await createMemFs()
 
     // Creates and starts mocker server with `mode: 'write'` to populate
     // `fs` with a mocked response
     await using mocker1 = await createMocker({
       origin: `http://localhost:${originServer.port}`,
       mode: 'write',
-      responsesDir,
+      mocksDir,
       fs,
     })
     await mocker1.listen()
@@ -358,7 +358,7 @@ describe(`mode = 'pass-read'`, () => {
     await using mocker2 = await createMocker({
       origin: `http://localhost:${originServer.port}`,
       mode: 'pass-read',
-      responsesDir,
+      mocksDir,
       fs,
     })
     await mocker2.listen()

@@ -15,12 +15,12 @@ describe('args.update', () => {
     await timeServer.listen()
 
     // Creates mocker server
-    const { fs, responsesDir } = await createMemFs()
+    const { fs, mocksDir } = await createMemFs()
     await using mocker1 = await createMocker({
       mode: 'read-write',
       origin: `http://localhost:${timeServer.port}`,
       fs,
-      responsesDir,
+      mocksDir,
     })
     await mocker1.listen()
 
@@ -47,7 +47,7 @@ describe('args.update', () => {
       origin: `http://localhost:${timeServer.port}`,
       update: 'startup',
       fs,
-      responsesDir,
+      mocksDir,
     })
     await mocker2.listen()
 
@@ -73,12 +73,12 @@ describe('args.update', () => {
     await timeServer.listen()
 
     // And a mocker instance configured with `{ mode: 'write' }`
-    const { fs, responsesDir } = await createMemFs()
+    const { fs, mocksDir } = await createMemFs()
     await using mocker1 = await createMocker({
       mode: 'write',
       origin: `http://localhost:${timeServer.port}`,
       fs,
-      responsesDir,
+      mocksDir,
     })
     await mocker1.listen()
 
@@ -104,14 +104,14 @@ describe('args.update', () => {
       origin: `http://localhost:${timeServer.port}`,
       update: 'only',
       fs,
-      responsesDir,
+      mocksDir,
     })
     await mocker2.listen()
 
     // Then it should update the mocked response on disk
-    const files = await fs.promises.readdir(responsesDir)
+    const files = await fs.promises.readdir(mocksDir)
     const fileContentBuffer = await fs.promises.readFile(
-      `${responsesDir}/${files[0]}`,
+      `${mocksDir}/${files[0]}`,
     )
     const fileContentJson = JSON.parse(fileContentBuffer.toString())
     const response2Body = fileContentJson.response.body
@@ -125,12 +125,12 @@ describe('args.update', () => {
     await timeServer.listen()
 
     // And I have a mocker instance configured with `{ update: 'only' }`
-    const { fs, responsesDir } = await createMemFs()
+    const { fs, mocksDir } = await createMemFs()
     const mocker = await createMocker({
       mode: 'read-write',
       origin: `http://localhost:${timeServer.port}`,
       fs,
-      responsesDir,
+      mocksDir,
       update: 'only',
     })
 
@@ -159,12 +159,12 @@ describe('args.update', () => {
     await timeServer.listen()
 
     // Create mocker and generate a mock
-    const { fs, responsesDir } = await createMemFs()
+    const { fs, mocksDir } = await createMemFs()
     await using mocker1 = await createMocker({
       mode: 'write',
       origin: `http://localhost:${timeServer.port}`,
       fs,
-      responsesDir,
+      mocksDir,
     })
     await mocker1.listen()
 
@@ -179,9 +179,9 @@ describe('args.update', () => {
     await mocker1.close()
 
     // Read the mock content before update
-    const files = await fs.promises.readdir(responsesDir)
+    const files = await fs.promises.readdir(mocksDir)
     const mockBefore = (
-      await fs.promises.readFile(`${responsesDir}/${files[0]}`)
+      await fs.promises.readFile(`${mocksDir}/${files[0]}`)
     ).toString()
 
     // Start a new origin that returns 404 on a different port
@@ -195,12 +195,12 @@ describe('args.update', () => {
       origin: `http://localhost:${statusCodeServer.port}`,
       update: 'startup',
       fs,
-      responsesDir,
+      mocksDir,
     })
     await mocker2.listen()
 
     const mockAfter = (
-      await fs.promises.readFile(`${responsesDir}/${files[0]}`)
+      await fs.promises.readFile(`${mocksDir}/${files[0]}`)
     ).toString()
     expect(mockAfter).toBe(mockBefore)
   })
@@ -210,12 +210,12 @@ describe('args.update', () => {
     await using timeServer = createTimeServer()
     await timeServer.listen()
 
-    const { fs, responsesDir } = await createMemFs()
+    const { fs, mocksDir } = await createMemFs()
     await using mocker1 = await createMocker({
       mode: 'write',
       origin: `http://localhost:${timeServer.port}`,
       fs,
-      responsesDir,
+      mocksDir,
     })
     await mocker1.listen()
 
@@ -230,9 +230,9 @@ describe('args.update', () => {
     await mocker1.close()
 
     // Read mock content before update
-    const files = await fs.promises.readdir(responsesDir)
+    const files = await fs.promises.readdir(mocksDir)
     const mockBefore = (
-      await fs.promises.readFile(`${responsesDir}/${files[0]}`)
+      await fs.promises.readFile(`${mocksDir}/${files[0]}`)
     ).toString()
 
     // Shut down origin so update fails with a connection error
@@ -245,12 +245,12 @@ describe('args.update', () => {
       origin: `http://localhost:${timeServer.port}`,
       update: 'startup',
       fs,
-      responsesDir,
+      mocksDir,
     })
     await mocker2.listen()
 
     const mockAfter = (
-      await fs.promises.readFile(`${responsesDir}/${files[0]}`)
+      await fs.promises.readFile(`${mocksDir}/${files[0]}`)
     ).toString()
     expect(mockAfter).toBe(mockBefore)
   })
@@ -261,12 +261,12 @@ describe('args.update', () => {
     await headerEchoServer.listen()
 
     // Create mocker with redactedHeaders so the secret header gets redacted on disk
-    const { fs, responsesDir } = await createMemFs()
+    const { fs, mocksDir } = await createMemFs()
     await using mocker1 = await createMocker({
       mode: 'write',
       origin: `http://localhost:${headerEchoServer.port}`,
       fs,
-      responsesDir,
+      mocksDir,
       redactedHeaders: { authorization: 'Bearer secret-token' },
     })
     await mocker1.listen()
@@ -284,9 +284,9 @@ describe('args.update', () => {
     await mocker1.close()
 
     // Verify the mock on disk has the header redacted
-    const files = await fs.promises.readdir(responsesDir)
+    const files = await fs.promises.readdir(mocksDir)
     const mockContent = JSON.parse(
-      (await fs.promises.readFile(`${responsesDir}/${files[0]}`)).toString(),
+      (await fs.promises.readFile(`${mocksDir}/${files[0]}`)).toString(),
     )
     expect(mockContent.request.headers.authorization).toBe('[REDACTED]')
     await headerEchoServer.close()
@@ -298,12 +298,12 @@ describe('args.update', () => {
     await headerEchoServer.listen()
 
     // Create mocker with redactedHeaders to generate a mock with redacted secrets
-    const { fs, responsesDir } = await createMemFs()
+    const { fs, mocksDir } = await createMemFs()
     await using mocker1 = await createMocker({
       mode: 'write',
       origin: `http://localhost:${headerEchoServer.port}`,
       fs,
-      responsesDir,
+      mocksDir,
       redactedHeaders: { authorization: 'Bearer secret-token' },
     })
     await mocker1.listen()
@@ -320,9 +320,9 @@ describe('args.update', () => {
     await mocker1.close()
 
     // Read mock before update
-    const files = await fs.promises.readdir(responsesDir)
+    const files = await fs.promises.readdir(mocksDir)
     const mockBefore = (
-      await fs.promises.readFile(`${responsesDir}/${files[0]}`)
+      await fs.promises.readFile(`${mocksDir}/${files[0]}`)
     ).toString()
 
     // Start mocker with update:'startup' but WITHOUT providing the redacted secret
@@ -332,13 +332,13 @@ describe('args.update', () => {
       origin: `http://localhost:${headerEchoServer.port}`,
       update: 'startup',
       fs,
-      responsesDir,
+      mocksDir,
       redactedHeaders: {},
     })
     await mocker2.listen()
 
     const mockAfter = (
-      await fs.promises.readFile(`${responsesDir}/${files[0]}`)
+      await fs.promises.readFile(`${mocksDir}/${files[0]}`)
     ).toString()
     expect(mockAfter).toBe(mockBefore)
   })
@@ -349,12 +349,12 @@ describe('args.update', () => {
     await flakyServer.listen()
 
     // Create mocker with retries=3 so it will eventually get a 200
-    const { fs, responsesDir } = await createMemFs()
+    const { fs, mocksDir } = await createMemFs()
     await using mocker = await createMocker({
       mode: 'write',
       origin: `http://localhost:${flakyServer.port}`,
       fs,
-      responsesDir,
+      mocksDir,
       retries: 3,
     })
     await mocker.listen()

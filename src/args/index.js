@@ -47,7 +47,7 @@ const LOGGING_VALID_VALUES = loggerValidLevels
 /** @type {Readonly<RegExp>} */
 const MOCK_KEYS_BODY_REGEX = /^body(?:\.[A-Za-z0-9\-_]+)*$/
 
-const RESPONSES_DIR_DEFAULT = '.'
+const MOCKS_DIR_DEFAULT = '.'
 /** @type {Args['mode']} */
 const MODE_DEFAULT = MODE.PASS
 /** @type {Args['update']} */
@@ -112,7 +112,7 @@ function validateArgvKeys(argv) {
     '--throttle',
     '--update',
     '--mode',
-    '--responsesDir',
+    '--mocksDir',
     '--logging',
     '--mockKeys',
     '--redactedHeaders',
@@ -426,15 +426,15 @@ function getThrottle(argvMap) {
  * @param {ArgvMap} argvMap
  * @returns {Promise<AbsoluteDirPath>}
  */
-async function getResponsesDir(argvMap) {
-  const responsesDir = argvMap.get('responsesDir') ?? RESPONSES_DIR_DEFAULT
-  const result = await parseAbsoluteDirPath(responsesDir)
+async function getMocksDir(argvMap) {
+  const mocksDir = argvMap.get('mocksDir') ?? MOCKS_DIR_DEFAULT
+  const result = await parseAbsoluteDirPath(mocksDir)
 
   if (!result.ok) {
     throw prettifyError({
-      error: new TypeError(`invalid --responsesDir`),
+      error: new TypeError(`invalid --mocksDir`),
       expected: `a valid folder path`,
-      received: stringify(responsesDir),
+      received: stringify(mocksDir),
     })
   }
 
@@ -525,7 +525,7 @@ async function parseArgv(argv) {
   const origin = getOrigin(argvMap)
   const delay = getDelay(argvMap)
   const throttle = getThrottle(argvMap)
-  const responsesDir = await getResponsesDir(argvMap)
+  const mocksDir = await getMocksDir(argvMap)
   const mockKeys = getMockKeys(argvMap)
   const retries = getRetries(argvMap)
   const redactedHeaders = getRedactedHeaders(argvMap)
@@ -542,7 +542,7 @@ async function parseArgv(argv) {
     origin,
     delay,
     throttle,
-    responsesDir,
+    mocksDir,
     logging,
     mockKeys,
     redactedHeaders,
@@ -559,7 +559,7 @@ async function parseArgv(argv) {
 export {
   parseArgv,
   MODE,
-  RESPONSES_DIR_DEFAULT,
+  MOCKS_DIR_DEFAULT,
   PORT_DEFAULT,
   DELAY_DEFAULT,
   MODE_DEFAULT,

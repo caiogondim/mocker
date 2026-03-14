@@ -6,13 +6,13 @@ import { Volume, createFsFromVolume } from 'memfs'
 import Mocker from '../../index.js'
 
 async function createMemFs() {
-  const responsesDir = '/tmp'
+  const mocksDir = '/tmp'
   const volume = new Volume()
   const fs = createFsFromVolume(volume)
-  await fs.promises.mkdir(responsesDir)
+  await fs.promises.mkdir(mocksDir)
 
   return {
-    responsesDir,
+    mocksDir,
     fs,
   }
 }
@@ -50,10 +50,10 @@ async function createMocker(args = {}) {
     throw new TypeError('args.origin is missing')
   }
 
-  const { responsesDir, fs } = await createMemFs()
+  const { mocksDir, fs } = await createMemFs()
   return new Mocker(
     /** @type {Args & { fs: FsLike }} */ ({
-      responsesDir,
+      mocksDir,
       fs,
       origin: '',
       mode: 'read-write',

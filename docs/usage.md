@@ -1,7 +1,7 @@
 ## Usage
 
 ```bash
-npm start -- --origin http://example.com --responsesDir ./responses/example-com --mode read-write
+npm start -- --origin http://example.com --mocksDir ./responses/example-com --mode read-write
 ```
 
 ## Options
@@ -11,10 +11,10 @@ npm start -- --origin http://example.com --responsesDir ./responses/example-com 
 - Required: `true`
 - e.g.: `--origin https://graphql.example.com`
 
-`--responsesDir`
+`--mocksDir`
 
 - Required: `true`
-- e.g.: `--responsesDir /path/to/folder`
+- e.g.: `--mocksDir /path/to/folder`
 
 Path to read/write mocked responses.
 
@@ -72,9 +72,9 @@ Adds a synthetic throttling to each request. Value in kB/s.
 - Required: `false`
 - Default: `off`
 - Valid values:
-  - `startup`: updates all mocks in `--responsesDir` at startup time.
+  - `startup`: updates all mocks in `--mocksDir` at startup time.
   - `off`
-  - `only`: updates all mocks in `--responsesDir` and terminates process
+  - `only`: updates all mocks in `--mocksDir` and terminates process
 
 `--mode`
 

@@ -240,14 +240,14 @@ function buildLabel(body, request, mockKeys) {
 /**
  * @param {(HttpIncomingMessage | MockedRequest) & Rewindable} request
  * @param {ConnectionId} connectionId
- * @param {Args['responsesDir']} responsesDir
+ * @param {Args['mocksDir']} mocksDir
  * @param {Args['mockKeys']} mockKeys
  * @returns {Promise<string>}
  */
 async function requestToMockPath(
   request,
   connectionId,
-  responsesDir,
+  mocksDir,
   mockKeys,
 ) {
   const reqBody = await getBody(request.rewind())
@@ -286,7 +286,7 @@ async function requestToMockPath(
   const truncatedLabel = label.slice(0, maxLabelLength)
   fileName = `${hash}-${truncatedLabel}.json`
 
-  const filePath = path.join(responsesDir, fileName)
+  const filePath = path.join(mocksDir, fileName)
   return filePath
 }
 
@@ -334,13 +334,13 @@ function buildMockedPair(fileJson, statusCode, redactedHeaders) {
 
 /**
  * @param {Object} options
- * @param {Args['responsesDir']} options.responsesDir
+ * @param {Args['mocksDir']} options.mocksDir
  * @param {Args['mockKeys']} [options.mockKeys]
  * @param {Args['redactedHeaders']} [options.redactedHeaders]
  * @param {FsLike} [options.fs]
  */
 function createMockManager({
-  responsesDir,
+  mocksDir,
   mockKeys = new Set(['url', 'method']),
   redactedHeaders = {},
   fs = nativeFs,
@@ -362,7 +362,7 @@ function createMockManager({
     const mockPath = await requestToMockPath(
       request,
       connectionId,
-      responsesDir,
+      mocksDir,
       mockKeys,
     )
     const accessResult = await tryCatchAsync(() => fsPromises.access(mockPath))
@@ -382,7 +382,7 @@ function createMockManager({
     const filePath = await requestToMockPath(
       request,
       connectionId,
-      responsesDir,
+      mocksDir,
       mockKeys,
     )
     const fileContent = await fsPromises.readFile(filePath)
@@ -434,7 +434,7 @@ function createMockManager({
     const filePath = await requestToMockPath(
       request,
       connectionId,
-      responsesDir,
+      mocksDir,
       mockKeys,
     )
     const reqBodyBuffer = await getBody(request.rewind())
@@ -507,11 +507,11 @@ function createMockManager({
 
   async function clear() {
     const files = /** @type {string[]} */ (
-      await fsPromises.readdir(responsesDir)
+      await fsPromises.readdir(mocksDir)
     )
     for (const file of files) {
       if (RESPONSE_FILE_REGEX.test(file)) {
-        await fsPromises.unlink(path.join(responsesDir, file))
+        await fsPromises.unlink(path.join(mocksDir, file))
       }
     }
   }
@@ -526,10 +526,10 @@ function createMockManager({
    */
   async function* getAll() {
     const files = /** @type {string[]} */ (
-      await fsPromises.readdir(responsesDir)
+      await fsPromises.readdir(mocksDir)
     )
     for (const file of files) {
-      const filePath = path.join(responsesDir, file)
+      const filePath = path.join(mocksDir, file)
       if (!filePath.endsWith('.json')) {
         continue
       }
@@ -571,11 +571,11 @@ function createMockManager({
    */
   async function size() {
     const files = /** @type {string[]} */ (
-      await fsPromises.readdir(responsesDir)
+      await fsPromises.readdir(mocksDir)
     )
     let output = 0
     for (const file of files) {
-      const filePath = path.join(responsesDir, file)
+      const filePath = path.join(mocksDir, file)
       if (!filePath.endsWith('.json')) {
         continue
       }

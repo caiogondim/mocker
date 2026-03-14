@@ -21,7 +21,7 @@ export type Args = Readonly<{
   throttle: ThrottleValue;
   mode: 'read' | 'write' | 'read-write' | 'pass' | 'pass-read' | 'read-pass';
   update: 'off' | 'startup' | 'only';
-  responsesDir: AbsoluteDirPath;
+  mocksDir: AbsoluteDirPath;
   logging: LoggerLevels;
   mockKeys: ReadonlySet<MockKey>;
   retries: NonNegativeInteger;
@@ -39,7 +39,7 @@ export type UnbrandedArgs = Readonly<{
   throttle: number;
   mode: Args['mode'];
   update: Args['update'];
-  responsesDir: string;
+  mocksDir: string;
   logging: Args['logging'];
   mockKeys: ReadonlySet<MockKey>;
   retries: number;

@@ -4,7 +4,7 @@
 
 import {
   parseArgv,
-  RESPONSES_DIR_DEFAULT,
+  MOCKS_DIR_DEFAULT,
   PORT_DEFAULT,
   DELAY_DEFAULT,
   THROTTLE_DEFAULT,
@@ -52,8 +52,8 @@ function printHelp() {
         `Origin base URL ${dim(`[e.g.: "http://example.com"]`)}`,
       ],
       [
-        `  [--responsesDir <path>]`,
-        `Path to mocked responses directory ${dim(`[default: ${stringify(RESPONSES_DIR_DEFAULT)}]`)}`,
+        `  [--mocksDir <path>]`,
+        `Path to mocked responses directory ${dim(`[default: ${stringify(MOCKS_DIR_DEFAULT)}]`)}`,
       ],
       [
         `  [--update <update>]`,
@@ -132,10 +132,10 @@ function printHelp() {
   logger.log(
     stripMargin(`
       |${bold('USAGE')}
-      |  mocker --origin http://example.com --responsesDir /path/to/folder
-      |  mocker --origin http://example.com --responsesDir /path/to/folder --mockKeys url,method,body.variables.id
-      |  mocker --origin http://example.com --responsesDir /path/to/folder --mode read-write
-      |  mocker --origin http://example.com --responsesDir /path/to/folder --update startup`),
+      |  mocker --origin http://example.com --mocksDir /path/to/folder
+      |  mocker --origin http://example.com --mocksDir /path/to/folder --mockKeys url,method,body.variables.id
+      |  mocker --origin http://example.com --mocksDir /path/to/folder --mode read-write
+      |  mocker --origin http://example.com --mocksDir /path/to/folder --update startup`),
   )
   logger.log(
     stripMargin(`

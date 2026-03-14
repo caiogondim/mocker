@@ -4,12 +4,12 @@ import { Volume, createFsFromVolume } from 'memfs'
 import { createMockManager as createMockManagerFactory } from '../../index.js'
 
 async function createMemFs() {
-  const responsesDir = /** @type {AbsoluteDirPath} */ ('/tmp')
+  const mocksDir = /** @type {AbsoluteDirPath} */ ('/tmp')
   const volume = new Volume()
   const fs = createFsFromVolume(volume)
-  await fs.promises.mkdir(responsesDir)
+  await fs.promises.mkdir(mocksDir)
 
-  return { responsesDir, fs }
+  return { mocksDir, fs }
 }
 
 async function createMockManager(opts = {}) {

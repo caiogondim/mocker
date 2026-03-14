@@ -8,7 +8,7 @@
     "ci": "npm run lint && npm run type-check && npm run test",
     "test:all": "npm run lint && npm run type-check && npm run test",
     "start": "NODE_OPTIONS='--max-http-header-size=1000000 --unhandled-rejections=strict' ./mocker",
-    "dev:httpbin": "node --watch-path=./src mocker --responsesDir ./responses/httpbin --origin http://httpbin.org --logging verbose --mode read-write",
+    "dev:httpbin": "node --watch-path=./src mocker --mocksDir ./responses/httpbin --origin http://httpbin.org --logging verbose --mode read-write",
     "dev:vi": "./scripts/dev-vi",
     "dev": "NODE_OPTIONS='--max-http-header-size=1000000 --unhandled-rejections=strict' node --watch-path=./src mocker",
     "test": "NODE_OPTIONS='--experimental-vm-modules --disable-warning=ExperimentalWarning' NODE_ENV=test jest",
