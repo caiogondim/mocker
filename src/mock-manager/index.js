@@ -1,6 +1,9 @@
 /** @typedef {import('../shared/types.js').FsLike} FsLike */
 /** @typedef {import('../shared/types.js').HttpIncomingMessage} HttpIncomingMessage */
 /** @typedef {import('../shared/types.js').HttpServerResponse} HttpServerResponse */
+/** @typedef {import('../shared/types.js').ConnectionId} ConnectionId */
+/** @template T @template {Error} [E=Error] @typedef {import('../shared/types.js').Result<T, E>} Result */
+/** @typedef {import('../shared/types.js').HttpStatusCode} HttpStatusCode */
 /** @typedef {import('./types.js').MockFile} MockFile */
 /** @typedef {import('./types.js').RequestFile} RequestFile */
 /** @typedef {import('../args/types.js').Args} Args */
@@ -25,10 +28,27 @@ import { pipeline, rewindable } from '../shared/stream/index.js'
 import createLogger from '../shared/logger/index.js'
 import { dim } from '../shared/logger/format/index.js'
 import MockedRequest from './mocked-request.js'
+import { parse as parseHttpStatusCode } from '../shared/http-status-code/index.js'
+import { parse as parseHttpMethod } from '../shared/http-method/index.js'
+import { tryCatch, tryCatchAsync } from '../shared/try-catch/index.js'
+import { MockFileError } from './mock-file-error.js'
 
 const logger = createLogger()
 
 const RESPONSE_FILE_REGEX = /\.json$/
+const MAX_FILENAME_LENGTH = 80
+
+/**
+ * @param {string} value
+ * @returns {string}
+ */
+function toSafeSlug(value) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
 
 /**
  * @param {string} input
@@ -36,6 +56,69 @@ const RESPONSE_FILE_REGEX = /\.json$/
  */
 function shortHash(input) {
   return crypto.hash('sha256', input, 'hex').slice(0, 12)
+}
+
+/**
+ * @param {unknown} body
+ * @returns {string}
+ */
+function getGraphQLFileName(body) {
+  if (
+    body === null ||
+    typeof body !== 'object' ||
+    Array.isArray(body)
+  ) {
+    return ''
+  }
+
+  const { operationName, query } = /** @type {Record<string, unknown>} */ (body)
+
+  if (typeof operationName !== 'string' || operationName === '') {
+    return ''
+  }
+
+  if (typeof query !== 'string') {
+    return ''
+  }
+
+  // Extract query type (query/mutation/subscription) from the query string
+  const match = query.match(/^\s*(query|mutation|subscription)\b/)
+  const queryType = match ? match[1] : 'operation'
+
+  const safeName = toSafeSlug(operationName.replace(/([a-z])([A-Z])/g, '$1-$2'))
+
+  if (safeName === '') {
+    return `gql-${queryType}-operation`
+  }
+
+  return `gql-${queryType}-${safeName}`
+}
+
+/**
+ * @param {string | undefined} url
+ * @param {string | undefined} method
+ * @param {Args['mockKeys']} mockKeys
+ * @returns {string}
+ */
+function getHttpFileName(url, method, mockKeys) {
+  const parts = ['http']
+
+  if (mockKeys.has('method')) {
+    parts.push((method || 'get').toLowerCase())
+  }
+
+  if (mockKeys.has('url')) {
+    const urlResult = tryCatch(() => new URL(url || '/', 'http://localhost'))
+    const pathname = urlResult.ok ? urlResult.value.pathname : (url || '/')
+
+    const safePath = toSafeSlug(pathname.replace(/^\/+|\/+$/g, '').replace(/\//g, '-'))
+
+    if (safePath) {
+      parts.push(safePath)
+    }
+  }
+
+  return parts.join('-')
 }
 
 /**
@@ -77,7 +160,7 @@ async function uncompressBody(buffer, algorithm) {
  *   | MockedRequest
  *   | HttpServerResponse
  *   | MockedResponse} request
- * @param {string} connectionId
+ * @param {ConnectionId} connectionId
  * @returns {string | Json}
  */
 function parseBody(bodyBuffer, request, connectionId) {
@@ -87,16 +170,11 @@ function parseBody(bodyBuffer, request, connectionId) {
     headers?.['content-type'] ?? ''
   )
   if (headerContentType.includes('application/json')) {
-    try {
-      body = JSON.parse(body)
-    } catch (_error) {
-      // If we can't parse the request body to a JS object, we keep it as a
-      // string
-      logger.warn(
-        `${dim(
-          connectionId,
-        )} error trying to parse response body. serving as is.`,
-      )
+    const parseResult = tryCatch(() => JSON.parse(body))
+    if (parseResult.ok) {
+      body = parseResult.value
+    } else {
+      logger.warn(`${dim(connectionId)} error trying to parse response body. serving as is.`)
     }
   }
 
@@ -142,8 +220,23 @@ function sanitizeResponseHeaders(headers, secrets) {
 }
 
 /**
+ * @param {unknown} body
+ * @param {HttpIncomingMessage | MockedRequest} request
+ * @param {Args['mockKeys']} mockKeys
+ * @returns {string}
+ */
+function buildLabel(body, request, mockKeys) {
+  for (const k of mockKeys) {
+    if (k === 'body' || k.startsWith('body.')) {
+      return getGraphQLFileName(body) || getHttpFileName(request.url, request.method, mockKeys)
+    }
+  }
+  return getHttpFileName(request.url, request.method, mockKeys)
+}
+
+/**
  * @param {(HttpIncomingMessage | MockedRequest) & Rewindable} request
- * @param {string} connectionId
+ * @param {ConnectionId} connectionId
  * @param {Args['responsesDir']} responsesDir
  * @param {Args['mockKeys']} mockKeys
  * @returns {Promise<string>}
@@ -182,10 +275,52 @@ async function requestToMockPath(
   }
 
   fileName = fileName.trim()
-  fileName = `${shortHash(fileName)}.json`
+
+  const hash = shortHash(fileName)
+  const label = buildLabel(body, request, mockKeys)
+  // Total: {hash}-{label}.json = 12 + 1 + label + 5 = 80 → label max = 62
+  const maxLabelLength = MAX_FILENAME_LENGTH - hash.length - 1 - '.json'.length
+  const truncatedLabel = label.slice(0, maxLabelLength)
+  fileName = `${hash}-${truncatedLabel}.json`
 
   const filePath = path.join(responsesDir, fileName)
   return filePath
+}
+
+/**
+ * @param {MockFile} fileJson
+ * @param {HttpStatusCode} statusCode
+ * @param {Headers} redactedHeaders
+ * @returns {{ mockedResponse: MockedResponse & Rewindable; mockedRequest: MockedRequest & Rewindable }}
+ */
+function buildMockedPair(fileJson, statusCode, redactedHeaders) {
+  const responseBody = (`${fileJson.response.headers?.['content-type'] ?? ''}`).includes('application/json')
+    ? JSON.stringify(fileJson.response.body)
+    : fileJson.response.body
+
+  const mockedResponse = rewindable(
+    new MockedResponse({
+      statusCode,
+      headers: unredactHeaders(fileJson.response.headers, redactedHeaders),
+      url: fileJson.request.url || '',
+    }),
+  )
+  mockedResponse.end(responseBody)
+
+  const requestBody = (`${fileJson.request.headers?.['content-type'] ?? ''}`).includes('application/json')
+    ? JSON.stringify(fileJson.request.body)
+    : fileJson.request.body
+
+  const mockedRequest = rewindable(
+    new MockedRequest({
+      url: fileJson.request.url,
+      headers: unredactHeaders(fileJson.request.headers, redactedHeaders),
+      method: fileJson.request.method,
+    }),
+  )
+  mockedRequest.end(requestBody)
+
+  return { mockedResponse, mockedRequest }
 }
 
 /**
@@ -201,36 +336,32 @@ function createMockManager({
   redactedHeaders = {},
   fs = nativeFs,
 }) {
-  const fsPromises = fs.promises
+  const fsPromises = /** @type {typeof import('node:fs/promises')} */ (fs.promises)
 
   /**
    * @param {Object} options
    * @param {(HttpIncomingMessage | MockedRequest) & Rewindable} options.request
-   * @param {string} [options.connectionId]
+   * @param {ConnectionId} [options.connectionId]
    * @returns {Promise<{ mockPath: string; hasMock: boolean }>}
    */
-  async function has({ request, connectionId = '?' }) {
+  async function has({ request, connectionId = /** @type {ConnectionId} */ ('?') }) {
     const mockPath = await requestToMockPath(
       request,
       connectionId,
       responsesDir,
       mockKeys,
     )
-    try {
-      await fsPromises.access(mockPath)
-      return { hasMock: true, mockPath }
-    } catch (_) {
-      return { hasMock: false, mockPath }
-    }
+    const accessResult = await tryCatchAsync(() => fsPromises.access(mockPath))
+    return { hasMock: accessResult.ok, mockPath }
   }
 
   /**
    * @param {Object} options
    * @param {(HttpIncomingMessage | MockedRequest) & Rewindable} options.request
-   * @param {string} [options.connectionId]
+   * @param {ConnectionId} [options.connectionId]
    * @returns {Promise<{ mockPath: string; mockedResponse: MockedResponse }>}
    */
-  async function get({ request, connectionId = '?' }) {
+  async function get({ request, connectionId = /** @type {ConnectionId} */ ('?') }) {
     const filePath = await requestToMockPath(
       request,
       connectionId,
@@ -248,8 +379,11 @@ function createMockManager({
       fileJson.response.body = JSON.stringify(fileJson.response.body)
     }
 
+    const statusCodeResult = parseHttpStatusCode(fileJson.response.statusCode)
+    if (!statusCodeResult.ok) throw statusCodeResult.error
+
     const mockedResponse = new MockedResponse({
-      statusCode: fileJson.response.statusCode,
+      statusCode: statusCodeResult.value,
       headers: unredactHeaders(fileJson.response.headers, redactedHeaders),
       url: fileJson.request.url || request.url || '',
       connectionId,
@@ -266,14 +400,14 @@ function createMockManager({
    * @param {Object} options
    * @param {(HttpIncomingMessage | MockedRequest) & Rewindable} options.request
    * @param {(HttpIncomingMessage | MockedResponse) & Rewindable} options.response
-   * @param {string} [options.connectionId]
-   * @param {Function} [options.fault] For fault injection.
+   * @param {ConnectionId} [options.connectionId]
+   * @param {Function} [options.fault]
    * @returns {Promise<{ mockPath: string }>}
    */
   async function set({
     request,
     response,
-    connectionId = '?',
+    connectionId = /** @type {ConnectionId} */ ('?'),
     fault = () => {},
   }) {
     const {
@@ -290,16 +424,22 @@ function createMockManager({
     const resBodyBuffer = await getBody(response.rewind())
     const reqBody = parseBody(reqBodyBuffer, request, connectionId)
 
+    const methodResult = parseHttpMethod(request.method)
+    if (!methodResult.ok) throw methodResult.error
+
+    const statusCodeResult = parseHttpStatusCode(response.statusCode || 0)
+    if (!statusCodeResult.ok) throw statusCodeResult.error
+
     /** @type {MockFile} */
     const fileContent = {
       request: {
-        method: request.method || '',
+        method: methodResult.value,
         url: request.url || '',
         headers: getHeaders(request),
         body: reqBody,
       },
       response: {
-        statusCode: response.statusCode || 0,
+        statusCode: statusCodeResult.value,
         headers: getHeaders(response),
         body: '',
       },
@@ -349,7 +489,7 @@ function createMockManager({
   }
 
   async function clear() {
-    const files = // @ts-ignore memfs typing mismatch
+    const files =
       /** @type {string[]} */ (await fsPromises.readdir(responsesDir))
     for (const file of files) {
       if (RESPONSE_FILE_REGEX.test(file)) {
@@ -360,16 +500,14 @@ function createMockManager({
 
   /**
    * @public
-   * @returns {AsyncGenerator<{
-   *   mockPath: string
-   *   error: Error | null
-   *   mockedResponse: (MockedResponse & Rewindable) | null
-   *   mockedRequest: (MockedRequest & Rewindable) | null
-   * }>}
+   * @returns {AsyncGenerator<Result<{
+   *   mockPath: string;
+   *   mockedResponse: MockedResponse & Rewindable;
+   *   mockedRequest: MockedRequest & Rewindable;
+   * }, MockFileError>>}
    */
-  // eslint-disable-next-line complexity
   async function* getAll() {
-    const files = // @ts-ignore memfs typing mismatch
+    const files =
       /** @type {string[]} */ (await fsPromises.readdir(responsesDir))
     for (const file of files) {
       const filePath = path.join(responsesDir, file)
@@ -381,55 +519,23 @@ function createMockManager({
         const fileContent = await fsPromises.readFile(filePath)
         const fileJson = JSON.parse(fileContent.toString('utf8'))
 
-        if (
-          (fileJson.response.headers?.['content-type'] ?? '').includes(
-            'application/json',
-          )
-        ) {
-          fileJson.response.body = JSON.stringify(fileJson.response.body)
-        }
+        const statusCodeResult = parseHttpStatusCode(fileJson.response.statusCode)
+        if (!statusCodeResult.ok) throw statusCodeResult.error
 
-        const mockedResponse = rewindable(
-          new MockedResponse({
-            statusCode: fileJson.response.statusCode,
-            headers: unredactHeaders(
-              fileJson.response.headers,
-              redactedHeaders,
-            ),
-            url: fileJson.request.url || '',
-          }),
+        const { mockedResponse, mockedRequest } = buildMockedPair(
+          fileJson,
+          statusCodeResult.value,
+          redactedHeaders,
         )
-        mockedResponse.end(fileJson.response.body)
 
-        if (
-          (fileJson.request.headers?.['content-type'] ?? '').includes(
-            'application/json',
-          )
-        ) {
-          fileJson.request.body = JSON.stringify(fileJson.request.body)
-        }
-
-        const mockedRequest = rewindable(
-          new MockedRequest({
-            url: fileJson.request.url,
-            headers: unredactHeaders(fileJson.request.headers, redactedHeaders),
-            method: fileJson.request.method,
-          }),
-        )
-        mockedRequest.end(fileJson.request.body)
-
-        yield {
-          mockPath: filePath,
-          mockedResponse,
-          mockedRequest,
-          error: null,
-        }
+        yield { ok: true, value: { mockPath: filePath, mockedResponse, mockedRequest } }
       } catch (error) {
         yield {
-          error: error instanceof Error ? error : null,
-          mockPath: filePath,
-          mockedResponse: null,
-          mockedRequest: null,
+          ok: false,
+          error: new MockFileError(
+            error instanceof Error ? error : new Error(String(error)),
+            filePath,
+          ),
         }
       }
     }
@@ -440,7 +546,7 @@ function createMockManager({
    * @returns {Promise<number>}
    */
   async function size() {
-    const files = // @ts-ignore memfs typing mismatch
+    const files =
       /** @type {string[]} */ (await fsPromises.readdir(responsesDir))
     let output = 0
     for (const file of files) {

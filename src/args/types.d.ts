@@ -1,15 +1,18 @@
 import { Headers } from '../shared/http/index.js';
 
-declare const brand: unique symbol;
-type Brand<T, B> = T & { readonly [brand]: B };
+export type {
+  HttpUrl,
+  AbsoluteDirPath,
+  NonNegativeInteger,
+  HttpPort,
+  ThrottleValue,
+  Milliseconds,
+} from '../shared/types.js';
 
-export type HttpUrl = Brand<string, 'HttpUrl'>;
-export type AbsoluteDirPath = Brand<string, 'AbsoluteDirPath'>;
-export type NonNegativeInteger = Brand<number, 'NonNegativeInteger'>;
-export type HttpPort = Brand<number, 'HttpPort'>;
-export type ThrottleValue = Brand<number, 'ThrottleValue'>;
+import type { HttpUrl, AbsoluteDirPath, NonNegativeInteger, HttpPort, ThrottleValue, Milliseconds } from '../shared/types.js';
 
 type LoggerLevels = 'silent' | 'error' | 'warn' | 'verbose';
+export type MockKey = 'url' | 'method' | 'headers' | 'body' | `body.${string}`;
 
 export type Args = Readonly<{
   port: HttpPort;
@@ -21,7 +24,7 @@ export type Args = Readonly<{
   responsesDir: AbsoluteDirPath;
   workers: NonNegativeInteger;
   logging: LoggerLevels;
-  mockKeys: Set<string>;
+  mockKeys: ReadonlySet<MockKey>;
   retries: NonNegativeInteger;
   redactedHeaders: Headers;
   overwriteResponseHeaders: Headers;
@@ -40,7 +43,7 @@ export type UnbrandedArgs = Readonly<{
   responsesDir: string;
   workers: number;
   logging: Args['logging'];
-  mockKeys: Set<string>;
+  mockKeys: ReadonlySet<MockKey>;
   retries: number;
   redactedHeaders: Headers;
   overwriteResponseHeaders: Headers;

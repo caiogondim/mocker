@@ -1,9 +1,13 @@
 /** @typedef {import('./args/index.js').Args} Args */
 /** @typedef {import('./shared/types.js').AsyncHttpServer} AsyncHttpServer */
 /** @typedef {import('./shared/types.js').FsLike} FsLike */
+/** @typedef {import('./shared/types.js').ConnectionId} ConnectionId */
 /** @typedef {import('./shared/stream/rewindable/types.js').Rewindable} Rewindable */
 /** @typedef {import('./shared/http/index.js').Headers} Headers */
+/** @typedef {import('./shared/types.js').HttpMethod} HttpMethod */
 /** @typedef {InstanceType<import('./mock-manager/mocked-request.js')["default"]>} MockedRequest */
+/** @template T @template {Error} [E=Error] @typedef {import('./shared/types.js').Result<T, E>} Result */
+/** @typedef {import('./mock-manager/mock-file-error.js').MockFileError} MockFileError */
 
 import path from 'node:path'
 import http from 'node:http'
@@ -23,6 +27,8 @@ import {
   SecretNotFoundError,
 } from './shared/http/index.js'
 import { MODE } from './args/index.js'
+import { HTTP_METHOD } from './shared/http-method/index.js'
+import { HTTP_STATUS_CODE } from './shared/http-status-code/index.js'
 
 const packageJson = createRequire(import.meta.url)('../package.json')
 const logger = createLogger()
@@ -41,12 +47,27 @@ const terminationSignals = ['SIGHUP', 'SIGINT', 'SIGTERM']
 const nonFatalErrors = ['ENOTFOUND', 'ERR_TLS_CERT_ALTNAME_INVALID']
 
 /**
+ * @param {unknown} error
+ * @param {string} mockBasename
+ * @param {string} progressStr
+ */
+function logUpdateError(error, mockBasename, progressStr) {
+  if (error instanceof SecretNotFoundError) {
+    logger.warn(`${dim(progressStr)} ${bold(mockBasename)} ${error.message}. mock was not modified`)
+  } else if (error && Reflect.get(error, 'code') === 'EACCES') {
+    logger.warn(`${dim(progressStr)} ${bold(mockBasename)} file is read-only. mock was not modified`)
+  } else {
+    logger.warn(`${dim(progressStr)} ${bold(mockBasename)} error while updating mock. mock was not modified`)
+  }
+}
+
+/**
  * @param {http.IncomingMessage} responseSource
  * @param {http.ServerResponse} responseTarget
  * @returns {void}
  */
 function copyResponseAttrs(responseSource, responseTarget) {
-  /** @type {Object<string, any>} */
+  /** @type {Headers} */
   const headers = {}
 
   for (const [headerKey, headerValue] of Object.entries(
@@ -60,18 +81,20 @@ function copyResponseAttrs(responseSource, responseTarget) {
 
   delete headers['content-length']
 
-  responseTarget.statusCode = responseSource.statusCode || 200
+  responseTarget.statusCode = responseSource.statusCode || HTTP_STATUS_CODE.OK
   if (responseSource.statusMessage) {
     responseTarget.statusMessage = responseSource.statusMessage
   }
   for (const [key, value] of Object.entries(headers)) {
-    responseTarget.setHeader(key, value)
+    if (value !== null) {
+      responseTarget.setHeader(key, value)
+    }
   }
 }
 
 /**
  * @param {http.ServerResponse} response
- * @param {string} connectionId
+ * @param {ConnectionId} connectionId
  * @returns {Promise<void>}
  */
 async function respondNotFound(response, connectionId) {
@@ -80,7 +103,7 @@ async function respondNotFound(response, connectionId) {
   response.setHeader('x-mocker-request-id', connectionId)
   response.setHeader('x-mocker-response-from', 'Mock')
   response.setHeader('x-mocker-mock-path', 'Not Found')
-  response.writeHead(404)
+  response.writeHead(HTTP_STATUS_CODE.NOT_FOUND)
   response.end()
 }
 
@@ -103,11 +126,11 @@ function formatStatusCode(statusCode) {
 /**
  * @param {http.IncomingMessage} request
  * @param {http.ServerResponse} response
- * @param {string} connectionId
+ * @param {ConnectionId} connectionId
  * @returns {void}
  */
 function handleLiveAndReadinessConnection(request, response, connectionId) {
-  const statusCode = 200
+  const statusCode = HTTP_STATUS_CODE.OK
 
   logger.info(
     `${dim(connectionId)} 👈 ${formatStatusCode(
@@ -342,7 +365,48 @@ class Mocker {
    * @param {http.ServerResponse} response
    * @returns {Promise<void>}
    */
-  // eslint-disable-next-line complexity
+  /**
+   * @param {http.IncomingMessage & Rewindable} request
+   * @param {http.ServerResponse} response
+   * @param {ConnectionId} connectionId
+   * @returns {Promise<void>}
+   */
+  async #dispatchByMode(request, response, connectionId) {
+    const args = this.#args
+    switch (args.mode) {
+      case MODE.READ: {
+        await this.#handleConnectionWithReadMode(request, response, connectionId)
+        return
+      }
+      case MODE.READ_WRITE: {
+        await this.#handleConnectionWithReadWriteMode(request, response, connectionId)
+        return
+      }
+      case MODE.READ_PASS: {
+        await this.#handleConnectionWithReadPassMode(request, response, connectionId)
+        return
+      }
+      case MODE.WRITE:
+      case MODE.PASS: {
+        await this.#respondFromOrigin(request, response, connectionId)
+        return
+      }
+      case MODE.PASS_READ: {
+        await this.#handleConnectionWithPassReadMode(request, response, connectionId)
+        return
+      }
+      default: {
+        const _exhaustiveCheck = /** @type {never} */ (args.mode)
+        throw new TypeError(`invalid args.mode: ${_exhaustiveCheck}`)
+      }
+    }
+  }
+
+  /**
+   * @param {http.IncomingMessage} request
+   * @param {http.ServerResponse} response
+   * @returns {Promise<void>}
+   */
   async #server(request, response) {
     const args = this.#args
     const connectionId = createId()
@@ -367,62 +431,17 @@ class Mocker {
 
     const requestRewindable = rewindable(request)
 
-    if (args.cors && request.method === 'OPTIONS') {
+    if (args.cors && request.method === HTTP_METHOD.OPTIONS) {
       this.#handleCors(requestRewindable, response, connectionId)
       return
     }
 
     try {
-      switch (args.mode) {
-        case MODE.READ: {
-          await this.#handleConnectionWithReadMode(
-            requestRewindable,
-            response,
-            connectionId,
-          )
-          return
-        }
-        case MODE.READ_WRITE: {
-          await this.#handleConnectionWithReadWriteMode(
-            requestRewindable,
-            response,
-            connectionId,
-          )
-          return
-        }
-        case MODE.READ_PASS: {
-          await this.#handleConnectionWithReadPassMode(
-            requestRewindable,
-            response,
-            connectionId,
-          )
-          return
-        }
-        case MODE.WRITE:
-        case MODE.PASS: {
-          await this.#respondFromOrigin(
-            requestRewindable,
-            response,
-            connectionId,
-          )
-          return
-        }
-        case MODE.PASS_READ: {
-          await this.#handleConnectionWithPassReadMode(
-            requestRewindable,
-            response,
-            connectionId,
-          )
-          return
-        }
-        default: {
-          throw new TypeError(`invalid args.mode: ${args.mode}`)
-        }
-      }
+      await this.#dispatchByMode(requestRewindable, response, connectionId)
     } catch (error) {
       logger.error(`${dim(connectionId)} ${error}`)
 
-      response.writeHead(500)
+      response.writeHead(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)
       response.end()
 
       logger.info(`${dim(connectionId)} 👈 ${formatStatusCode(500)}`)
@@ -439,7 +458,7 @@ class Mocker {
   /**
    * @param {http.IncomingMessage & Rewindable} request
    * @param {http.ServerResponse} response
-   * @param {string} connectionId
+   * @param {ConnectionId} connectionId
    * @returns {Promise<void>}
    */
   async #handleConnectionWithReadWriteMode(request, response, connectionId) {
@@ -465,7 +484,7 @@ class Mocker {
   /**
    * @param {http.IncomingMessage & Rewindable} request
    * @param {http.ServerResponse} response
-   * @param {string} connectionId
+   * @param {ConnectionId} connectionId
    * @returns {Promise<void>}
    */
   async #handleConnectionWithReadPassMode(request, response, connectionId) {
@@ -491,7 +510,7 @@ class Mocker {
   /**
    *@param {http.IncomingMessage} request
    *@param {http.ServerResponse} response
-   *@param {string} connectionId
+   *@param {ConnectionId} connectionId
    *@returns {Promise<void>}
    */
   async #handleCors(request, response, connectionId) {
@@ -516,7 +535,7 @@ class Mocker {
   /**
    * @param {http.IncomingMessage & Rewindable} request
    * @param {http.ServerResponse} response
-   * @param {string} connectionId
+   * @param {ConnectionId} connectionId
    * @returns {Promise<void>}
    */
   async #handleConnectionWithReadMode(request, response, connectionId) {
@@ -542,7 +561,7 @@ class Mocker {
   /**
    * @param {http.IncomingMessage & Rewindable} request
    * @param {http.ServerResponse} response
-   * @param {string} connectionId
+   * @param {ConnectionId} connectionId
    * @returns {Promise<void>}
    */
   async #handleConnectionWithPassReadMode(request, response, connectionId) {
@@ -585,7 +604,7 @@ class Mocker {
   /**
    * @param {http.IncomingMessage & Rewindable} request
    * @param {http.ServerResponse} response
-   * @param {string} connectionId
+   * @param {ConnectionId} connectionId
    * @returns {Promise<void>}
    */
   async #respondFromMock(request, response, connectionId) {
@@ -616,7 +635,7 @@ class Mocker {
         response.setHeader(key, value)
       }
 
-      this.#overwriteResponseHeaders(response, request.headers)
+      this.#overwriteResponseHeaders(response, /** @type {Headers} */ (request.headers))
 
       await pipeline(
         mockedResponse,
@@ -630,7 +649,7 @@ class Mocker {
         error,
       )
 
-      response.writeHead(500)
+      response.writeHead(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)
       response.end()
 
       logger.info(`${dim(connectionId)} 👈 ${formatStatusCode(500)}`)
@@ -640,7 +659,7 @@ class Mocker {
   /**
    * @param {http.IncomingMessage & Rewindable} clientToProxyRequest
    * @param {http.ServerResponse} proxyToClientResponse
-   * @param {string} connectionId
+   * @param {ConnectionId} connectionId
    * @returns {Promise<void>}
    */
   async #respondFromOrigin(
@@ -650,7 +669,7 @@ class Mocker {
   ) {
     const args = this.#args
     const origin = this.#origin
-    const { method = undefined, url = '' } = clientToProxyRequest
+    const { method, url = '' } = clientToProxyRequest
     const requestHeaders = clientToProxyRequest.headers
 
     proxyToClientResponse.setHeader('x-mocker-request-id', connectionId)
@@ -659,8 +678,8 @@ class Mocker {
     const [proxyToOriginRequest, originToProxyResponsePromise] =
       await origin.request({
         url,
-        headers: requestHeaders,
-        method,
+        headers: /** @type {Headers} */ (requestHeaders),
+        method: /** @type {HttpMethod | undefined} */ (method),
       })
 
     const [originToProxyResponse] = await Promise.all([
@@ -670,13 +689,13 @@ class Mocker {
     const originToProxyResponseRewindable = rewindable(originToProxyResponse)
 
     const originToProxyResponseStatusCode =
-      originToProxyResponse?.statusCode ?? 500
+      originToProxyResponse?.statusCode ?? HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR
     if (args.mode === MODE.PASS_READ && originToProxyResponseStatusCode >= 500) {
       throw new OriginResponseError(`${originToProxyResponseStatusCode}`)
     }
 
     copyResponseAttrs(originToProxyResponse, proxyToClientResponse)
-    this.#overwriteResponseHeaders(proxyToClientResponse, requestHeaders)
+    this.#overwriteResponseHeaders(proxyToClientResponse, /** @type {Headers} */ (requestHeaders))
 
     await this.#writeMockIfOk(
       clientToProxyRequest,
@@ -725,7 +744,7 @@ class Mocker {
   /**
    * @param {(http.IncomingMessage | MockedRequest) & Rewindable} request
    * @param {http.IncomingMessage & Rewindable} response
-   * @param {string} connectionId
+   * @param {ConnectionId} connectionId
    * @returns {Promise<void>}
    */
   async #writeMockIfOk(request, response, connectionId) {
@@ -757,9 +776,50 @@ class Mocker {
         `${dim(
           connectionId,
         )} not saving response from origin since status code is not ${formatStatusCode(
-          200,
+          HTTP_STATUS_CODE.OK,
         )} but ${formatStatusCode(response.statusCode)}`,
       )
+    }
+  }
+
+  /**
+   * @param {Result<{ mockPath: string; mockedRequest: MockedRequest & Rewindable }, MockFileError>} item
+   * @param {string} progressStr
+   * @param {Function} fault
+   * @returns {Promise<void>}
+   */
+  async #updateMock(item, progressStr, fault) {
+    if (!item.ok) throw item.error
+
+    const mockBasename = path.basename(item.value.mockPath)
+    const { mockedRequest } = item.value
+
+    fault()
+
+    const [proxyToOriginRequest, originToProxyResponsePromise] =
+      await this.#origin.request({
+        url: mockedRequest.url,
+        headers: mockedRequest.headers,
+        method: mockedRequest.method,
+      })
+
+    const [originToProxyResponse] = await Promise.all([
+      (async () => rewindable(await originToProxyResponsePromise))(),
+      pipeline(mockedRequest.rewind(), proxyToOriginRequest),
+    ])
+
+    if (
+      originToProxyResponse.statusCode &&
+      originToProxyResponse.statusCode >= 200 &&
+      originToProxyResponse.statusCode < 300
+    ) {
+      await this.#mockManager.set({
+        request: mockedRequest,
+        response: originToProxyResponse,
+      })
+      logger.success(`${dim(progressStr)} ${bold(mockBasename)}`)
+    } else {
+      logger.warn(`${dim(progressStr)} ${bold(mockBasename)} request to origin errored. mock was not modified`)
     }
   }
 
@@ -767,10 +827,8 @@ class Mocker {
    * @param {Object} options
    * @param {Function} [options.fault] For fault injection.
    */
-  // eslint-disable-next-line complexity
   async #updateMocks({ fault = () => {} } = {}) {
     const mockManager = this.#mockManager
-    const origin = this.#origin
     const total = await mockManager.size()
     let i = 1
 
@@ -785,73 +843,14 @@ class Mocker {
       return `[${`${i}`.padStart(`${total}`.length, '0')}/${total}]`
     }
 
-    for await (const {
-      mockPath,
-      mockedRequest,
-      error,
-    } of mockManager.getAll()) {
+    for await (const item of mockManager.getAll()) {
+      const mockPath = item.ok ? item.value.mockPath : item.error.mockPath
       const mockBasename = path.basename(mockPath)
 
       try {
-        if (error) {
-          throw error
-        }
-
-        fault()
-
-        if (mockedRequest === null) continue // To make TypeScript happy.
-
-        const [proxyToOriginRequest, originToProxyResponsePromise] =
-          await origin.request({
-            url: mockedRequest.url,
-            headers: mockedRequest.headers,
-            method: mockedRequest.method,
-          })
-
-        const [originToProxyResponse] = await Promise.all([
-          (async () => {
-            return rewindable(await originToProxyResponsePromise)
-          })(),
-          pipeline(mockedRequest.rewind(), proxyToOriginRequest),
-        ])
-
-        if (
-          originToProxyResponse.statusCode &&
-          originToProxyResponse.statusCode >= 200 &&
-          originToProxyResponse.statusCode < 300
-        ) {
-          await mockManager.set({
-            request: mockedRequest,
-            response: originToProxyResponse,
-          })
-          logger.success(`${dim(progress())} ${bold(mockBasename)}`)
-        } else {
-          logger.warn(
-            `${dim(progress())} ${bold(
-              mockBasename,
-            )} request to origin errored. mock was not modified`,
-          )
-        }
+        await this.#updateMock(item, progress(), fault)
       } catch (error_) {
-        if (error_ instanceof SecretNotFoundError) {
-          logger.warn(
-            `${dim(progress())} ${bold(mockBasename)} ${
-              error_.message
-            }. mock was not modified`,
-          )
-        } else if (error_ && Reflect.get(error_, 'code') === 'EACCES') {
-          logger.warn(
-            `${dim(progress())} ${bold(
-              mockBasename,
-            )} file is read-only. mock was not modified`,
-          )
-        } else {
-          logger.warn(
-            `${dim(progress())} ${bold(
-              mockBasename,
-            )} error while updating mock. mock was not modified`,
-          )
-        }
+        logUpdateError(error_, mockBasename, progress())
       }
 
       i += 1

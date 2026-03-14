@@ -1,4 +1,5 @@
 /** @typedef {import('./types.js').Args} Args */
+/** @template T @template {Error} [E=Error] @typedef {import('../shared/types.js').Result<T, E>} Result */
 /** @typedef {import('./types.js').HttpUrl} HttpUrl */
 /** @typedef {import('./types.js').AbsoluteDirPath} AbsoluteDirPath */
 /** @typedef {import('./types.js').NonNegativeInteger} NonNegativeInteger */
@@ -7,8 +8,6 @@
 /** @typedef {import('../shared/http/types.js').Headers} Headers */
 /** @typedef {Map<string, string>} ArgvMap */
 
-import path from 'node:path'
-import { promises as fs } from 'node:fs'
 import stringToBoolean from '../shared/string-to-boolean/index.js'
 import {
   validLevels as loggerValidLevels,
@@ -17,16 +16,22 @@ import {
 import { prettifyError } from '../shared/logger/pretty-error/index.js'
 import { stringify } from '../shared/logger/format/index.js'
 import isPortTaken from '../shared/is-port-taken/index.js'
-import { isHeaders } from '../shared/http/index.js'
+import { tryCatch } from '../shared/try-catch/index.js'
+import { parseHeaders } from '../shared/http/index.js'
+import { parse as parseHttpUrl } from '../shared/http-url/index.js'
+import { parse as parseNonNegativeInteger } from '../shared/non-negative-integer/index.js'
+import { parse as parseThrottleValue } from '../shared/throttle-value/index.js'
+import { parse as parseAbsoluteDirPath } from '../shared/absolute-dir-path/index.js'
+import { parse as parseHttpPort } from '../shared/http-port/index.js'
 
-const MODE = /** @type {const} */ ({
+const MODE = /** @satisfies {Record<string, Args['mode']>} */ (/** @type {const} */ ({
   READ: 'read',
   WRITE: 'write',
   READ_WRITE: 'read-write',
   PASS: 'pass',
   READ_PASS: 'read-pass',
   PASS_READ: 'pass-read',
-})
+}))
 
 /** @type {Readonly<string[]>} */
 const MODE_VALID_VALUES = Object.values(MODE)
@@ -150,10 +155,13 @@ function argvToArgvMap(argv) {
 
 /**
  * @param {string} mode
- * @returns {mode is Args["mode"]}
+ * @returns {Result<Args['mode']>}
  */
-function isArgsMode(mode) {
-  return MODE_VALID_VALUES.includes(mode)
+function parseMode(mode) {
+  if (!MODE_VALID_VALUES.includes(mode)) {
+    return { ok: false, error: new TypeError(`invalid --mode`) }
+  }
+  return { ok: true, value: /** @type {Args['mode']} */ (mode) }
 }
 
 /**
@@ -161,25 +169,27 @@ function isArgsMode(mode) {
  * @returns {Args['mode']}
  */
 function getMode(argvMap) {
-  let mode = argvMap.get('mode') ?? MODE_DEFAULT
-
-  if (!isArgsMode(mode)) {
+  const mode = argvMap.get('mode') ?? MODE_DEFAULT
+  const result = parseMode(mode)
+  if (!result.ok) {
     throw prettifyError({
-      error: TypeError(`invalid --mode`),
+      error: new TypeError('invalid --mode'),
       expected: `one of ${stringify(MODE_VALID_VALUES)}`,
       received: `${stringify(mode)}`,
     })
   }
-
-  return mode
+  return result.value
 }
 
 /**
  * @param {string} update
- * @returns {update is Args["update"]}
+ * @returns {Result<Args['update']>}
  */
-function isArgsUpdate(update) {
-  return UPDATE_VALID_VALUES.includes(update)
+function parseUpdate(update) {
+  if (!UPDATE_VALID_VALUES.includes(update)) {
+    return { ok: false, error: new TypeError('invalid --update') }
+  }
+  return { ok: true, value: /** @type {Args['update']} */ (update) }
 }
 
 /**
@@ -189,33 +199,28 @@ function isArgsUpdate(update) {
 function getUpdate(argvMap) {
   const argvUpdate = argvMap.get('update')
   const update = argvUpdate === undefined ? UPDATE_DEFAULT : argvUpdate
-
-  if (!isArgsUpdate(update)) {
+  const result = parseUpdate(update)
+  if (!result.ok) {
     throw prettifyError({
       error: new TypeError(`invalid --update`),
       expected: `one of ${stringify(UPDATE_VALID_VALUES)}`,
       received: stringify(argvUpdate),
     })
   }
-
-  return update
+  return result.value
 }
 
 /**
  * @param {Set<string>} mockKeys
- * @returns {mockKeys is Args["mockKeys"]}
+ * @returns {Result<Args['mockKeys']>}
  */
-function isArgsMockKeys(mockKeys) {
+function parseMockKeys(mockKeys) {
   for (const mockKey of mockKeys) {
-    if (
-      !MOCK_KEYS_VALID_VALUES.includes(mockKey) &&
-      !MOCK_KEYS_BODY_REGEX.test(mockKey)
-    ) {
-      return false
+    if (!MOCK_KEYS_VALID_VALUES.includes(mockKey) && !MOCK_KEYS_BODY_REGEX.test(mockKey)) {
+      return { ok: false, error: new TypeError('invalid --mockKeys') }
     }
   }
-
-  return true
+  return { ok: true, value: /** @type {Args['mockKeys']} */ (mockKeys) }
 }
 
 /**
@@ -233,7 +238,8 @@ function getMockKeys(argvMap) {
     }
   }
 
-  if (!isArgsMockKeys(mockKeys)) {
+  const result = parseMockKeys(mockKeys)
+  if (!result.ok) {
     throw prettifyError({
       error: new TypeError(`invalid --mockKeys`),
       expected: `set of ${stringify(MOCK_KEYS_VALID_VALUES)}`,
@@ -242,7 +248,7 @@ function getMockKeys(argvMap) {
     })
   }
 
-  return mockKeys
+  return result.value
 }
 
 /**
@@ -254,29 +260,28 @@ function getMockKeys(argvMap) {
 function getJsonHeadersArg(argvMap, argName, defaultValue) {
   const argvValue = argvMap.get(argName)
 
-  try {
-    const headers =
-      argvValue === undefined ? defaultValue : JSON.parse(argvValue)
-    if (!isHeaders(headers)) {
-      throw prettifyError({
-        error: new TypeError(`invalid --${argName}`),
-        expected: `valid Header type { [header: string]: string[] | string | number | null | undefined }`,
-        received: stringify(headers),
-      })
-    }
+  const parseResult = tryCatch(() =>
+    argvValue === undefined ? defaultValue : JSON.parse(argvValue),
+  )
 
-    return headers
-  } catch (error) {
-    if (error instanceof SyntaxError) {
-      throw prettifyError({
-        error: new TypeError(`invalid --${argName}`),
-        expected: `valid JSON string`,
-        received: stringify(argvValue),
-      })
-    } else {
-      throw error
-    }
+  if (!parseResult.ok) {
+    throw prettifyError({
+      error: new TypeError(`invalid --${argName}`),
+      expected: `valid JSON string`,
+      received: stringify(argvValue),
+    })
   }
+
+  const headersResult = parseHeaders(parseResult.value)
+  if (!headersResult.ok) {
+    throw prettifyError({
+      error: new TypeError(`invalid --${argName}`),
+      expected: `valid Header type { [header: string]: string[] | string | number | null | undefined }`,
+      received: stringify(parseResult.value),
+    })
+  }
+
+  return headersResult.value
 }
 
 /**
@@ -292,22 +297,18 @@ function getRedactedHeaders(argvMap) {
  * @returns {NonNegativeInteger}
  */
 function getRetries(argvMap) {
-  const retriesArgv = argvMap.get('retries')
-  const retries =
-    retriesArgv === undefined
-      ? RETRIES_DEFAULT
-      : Number.parseInt(retriesArgv, 10)
-  const expected = `positive integer`
+  const retriesArgv = argvMap.get('retries') ?? String(RETRIES_DEFAULT)
+  const result = parseNonNegativeInteger(retriesArgv)
 
-  if (!Number.isInteger(retries) || retries < 0) {
+  if (!result.ok) {
     throw prettifyError({
       error: new TypeError(`invalid --retries`),
-      expected,
+      expected: `positive integer`,
       received: stringify(retriesArgv),
     })
   }
 
-  return /** @type {NonNegativeInteger} */ (retries)
+  return result.value
 }
 
 /**
@@ -339,28 +340,26 @@ function getOverwriteRequestHeaders(argvMap) {
  * @returns {Promise<HttpPort>}
  */
 async function getPort(argvMap) {
-  const portArgv = argvMap.get('port')
-  const port =
-    portArgv === undefined ? PORT_DEFAULT : Number.parseInt(portArgv, 10)
-  const expected = `positive integer`
+  const portArgv = argvMap.get('port') ?? String(PORT_DEFAULT)
+  const result = parseHttpPort(portArgv)
 
-  if (!Number.isInteger(port) || port < 0) {
+  if (!result.ok) {
     throw prettifyError({
       error: new TypeError(`invalid --port`),
-      expected,
+      expected: `positive integer`,
       received: stringify(portArgv),
     })
   }
 
-  if (await isPortTaken(port)) {
+  if (await isPortTaken(result.value)) {
     throw prettifyError({
       error: new TypeError(`invalid --port`),
       expected: `available port on host`,
-      received: stringify(port),
+      received: stringify(result.value),
     })
   }
 
-  return /** @type {HttpPort} */ (port)
+  return result.value
 }
 
 /**
@@ -368,30 +367,18 @@ async function getPort(argvMap) {
  * @returns {HttpUrl}
  */
 function getOrigin(argvMap) {
-  const originArgv = argvMap.get('origin')
-  const origin = originArgv === undefined ? '' : originArgv
+  const originArgv = argvMap.get('origin') ?? ''
+  const result = parseHttpUrl(originArgv)
 
-  let urlObj
-
-  try {
-    urlObj = new URL(origin)
-  } catch (_) {
+  if (!result.ok) {
     throw prettifyError({
       error: new TypeError(`invalid --origin`),
-      expected: `valid URL`,
-      received: stringify(origin),
+      expected: `valid URL with HTTP or HTTPS protocol`,
+      received: stringify(originArgv),
     })
   }
 
-  if (urlObj.protocol !== 'http:' && urlObj.protocol !== 'https:') {
-    throw prettifyError({
-      error: new TypeError(`invalid --origin`),
-      expected: `URL with HTTP or HTTPS protocol`,
-      received: stringify(origin),
-    })
-  }
-
-  return /** @type {HttpUrl} */ (origin)
+  return result.value
 }
 
 /**
@@ -399,20 +386,18 @@ function getOrigin(argvMap) {
  * @returns {NonNegativeInteger}
  */
 function getDelay(argvMap) {
-  const argvDelay = argvMap.get('delay')
-  const delay =
-    argvDelay === undefined ? DELAY_DEFAULT : Number.parseInt(argvDelay, 10)
-  const expected = 'positive integer'
+  const argvDelay = argvMap.get('delay') ?? String(DELAY_DEFAULT)
+  const result = parseNonNegativeInteger(argvDelay)
 
-  if (!Number.isInteger(delay) || delay < 0) {
+  if (!result.ok) {
     throw prettifyError({
       error: new TypeError(`invalid --delay`),
-      expected,
+      expected: `positive integer`,
       received: stringify(argvDelay),
     })
   }
 
-  return /** @type {NonNegativeInteger} */ (delay)
+  return result.value
 }
 
 /**
@@ -420,21 +405,18 @@ function getDelay(argvMap) {
  * @returns {ThrottleValue}
  */
 function getThrottle(argvMap) {
-  const argvThrottle = argvMap.get('throttle')
-  const throttle = argvThrottle
-    ? Number.parseInt(argvThrottle, 10)
-    : THROTTLE_DEFAULT
-  const expected = 'positive integer'
+  const argvThrottle = argvMap.get('throttle') ?? 'Infinity'
+  const result = parseThrottleValue(argvThrottle)
 
-  if ((!Number.isInteger(throttle) && throttle !== Infinity) || throttle < 0) {
+  if (!result.ok) {
     throw prettifyError({
       error: new TypeError(`invalid --throttle`),
-      expected,
+      expected: `positive integer`,
       received: stringify(argvThrottle),
     })
   }
 
-  return /** @type {ThrottleValue} */ (throttle)
+  return result.value
 }
 
 /**
@@ -443,25 +425,17 @@ function getThrottle(argvMap) {
  */
 async function getResponsesDir(argvMap) {
   const responsesDir = argvMap.get('responsesDir') ?? RESPONSES_DIR_DEFAULT
-  const error = prettifyError({
-    error: new TypeError(`invalid --responsesDir`),
-    expected: `a valid folder path`,
-    received: stringify(responsesDir),
-  })
+  const result = await parseAbsoluteDirPath(responsesDir)
 
-  if (responsesDir === '') {
-    throw error
+  if (!result.ok) {
+    throw prettifyError({
+      error: new TypeError(`invalid --responsesDir`),
+      expected: `a valid folder path`,
+      received: stringify(responsesDir),
+    })
   }
 
-  const resolvedPath = path.resolve(responsesDir)
-
-  try {
-    await fs.access(responsesDir)
-  } catch (_) {
-    throw error
-  }
-
-  return /** @type {AbsoluteDirPath} */ (resolvedPath)
+  return result.value
 }
 
 /**
@@ -469,31 +443,29 @@ async function getResponsesDir(argvMap) {
  * @returns {NonNegativeInteger}
  */
 function getWorkers(argvMap) {
-  const argvWorkers = argvMap.get('workers')
-  const workers =
-    argvWorkers === undefined
-      ? WORKERS_DEFAULT
-      : Number.parseInt(argvWorkers, 10)
-  const expected = 'positive integer'
+  const argvWorkers = argvMap.get('workers') ?? String(WORKERS_DEFAULT)
+  const result = parseNonNegativeInteger(argvWorkers)
 
-  if (!Number.isInteger(workers) || workers < 0) {
+  if (!result.ok) {
     throw prettifyError({
       error: new TypeError(`invalid --workers`),
-      expected,
+      expected: `positive integer`,
       received: stringify(argvWorkers),
     })
   }
 
-  return /** @type {NonNegativeInteger} */ (workers)
+  return result.value
 }
 
 /**
  * @param {string} logging
- * @returns {logging is Args["logging"]}
+ * @returns {Result<Args['logging']>}
  */
-function isArgsLogging(logging) {
-  // @ts-ignore
-  return LOGGING_VALID_VALUES.includes(logging)
+function parseLogging(logging) {
+  if (!LOGGING_VALID_VALUES.includes(/** @type {Args['logging']} */ (logging))) {
+    return { ok: false, error: new TypeError('invalid --logging') }
+  }
+  return { ok: true, value: /** @type {Args['logging']} */ (logging) }
 }
 
 /**
@@ -502,8 +474,8 @@ function isArgsLogging(logging) {
  */
 function getLogging(argvMap) {
   const logging = argvMap.get('logging') ?? LOGGING_DEFAULT
-
-  if (!isArgsLogging(logging)) {
+  const result = parseLogging(logging)
+  if (!result.ok) {
     const error = prettifyError({
       error: new TypeError(`invalid --logging`),
       expected: `one of ${stringify(LOGGING_VALID_VALUES)}`,
@@ -511,8 +483,7 @@ function getLogging(argvMap) {
     })
     throw error
   }
-
-  return logging
+  return result.value
 }
 
 /**
@@ -536,10 +507,9 @@ function getProxy(argvMap) {
     return /** @type {HttpUrl} */ (proxy)
   }
 
-  let url
-  try {
-    url = new URL(proxy)
-  } catch {
+  const result = parseHttpUrl(proxy)
+
+  if (!result.ok) {
     throw prettifyError({
       error: new TypeError(`invalid --proxy`),
       expected: `valid HTTP or HTTPS URL`,
@@ -547,15 +517,7 @@ function getProxy(argvMap) {
     })
   }
 
-  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-    throw prettifyError({
-      error: new TypeError(`invalid --proxy`),
-      expected: `URL with HTTP or HTTPS protocol`,
-      received: stringify(proxy),
-    })
-  }
-
-  return /** @type {HttpUrl} */ (proxy)
+  return result.value
 }
 
 /**

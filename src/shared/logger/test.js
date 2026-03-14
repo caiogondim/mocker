@@ -1,7 +1,6 @@
-import { describe, it, expect } from '@jest/globals'
-
 /** @typedef {import('./index.js').Console} Console */
 
+import { describe, it, expect } from '@jest/globals'
 import createLogger, { setLevel } from './index.js'
 
 /** @type {Console} */

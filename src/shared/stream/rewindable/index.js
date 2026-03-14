@@ -37,10 +37,10 @@ function rewindable(stream) {
   // Saves all generated values by the stream for future playback, but making
   // sure to not start it to flow.
 
-  /** @type {any[]} */
+  /** @type {Buffer[]} */
   const chunks = []
 
-  /** @param {any} chunk */
+  /** @param {Buffer} chunk */
   function onData(chunk) {
     chunks.push(chunk)
   }

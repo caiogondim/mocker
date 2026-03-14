@@ -1,7 +1,12 @@
+/** @typedef {import('../types.js').ConnectionId} ConnectionId */
+
 import { randomUUID } from 'node:crypto'
 
+/**
+ * @returns {ConnectionId}
+ */
 function createId() {
-  return randomUUID()
+  return /** @type {ConnectionId} */ (randomUUID())
 }
 
 export default createId

@@ -1,11 +1,11 @@
 /** @typedef {import('node:stream').Readable} Readable */
-/** @typedef {import('./types.js').Stream} Stream */
 /** @typedef {import('./types.js').RequestWrite} RequestWrite */
 /** @typedef {InstanceType<import('../../mock-manager/mocked-request.js')["default"]>} MockedRequest */
 /** @typedef {InstanceType<import('../../mock-manager/mocked-response.js')["default"]>} MockedResponse */
 /** @typedef {import('../types.js').HttpIncomingMessage} HttpIncomingMessage */
 /** @typedef {import('../types.js').HttpServerResponse} HttpServerResponse */
 /** @typedef {import('./types.js').Headers} Headers */
+/** @template T @template {Error} [E=Error] @typedef {import('../types.js').Result<T, E>} Result */
 
 import getConstructorName from '../get-constructor-name/index.js'
 import createRequest from './request/index.js'
@@ -34,18 +34,18 @@ async function getBody(req) {
  */
 function getHeaders(reqOrRes) {
   if ('headers' in reqOrRes) {
-    return structuredClone(reqOrRes.headers)
+    return /** @type {Headers} */ (structuredClone(reqOrRes.headers))
   }
 
   if ('getHeaders' in reqOrRes && typeof reqOrRes.getHeaders === 'function') {
-    return structuredClone(reqOrRes.getHeaders())
+    return /** @type {Headers} */ (structuredClone(reqOrRes.getHeaders()))
   }
 
   return {}
 }
 
 /**
- * @param {any} x
+ * @param {unknown} x
  * @returns {x is Headers}
  */
 function isHeaders(x) {
@@ -54,7 +54,7 @@ function isHeaders(x) {
     return false
   }
 
-  for (const value of Object.values(x)) {
+  for (const value of Object.values(/** @type {object} */ (x))) {
     const valueConstructorName = getConstructorName(value)
     if (
       ['String', 'Number', 'Undefined', 'Null', 'Boolean'].includes(
@@ -80,6 +80,17 @@ function isHeaders(x) {
   return true
 }
 
+/**
+ * @param {unknown} x
+ * @returns {Result<Headers>}
+ */
+function parseHeaders(x) {
+  if (!isHeaders(x)) {
+    return { ok: false, error: new TypeError('Expected a valid Headers object') }
+  }
+  return { ok: true, value: x }
+}
+
 export {
   getBody,
   createRequest,
@@ -88,4 +99,5 @@ export {
   unredactHeaders,
   SecretNotFoundError,
   isHeaders,
+  parseHeaders,
 }

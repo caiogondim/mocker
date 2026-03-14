@@ -2,32 +2,32 @@
 
 import { styleText } from 'node:util'
 
-/** @param {any} str @returns {string} */
+/** @param {unknown} str @returns {string} */
 function bold(str) {
   return styleText('bold', String(str))
 }
 
-/** @param {any} str @returns {string} */
+/** @param {unknown} str @returns {string} */
 function red(str) {
   return styleText('red', String(str))
 }
 
-/** @param {any} str @returns {string} */
+/** @param {unknown} str @returns {string} */
 function blue(str) {
   return styleText('blue', String(str))
 }
 
-/** @param {any} str @returns {string} */
+/** @param {unknown} str @returns {string} */
 function yellow(str) {
   return styleText('yellow', String(str))
 }
 
-/** @param {any} str @returns {string} */
+/** @param {unknown} str @returns {string} */
 function green(str) {
   return styleText('green', String(str))
 }
 
-/** @param {any} str @returns {string} */
+/** @param {unknown} str @returns {string} */
 function dim(str) {
   return styleText('dim', String(str))
 }
@@ -46,6 +46,9 @@ function stripMargin(str, marginChar = '|') {
   return output.join('\n')
 }
 
+// Matches ANSI terminal escape codes (e.g. \u001b[32m for green text)
+const ANSI_ESCAPE_CODE_REGEX = /\u001b\[[0-9]+m/g // eslint-disable-line no-control-regex
+
 /**
  * @param {string[][]} data
  * @returns {string}
@@ -57,8 +60,7 @@ function table(...data) {
 
   for (const dataLine of data) {
     for (const [i, datum] of dataLine.entries()) {
-      // eslint-disable-next-line no-control-regex
-      const datumWithoutFormatingCode = datum.replace(/\u001b\[[0-9]+m/g, '')
+      const datumWithoutFormatingCode = datum.replace(ANSI_ESCAPE_CODE_REGEX, '')
       maxWidths[i] = Math.max(
         maxWidths[i] || 0,
         datumWithoutFormatingCode.length,
@@ -69,8 +71,7 @@ function table(...data) {
   for (const dataLine of data) {
     const lineEntries = []
     for (const [i, datum] of dataLine.entries()) {
-      // eslint-disable-next-line no-control-regex
-      const datumWithoutFormatingCode = datum.replace(/\u001b\[[0-9]+m/g, '')
+      const datumWithoutFormatingCode = datum.replace(ANSI_ESCAPE_CODE_REGEX, '')
       const endPadding = datumWithoutFormatingCode
         .padEnd(maxWidths[i], ' ')
         .replace(datumWithoutFormatingCode, '')
@@ -97,7 +98,7 @@ function stringify(x) {
   }
 
   /**
-   * @param {any} x
+   * @param {unknown} x
    * @returns {Json}
    */
   function mapToJsonStringifiableType(x) {
@@ -106,7 +107,7 @@ function stringify(x) {
     if (x && x?.constructor === Set) {
       return Array.from(x)
     }
-    return x
+    return /** @type {Json} */ (x)
   }
 
   return addSpaceBetweenArrayElements(

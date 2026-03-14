@@ -9,6 +9,8 @@
 // - RFC 9112 (HTTP/1.1)
 //
 
+/** @typedef {import('../shared/types.js').HttpMethod} HttpMethod */
+
 import { describe, it, expect } from '@jest/globals'
 import net from 'node:net'
 import crypto from 'node:crypto'
@@ -18,6 +20,8 @@ import { Readable } from 'node:stream'
 import { createMocker } from './helpers/mocker.js'
 import { createServer } from './helpers/async-http-server.js'
 import { createRequest, getBody } from '../shared/http/index.js'
+import { parse as parseAbsoluteHttpUrl } from '../shared/absolute-http-url/index.js'
+import { HTTP_METHOD } from '../shared/http-method/index.js'
 
 function createEchoServer() {
   return createServer(async (req, res) => {
@@ -64,7 +68,7 @@ function createStatusCodeServer() {
 
 describe('HTTP methods (RFC 9110 §9)', () => {
   /** @see RFC 9110 §9.1 — Overview of HTTP methods */
-  it.each(['GET', 'POST', 'PUT', 'DELETE', 'PATCH'])(
+  it.each([HTTP_METHOD.GET, HTTP_METHOD.POST, HTTP_METHOD.PUT, HTTP_METHOD.DELETE, HTTP_METHOD.PATCH])(
     'forwards %s method to origin',
     async (method) => {
       await using origin = createEchoServer()
@@ -76,8 +80,10 @@ describe('HTTP methods (RFC 9110 §9)', () => {
       })
       await mocker.listen()
 
+      const parsed1 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/resource`)
+      if (!parsed1.ok) throw parsed1.error
       const [request, responsePromise] = await createRequest({
-        url: `http://localhost:${mocker.port}/resource`,
+        url: parsed1.value,
         method,
       })
       request.end()
@@ -98,8 +104,10 @@ describe('HTTP methods (RFC 9110 §9)', () => {
     })
     await mocker.listen()
 
+    const parsed2 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
+    if (!parsed2.ok) throw parsed2.error
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${mocker.port}/`,
+      url: parsed2.value,
       method: 'HEAD',
     })
     request.end()
@@ -120,8 +128,10 @@ describe('HTTP methods (RFC 9110 §9)', () => {
     })
     await mocker.listen()
 
+    const parsed3 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
+    if (!parsed3.ok) throw parsed3.error
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${mocker.port}/`,
+      url: parsed3.value,
       method: 'OPTIONS',
     })
     request.end()
@@ -142,9 +152,11 @@ describe('HTTP methods (RFC 9110 §9)', () => {
     })
     await mocker.listen()
 
+    const parsed4 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/cache`)
+    if (!parsed4.ok) throw parsed4.error
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${mocker.port}/cache`,
-      method: 'PURGE',
+      url: parsed4.value,
+      method: /** @type {HttpMethod} */ ('PURGE'),
     })
     request.end()
     const response = await responsePromise
@@ -172,8 +184,10 @@ describe('status code relaying (RFC 9110 §15)', () => {
       })
       await mocker.listen()
 
+      const parsed5 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
+      if (!parsed5.ok) throw parsed5.error
       const [request, responsePromise] = await createRequest({
-        url: `http://localhost:${mocker.port}/`,
+        url: parsed5.value,
         method: 'GET',
         headers: { 'response-status-code': `${statusCode}` },
       })
@@ -196,8 +210,10 @@ describe('status code relaying (RFC 9110 §15)', () => {
       })
       await mocker.listen()
 
+      const parsed6 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
+      if (!parsed6.ok) throw parsed6.error
       const [request, responsePromise] = await createRequest({
-        url: `http://localhost:${mocker.port}/`,
+        url: parsed6.value,
         method: 'GET',
         headers: { 'response-status-code': `${statusCode}` },
       })
@@ -220,8 +236,10 @@ describe('status code relaying (RFC 9110 §15)', () => {
       })
       await mocker.listen()
 
+      const parsed7 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
+      if (!parsed7.ok) throw parsed7.error
       const [request, responsePromise] = await createRequest({
-        url: `http://localhost:${mocker.port}/`,
+        url: parsed7.value,
         method: 'GET',
         headers: { 'response-status-code': `${statusCode}` },
       })
@@ -244,8 +262,10 @@ describe('status code relaying (RFC 9110 §15)', () => {
       })
       await mocker.listen()
 
+      const parsed8 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
+      if (!parsed8.ok) throw parsed8.error
       const [request, responsePromise] = await createRequest({
-        url: `http://localhost:${mocker.port}/`,
+        url: parsed8.value,
         method: 'GET',
         headers: { 'response-status-code': `${statusCode}` },
       })
@@ -266,8 +286,10 @@ describe('status code relaying (RFC 9110 §15)', () => {
     })
     await mocker.listen()
 
+    const parsed9 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
+    if (!parsed9.ok) throw parsed9.error
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${mocker.port}/`,
+      url: parsed9.value,
       method: 'GET',
       headers: { 'response-status-code': '299' },
     })
@@ -303,8 +325,10 @@ describe('Content-Length and body framing (RFC 9112 §6)', () => {
     })
     await mocker.listen()
 
+    const parsed10 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
+    if (!parsed10.ok) throw parsed10.error
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${mocker.port}/`,
+      url: parsed10.value,
       method: 'GET',
     })
     request.end()
@@ -332,8 +356,10 @@ describe('Content-Length and body framing (RFC 9112 §6)', () => {
     })
     await mocker.listen()
 
+    const parsed11 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
+    if (!parsed11.ok) throw parsed11.error
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${mocker.port}/`,
+      url: parsed11.value,
       method: 'GET',
     })
     request.end()
@@ -355,8 +381,10 @@ describe('Content-Length and body framing (RFC 9112 §6)', () => {
     })
     await mocker.listen()
 
+    const parsed12 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
+    if (!parsed12.ok) throw parsed12.error
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${mocker.port}/`,
+      url: parsed12.value,
       method: 'POST',
       headers: {
         'content-type': 'text/plain',
@@ -389,8 +417,10 @@ describe('Content-Length and body framing (RFC 9112 §6)', () => {
     })
     await mocker.listen()
 
+    const parsed13 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
+    if (!parsed13.ok) throw parsed13.error
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${mocker.port}/`,
+      url: parsed13.value,
       method: 'HEAD',
     })
     request.end()
@@ -411,8 +441,10 @@ describe('Content-Length and body framing (RFC 9112 §6)', () => {
     })
     await mocker.listen()
 
+    const parsed14 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
+    if (!parsed14.ok) throw parsed14.error
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${mocker.port}/`,
+      url: parsed14.value,
       method: 'GET',
       headers: { 'response-status-code': '204' },
     })
@@ -434,8 +466,10 @@ describe('Content-Length and body framing (RFC 9112 §6)', () => {
     })
     await mocker.listen()
 
+    const parsed15 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
+    if (!parsed15.ok) throw parsed15.error
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${mocker.port}/`,
+      url: parsed15.value,
       method: 'GET',
       headers: { 'response-status-code': '304' },
     })
@@ -464,8 +498,10 @@ describe('Content-Length and body framing (RFC 9112 §6)', () => {
     })
     await mocker.listen()
 
+    const parsed16 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
+    if (!parsed16.ok) throw parsed16.error
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${mocker.port}/`,
+      url: parsed16.value,
       method: 'GET',
     })
     request.end()
@@ -503,8 +539,10 @@ describe('Transfer-Encoding: chunked (RFC 9112 §7)', () => {
     })
     await mocker.listen()
 
+    const parsed17 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
+    if (!parsed17.ok) throw parsed17.error
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${mocker.port}/`,
+      url: parsed17.value,
       method: 'GET',
     })
     request.end()
@@ -535,8 +573,10 @@ describe('Transfer-Encoding: chunked (RFC 9112 §7)', () => {
     })
     await mocker.listen()
 
+    const parsed18 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
+    if (!parsed18.ok) throw parsed18.error
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${mocker.port}/`,
+      url: parsed18.value,
       method: 'GET',
     })
     request.end()
@@ -564,8 +604,10 @@ describe('connection management (RFC 9112 §9)', () => {
     await mocker.listen()
 
     // First request
+    const parsed19 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/first`)
+    if (!parsed19.ok) throw parsed19.error
     const [request1, responsePromise1] = await createRequest({
-      url: `http://localhost:${mocker.port}/first`,
+      url: parsed19.value,
       method: 'GET',
     })
     request1.end()
@@ -574,8 +616,10 @@ describe('connection management (RFC 9112 §9)', () => {
     expect(body1.url).toBe('/first')
 
     // Second request on a new connection (verifying proxy handles sequential requests)
+    const parsed20 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/second`)
+    if (!parsed20.ok) throw parsed20.error
     const [request2, responsePromise2] = await createRequest({
-      url: `http://localhost:${mocker.port}/second`,
+      url: parsed20.value,
       method: 'GET',
     })
     request2.end()
@@ -628,8 +672,10 @@ describe('connection management (RFC 9112 §9)', () => {
     await mocker.listen()
 
     for (let i = 0; i < 5; i++) {
+      const parsed21 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/request-${i}`)
+      if (!parsed21.ok) throw parsed21.error
       const [request, responsePromise] = await createRequest({
-        url: `http://localhost:${mocker.port}/request-${i}`,
+        url: parsed21.value,
         method: 'GET',
       })
       request.end()
@@ -656,8 +702,10 @@ describe('headers (RFC 9110 §5, §7)', () => {
     })
     await mocker.listen()
 
+    const parsed22 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
+    if (!parsed22.ok) throw parsed22.error
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${mocker.port}/`,
+      url: parsed22.value,
       method: 'GET',
       headers: {
         'X-Custom-Header': 'test-value',
@@ -689,8 +737,10 @@ describe('headers (RFC 9110 §5, §7)', () => {
     })
     await mocker.listen()
 
+    const parsed23 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
+    if (!parsed23.ok) throw parsed23.error
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${mocker.port}/`,
+      url: parsed23.value,
       method: 'GET',
     })
     request.end()
@@ -712,8 +762,10 @@ describe('headers (RFC 9110 §5, §7)', () => {
     })
     await mocker.listen()
 
+    const parsed24 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
+    if (!parsed24.ok) throw parsed24.error
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${mocker.port}/`,
+      url: parsed24.value,
       method: 'GET',
       headers: {
         'x-empty-header': '',
@@ -737,8 +789,10 @@ describe('headers (RFC 9110 §5, §7)', () => {
     })
     await mocker.listen()
 
+    const parsed25 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
+    if (!parsed25.ok) throw parsed25.error
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${mocker.port}/`,
+      url: parsed25.value,
       method: 'GET',
       headers: {
         'x-long-header': longValue,
@@ -769,8 +823,10 @@ describe('headers (RFC 9110 §5, §7)', () => {
     })
     await mocker.listen()
 
+    const parsed26 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
+    if (!parsed26.ok) throw parsed26.error
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${mocker.port}/`,
+      url: parsed26.value,
       method: 'GET',
     })
     request.end()
@@ -795,8 +851,10 @@ describe('headers (RFC 9110 §5, §7)', () => {
     })
     await mocker.listen()
 
+    const parsed27 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
+    if (!parsed27.ok) throw parsed27.error
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${mocker.port}/`,
+      url: parsed27.value,
       method: 'GET',
     })
     request.end()
@@ -815,8 +873,10 @@ describe('headers (RFC 9110 §5, §7)', () => {
     })
     await mocker.listen()
 
+    const parsed28 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
+    if (!parsed28.ok) throw parsed28.error
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${mocker.port}/`,
+      url: parsed28.value,
       method: 'GET',
       headers: {
         'accept-encoding': 'gzip, deflate, br',
@@ -845,8 +905,10 @@ describe('request target and URL handling (RFC 9112 §3.2)', () => {
     })
     await mocker.listen()
 
+    const parsed29 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/api/v2/users/42/posts`)
+    if (!parsed29.ok) throw parsed29.error
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${mocker.port}/api/v2/users/42/posts`,
+      url: parsed29.value,
       method: 'GET',
     })
     request.end()
@@ -866,8 +928,10 @@ describe('request target and URL handling (RFC 9112 §3.2)', () => {
     })
     await mocker.listen()
 
+    const parsed30 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/search?q=hello+world&page=2&limit=10`)
+    if (!parsed30.ok) throw parsed30.error
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${mocker.port}/search?q=hello+world&page=2&limit=10`,
+      url: parsed30.value,
       method: 'GET',
     })
     request.end()
@@ -887,8 +951,10 @@ describe('request target and URL handling (RFC 9112 §3.2)', () => {
     })
     await mocker.listen()
 
+    const parsed31 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/path%20with%20spaces/file%2Fname`)
+    if (!parsed31.ok) throw parsed31.error
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${mocker.port}/path%20with%20spaces/file%2Fname`,
+      url: parsed31.value,
       method: 'GET',
     })
     request.end()
@@ -908,8 +974,10 @@ describe('request target and URL handling (RFC 9112 §3.2)', () => {
     })
     await mocker.listen()
 
+    const parsed32 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
+    if (!parsed32.ok) throw parsed32.error
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${mocker.port}/`,
+      url: parsed32.value,
       method: 'GET',
     })
     request.end()
@@ -929,8 +997,10 @@ describe('request target and URL handling (RFC 9112 §3.2)', () => {
     })
     await mocker.listen()
 
+    const parsed33 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/?key=value`)
+    if (!parsed33.ok) throw parsed33.error
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${mocker.port}/?key=value`,
+      url: parsed33.value,
       method: 'GET',
     })
     request.end()
@@ -950,8 +1020,10 @@ describe('request target and URL handling (RFC 9112 §3.2)', () => {
     })
     await mocker.listen()
 
+    const parsed34 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}//double//slashes//path`)
+    if (!parsed34.ok) throw parsed34.error
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${mocker.port}//double//slashes//path`,
+      url: parsed34.value,
       method: 'GET',
     })
     request.end()
@@ -992,8 +1064,10 @@ describe('response body integrity', () => {
     })
     await mocker.listen()
 
+    const parsed35 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
+    if (!parsed35.ok) throw parsed35.error
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${mocker.port}/`,
+      url: parsed35.value,
       method: 'GET',
     })
     request.end()
@@ -1020,8 +1094,10 @@ describe('response body integrity', () => {
     })
     await mocker.listen()
 
+    const parsed36 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
+    if (!parsed36.ok) throw parsed36.error
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${mocker.port}/`,
+      url: parsed36.value,
       method: 'GET',
     })
     request.end()
@@ -1047,8 +1123,10 @@ describe('response body integrity', () => {
     })
     await mocker.listen()
 
+    const parsed37 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
+    if (!parsed37.ok) throw parsed37.error
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${mocker.port}/`,
+      url: parsed37.value,
       method: 'GET',
     })
     request.end()
@@ -1076,8 +1154,10 @@ describe('response body integrity', () => {
     })
     await mocker.listen()
 
+    const parsed38 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
+    if (!parsed38.ok) throw parsed38.error
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${mocker.port}/`,
+      url: parsed38.value,
       method: 'GET',
     })
     request.end()
@@ -1113,8 +1193,10 @@ describe('error conditions', () => {
     })
     await mocker.listen()
 
+    const parsed39 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
+    if (!parsed39.ok) throw parsed39.error
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${mocker.port}/`,
+      url: parsed39.value,
       method: 'GET',
     })
     request.end()
@@ -1144,8 +1226,10 @@ describe('error conditions', () => {
     })
     await mocker.listen()
 
+    const parsed40 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
+    if (!parsed40.ok) throw parsed40.error
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${mocker.port}/`,
+      url: parsed40.value,
       method: 'GET',
     })
     request.end()

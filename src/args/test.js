@@ -169,7 +169,6 @@ describe('--mode', () => {
       '--mode',
       'lorem-ipsum',
     ]
-    // @ts-ignore
     await expect(parseArgv(argv)).rejects.toThrow(/invalid --mode/)
   })
 })
@@ -200,7 +199,6 @@ describe('--update', () => {
       '--update',
       'lorem-ipsum',
     ]
-    // @ts-ignore
     await expect(parseArgv(argv)).rejects.toThrow(/invalid --update/)
   })
 })

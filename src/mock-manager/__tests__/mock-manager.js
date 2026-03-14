@@ -5,6 +5,7 @@ import { getBody, SecretNotFoundError } from '../../shared/http/index.js'
 import { createMockManager } from './helpers/mock-manager.js'
 import { createMockedResponse } from './helpers/mocked-response.js'
 import { createMockedRequest } from './helpers/mocked-request.js'
+import { MockFileError } from '../mock-file-error.js'
 
 describe('mockManager.get', () => {
   it('returns a mocked response from disk for requests', async () => {
@@ -364,6 +365,275 @@ describe('mockManager.set', () => {
   })
 })
 
+describe('mock filenames', () => {
+  it('uses human-readable GraphQL filename for query requests', async () => {
+    const mockManager = await createMockManager({
+      mockKeys: new Set(['url', 'method', 'body']),
+    })
+
+    const request = rewindable(
+      createMockedRequest({
+        method: 'POST',
+        url: 'http://example.com/graphql',
+        headers: { 'content-type': 'application/json' },
+      }),
+    )
+    request.end(
+      JSON.stringify({
+        operationName: 'MerchantEnrollmentReport',
+        query: 'query MerchantEnrollmentReport { merchant { id } }',
+      }),
+    )
+
+    const response = rewindable(createMockedResponse())
+    response.end()
+    const { mockPath } = await mockManager.set({ request, response })
+
+    expect(mockPath).toMatch(
+      /[a-f0-9]+-gql-query-merchant-enrollment-report\.json$/,
+    )
+  })
+
+  it('uses human-readable GraphQL filename for mutation requests', async () => {
+    const mockManager = await createMockManager({
+      mockKeys: new Set(['url', 'method', 'body']),
+    })
+
+    const request = rewindable(
+      createMockedRequest({
+        method: 'POST',
+        url: 'http://example.com/graphql',
+        headers: { 'content-type': 'application/json' },
+      }),
+    )
+    request.end(
+      JSON.stringify({
+        operationName: 'UpdateUser',
+        query: 'mutation UpdateUser($id: ID!) { updateUser(id: $id) { id } }',
+      }),
+    )
+
+    const response = rewindable(createMockedResponse())
+    response.end()
+    const { mockPath } = await mockManager.set({ request, response })
+
+    expect(mockPath).toMatch(/[a-f0-9]+-gql-mutation-update-user\.json$/)
+  })
+
+  it('falls back to hash-based HTTP filename when no operationName', async () => {
+    const mockManager = await createMockManager({
+      mockKeys: new Set(['url', 'method']),
+    })
+
+    const request = rewindable(
+      createMockedRequest({
+        method: 'POST',
+        url: 'http://example.com/api/users',
+        headers: { 'content-type': 'application/json' },
+      }),
+    )
+    request.end(JSON.stringify({ foo: 'bar' }))
+
+    const response = rewindable(createMockedResponse())
+    response.end()
+    const { mockPath } = await mockManager.set({ request, response })
+
+    expect(mockPath).toMatch(/[a-f0-9]+-http-post-api-users\.json$/)
+  })
+
+  it('falls back to hash-based HTTP filename when operationName present but no query', async () => {
+    const mockManager = await createMockManager({
+      mockKeys: new Set(['url', 'method', 'body']),
+    })
+
+    const request = rewindable(
+      createMockedRequest({
+        method: 'POST',
+        url: 'http://example.com/graphql',
+        headers: { 'content-type': 'application/json' },
+      }),
+    )
+    request.end(JSON.stringify({ operationName: 'GetUser' }))
+
+    const response = rewindable(createMockedResponse())
+    response.end()
+    const { mockPath } = await mockManager.set({ request, response })
+
+    expect(mockPath).toMatch(/[a-f0-9]+-http-post-graphql\.json$/)
+  })
+
+  it('uses human-readable HTTP filename with method and path', async () => {
+    const mockManager = await createMockManager({
+      mockKeys: new Set(['url', 'method']),
+    })
+
+    const request = rewindable(
+      createMockedRequest({
+        method: 'GET',
+        url: 'http://example.com/api/merchants/reports',
+      }),
+    )
+    request.end()
+
+    const response = rewindable(createMockedResponse())
+    response.end()
+    const { mockPath } = await mockManager.set({ request, response })
+
+    expect(mockPath).toMatch(/[a-f0-9]+-http-get-api-merchants-reports\.json$/)
+  })
+
+  it('sanitizes HTTP filename for relative URLs with query params', async () => {
+    const mockManager = await createMockManager({
+      mockKeys: new Set(['url', 'method']),
+    })
+
+    const request = rewindable(
+      createMockedRequest({
+        method: 'POST',
+        url: '/api/federated-gateway-protected/graphql?opname=typename',
+      }),
+    )
+    request.end()
+
+    const response = rewindable(createMockedResponse())
+    response.end()
+    const { mockPath } = await mockManager.set({ request, response })
+
+    expect(mockPath).toMatch(
+      /[a-f0-9]+-http-post-api-federated-gateway-protected-graphql\.json$/,
+    )
+  })
+
+  it('sanitizes GraphQL operation names to lowercase letters, numbers, and dashes', async () => {
+    const mockManager = await createMockManager({
+      mockKeys: new Set(['url', 'method', 'body']),
+    })
+
+    const request = rewindable(
+      createMockedRequest({
+        method: 'POST',
+        url: 'http://example.com/graphql',
+        headers: { 'content-type': 'application/json' },
+      }),
+    )
+    request.end(
+      JSON.stringify({
+        operationName: 'Get$Merchant#Info/V2',
+        query: 'query Get$Merchant#Info/V2 { merchant { id } }',
+      }),
+    )
+
+    const response = rewindable(createMockedResponse())
+    response.end()
+    const { mockPath } = await mockManager.set({ request, response })
+
+    expect(mockPath).toMatch(/[a-f0-9]+-gql-query-get-merchant-info-v2\.json$/)
+  })
+
+  it('uses gql-operation when query type cannot be determined', async () => {
+    const mockManager = await createMockManager({
+      mockKeys: new Set(['url', 'method', 'body']),
+    })
+
+    const request = rewindable(
+      createMockedRequest({
+        method: 'POST',
+        url: 'http://example.com/graphql',
+        headers: { 'content-type': 'application/json' },
+      }),
+    )
+    request.end(
+      JSON.stringify({
+        operationName: 'GetUser',
+        query: '{ user { id name } }',
+      }),
+    )
+
+    const response = rewindable(createMockedResponse())
+    response.end()
+    const { mockPath } = await mockManager.set({ request, response })
+
+    expect(mockPath).toMatch(/[a-f0-9]+-gql-operation-get-user\.json$/)
+  })
+
+  it('truncates filename to 80 characters', async () => {
+    const mockManager = await createMockManager({
+      mockKeys: new Set(['url', 'method']),
+    })
+
+    const request = rewindable(
+      createMockedRequest({
+        method: 'GET',
+        url: 'http://example.com/api/very/long/path/that/goes/on/and/on/and/keeps/going/forever/until/it/exceeds/the/limit',
+      }),
+    )
+    request.end()
+
+    const response = rewindable(createMockedResponse())
+    response.end()
+    const { mockPath } = await mockManager.set({ request, response })
+
+    const fileName = /** @type {string} */ (mockPath.split('/').pop())
+    expect(fileName).toMatchInlineSnapshot(
+      `"bb63f5540dcf-http-get-api-very-long-path-that-goes-on-and-on-and-keeps-goin.json"`,
+    )
+    expect(fileName.length).toEqual(80)
+  })
+
+  it('still resolves to the same mock file after truncation', async () => {
+    const mockManager = await createMockManager({
+      mockKeys: new Set(['url', 'method']),
+    })
+
+    const longUrl =
+      'http://example.com/api/very/long/path/that/goes/on/and/on/and/keeps/going/forever/until/it/exceeds/the/limit'
+
+    const request1 = rewindable(
+      createMockedRequest({ method: 'GET', url: longUrl }),
+    )
+    request1.end()
+    const response = rewindable(createMockedResponse())
+    response.end()
+    await mockManager.set({ request: request1, response })
+
+    const request2 = rewindable(
+      createMockedRequest({ method: 'GET', url: longUrl }),
+    )
+    request2.end()
+    const { hasMock } = await mockManager.has({ request: request2 })
+
+    expect(hasMock).toBe(true)
+  })
+
+  it('converts SCREAMING_SNAKE_CASE operation names to kebab-case', async () => {
+    const mockManager = await createMockManager({
+      mockKeys: new Set(['url', 'method', 'body']),
+    })
+
+    const request = rewindable(
+      createMockedRequest({
+        method: 'POST',
+        url: 'http://example.com/graphql',
+        headers: { 'content-type': 'application/json' },
+      }),
+    )
+    request.end(
+      JSON.stringify({
+        operationName: 'MERCHANT_ENROLLMENT_REPORT',
+        query: 'query MERCHANT_ENROLLMENT_REPORT { merchant { id } }',
+      }),
+    )
+
+    const response = rewindable(createMockedResponse())
+    response.end()
+    const { mockPath } = await mockManager.set({ request, response })
+
+    expect(mockPath).toMatch(
+      /[a-f0-9]+-gql-query-merchant-enrollment-report\.json$/,
+    )
+  })
+})
+
 describe('mockManager.getAll', () => {
   // In case a request/response has `content-type: application/json`, mocker saves its
   // body as JSON. We need to make sure to serialize the JSON body again before
@@ -397,14 +667,10 @@ describe('mockManager.getAll', () => {
     // Retrieve all mocks
     //
 
-    for await (const {
-      mockedRequest,
-      mockedResponse,
-    } of mockManager.getAll()) {
-      if (mockedRequest === null || mockedResponse === null) {
-        throw new Error('mockedRequest/mockedResponse shouldnt be `null`')
-      }
+    for await (const item of mockManager.getAll()) {
+      if (!item.ok) throw item.error
 
+      const { mockedRequest, mockedResponse } = item.value
       const requestBody = `${await getBody(mockedRequest)}`
       const responseBody = `${await getBody(mockedResponse)}`
 
@@ -448,15 +714,12 @@ describe('mockManager.getAll', () => {
     // Retrieve all mocks
     //
 
-    for await (const { mockedResponse, error } of mockManager.getAll()) {
-      if (mockedResponse === null) {
-        throw new Error('mockedResponse shouldnt be `null`')
-      }
+    for await (const item of mockManager.getAll()) {
+      if (!item.ok) throw item.error
 
       // mockedResponse example-token header should have the same value as passed on
       // `redactedHeaders`
-      expect(mockedResponse.headers['example-token']).toBe(1234)
-      expect(error).toBeNull()
+      expect(item.value.mockedResponse.headers['example-token']).toBe(1234)
     }
   })
 
@@ -492,16 +755,12 @@ describe('mockManager.getAll', () => {
     // Retrieve all mocks
     //
 
-    for await (const {
-      error,
-      mockedResponse,
-      mockedRequest,
-      mockPath,
-    } of mockManager.getAll()) {
-      expect(error).toBeInstanceOf(SecretNotFoundError)
-      expect(mockedResponse).toBeNull()
-      expect(mockedRequest).toBeNull()
-      expect(typeof mockPath).toBe('string')
+    for await (const item of mockManager.getAll()) {
+      expect(item.ok).toBe(false)
+      if (!item.ok) {
+        expect(item.error).toBeInstanceOf(MockFileError)
+        expect(typeof item.error.mockPath).toBe('string')
+      }
     }
   })
 })

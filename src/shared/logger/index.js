@@ -45,7 +45,7 @@ function createLogger({
   }
 
   /**
-   * @param {any[]} args
+   * @param {unknown[]} args
    * @returns {Boolean}
    */
   function log(...args) {
@@ -59,7 +59,7 @@ function createLogger({
   }
 
   /**
-   * @param {any[]} args
+   * @param {unknown[]} args
    * @returns {Boolean}
    */
   function warn(...args) {
@@ -73,7 +73,7 @@ function createLogger({
   }
 
   /**
-   * @param {any[]} args
+   * @param {unknown[]} args
    * @returns {Boolean}
    */
   function error(...args) {
@@ -84,7 +84,7 @@ function createLogger({
     // In case it's a pretty error object, print its message property since it's
     // already formatted.
     if (isPrettyError(args[0])) {
-      _console.error(args[0].message)
+      _console.error(/** @type {{ message: unknown }} */ (args[0]).message)
       return false
     }
 
@@ -94,7 +94,7 @@ function createLogger({
   }
 
   /**
-   * @param {any[]} args
+   * @param {unknown[]} args
    * @returns {Boolean}
    */
   function info(...args) {
@@ -108,7 +108,7 @@ function createLogger({
   }
 
   /**
-   * @param {any[]} args
+   * @param {unknown[]} args
    * @returns {Boolean}
    */
   function success(...args) {

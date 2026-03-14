@@ -2,6 +2,7 @@ import { describe, it, expect } from '@jest/globals'
 import { createMocker } from './helpers/mocker.js'
 import { createRequest, getBody } from '../shared/http/index.js'
 import { createServer as createTimeServer } from '../../tools/time-server/index.js'
+import { parse as parseAbsoluteHttpUrl } from '../shared/absolute-http-url/index.js'
 
 describe('health checks endpoints', () => {
   it('implements /.well-known/live endpoint for live health check', async () => {
@@ -15,8 +16,10 @@ describe('health checks endpoints', () => {
     await mocker.listen()
 
     // When I fire a request to /.well-known/live
+    const parsed1 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/.well-known/live`)
+    if (!parsed1.ok) throw parsed1.error
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${mocker.port}/.well-known/live`,
+      url: parsed1.value,
       method: 'GET',
     })
     request.end()
@@ -40,8 +43,10 @@ describe('health checks endpoints', () => {
     await mocker.listen()
 
     // When I fire a request to /.well-known/ready
+    const parsed2 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/.well-known/ready`)
+    if (!parsed2.ok) throw parsed2.error
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${mocker.port}/.well-known/ready`,
+      url: parsed2.value,
       method: 'GET',
     })
     request.end()
@@ -68,8 +73,10 @@ describe('health checks endpoints', () => {
 
     // When I fire a request to any '/.well-known' URL
     // besides '/.well-known/live' or '/.well-known/ready'
+    const parsed3 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/.well-known/availability`)
+    if (!parsed3.ok) throw parsed3.error
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${mocker.port}/.well-known/availability`,
+      url: parsed3.value,
       method: 'GET',
     })
     request.end()

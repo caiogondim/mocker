@@ -2,6 +2,7 @@ import { describe, it, expect } from '@jest/globals'
 import { createRequest } from '../shared/http/index.js'
 import { createServer as createMathServer } from '../../tools/math-server/index.js'
 import { createMocker } from './helpers/mocker.js'
+import { parse as parseAbsoluteHttpUrl } from '../shared/absolute-http-url/index.js'
 
 describe('args.overwriteResponseHeaders', () => {
   it('overwrites headers from response coming directly from origin', async () => {
@@ -17,8 +18,10 @@ describe('args.overwriteResponseHeaders', () => {
     })
     await mocker.listen()
 
+    const parsed1 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/?a=34&b=35&operation=sum`)
+    if (!parsed1.ok) throw parsed1.error
     const [request1, response1Promise] = await createRequest({
-      url: `http://localhost:${mocker.port}/?a=34&b=35&operation=sum`,
+      url: parsed1.value,
       method: 'GET',
     })
     request1.end()
@@ -42,8 +45,10 @@ describe('args.overwriteResponseHeaders', () => {
     await mocker.listen()
 
     // Fires a request to mocker.
+    const parsed2 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/?a=34&b=35&operation=sum`)
+    if (!parsed2.ok) throw parsed2.error
     const [request1, response1Promise] = await createRequest({
-      url: `http://localhost:${mocker.port}/?a=34&b=35&operation=sum`,
+      url: parsed2.value,
       method: 'GET',
     })
     request1.end()
@@ -70,8 +75,10 @@ describe('args.overwriteResponseHeaders', () => {
     // Normal flow: client <-> proxy <-> origin
     //
 
+    const parsed3 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/?a=34&b=35&operation=sum`)
+    if (!parsed3.ok) throw parsed3.error
     const [request1, response1Promise] = await createRequest({
-      url: `http://localhost:${mocker.port}/?a=34&b=35&operation=sum`,
+      url: parsed3.value,
       method: 'GET',
     })
     request1.end()
@@ -84,8 +91,10 @@ describe('args.overwriteResponseHeaders', () => {
     // Mocked response: client <-> proxy
     //
 
+    const parsed4 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/?a=34&b=35&operation=sum`)
+    if (!parsed4.ok) throw parsed4.error
     const [request2, response2Promise] = await createRequest({
-      url: `http://localhost:${mocker.port}/?a=34&b=35&operation=sum`,
+      url: parsed4.value,
       method: 'GET',
     })
     request2.end()

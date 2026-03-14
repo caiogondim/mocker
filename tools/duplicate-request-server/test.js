@@ -1,6 +1,7 @@
 import { describe, it, expect } from '@jest/globals'
 import { createServer, createPayload } from './index.js'
 import { createRequest, getBody } from '../../src/shared/http/index.js'
+import { parse as parseAbsoluteHttpUrl } from '../../src/shared/absolute-http-url/index.js'
 
 describe('duplicate-request-server', () => {
   it('responds with double the payload passed on request', async () => {
@@ -10,8 +11,10 @@ describe('duplicate-request-server', () => {
     const serverUrl = `http://localhost:${server.port}`
 
     // Fire request
+    const parsed1 = parseAbsoluteHttpUrl(serverUrl)
+    if (!parsed1.ok) throw parsed1.error
     const [request1, responsePromise1] = await createRequest({
-      url: serverUrl,
+      url: parsed1.value,
       method: 'POST',
     })
     const payload = createPayload({ size: 1e6 }) // 1e6B = 1MB

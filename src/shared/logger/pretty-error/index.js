@@ -3,11 +3,11 @@ import { green, red, bold, yellow, stripMargin } from '../format/index.js'
 const prettyErrorSymbol = Symbol('pretty-error')
 
 /**
- * @param {any} x
+ * @param {unknown} x
  * @returns {Boolean}
  */
 function isPrettyError(x) {
-  return typeof x === 'object' && Reflect.get(x, prettyErrorSymbol) === true
+  return typeof x === 'object' && x !== null && Reflect.get(x, prettyErrorSymbol) === true
 }
 
 /**

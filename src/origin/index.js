@@ -1,17 +1,22 @@
 /** @typedef {import('../shared/http/types.js').Headers} Headers */
+/** @typedef {import('../shared/types.js').AbsoluteHttpUrl} AbsoluteHttpUrl */
+/** @typedef {import('../args/types.js').HttpUrl} HttpUrl */
+/** @typedef {import('../args/types.js').NonNegativeInteger} NonNegativeInteger */
+/** @typedef {import('../shared/types.js').HttpMethod} HttpMethod */
 
 import { createRequest } from '../shared/http/index.js'
+import { HTTP_METHOD } from '../shared/http-method/index.js'
 
 /**
  * @param {Object} options
- * @param {import('../args/types.js').HttpUrl} options.host
- * @param {import('../args/types.js').NonNegativeInteger} [options.retries]
+ * @param {HttpUrl} options.host
+ * @param {NonNegativeInteger} [options.retries]
  * @param {Headers} [options.overwriteRequestHeaders]
- * @param {import('../args/types.js').HttpUrl} [options.proxyUrl]
+ * @param {HttpUrl} [options.proxyUrl]
  */
 function createOrigin({
   host,
-  retries = /** @type {import('../args/types.js').NonNegativeInteger} */ (0),
+  retries = /** @type {NonNegativeInteger} */ (0),
   overwriteRequestHeaders = {},
   proxyUrl,
 }) {
@@ -20,11 +25,11 @@ function createOrigin({
   /**
    * @param {Object} options
    * @param {string} options.url
-   * @param {Object<string, any>} [options.headers]
-   * @param {string | undefined} [options.method]
+   * @param {Headers} [options.headers]
+   * @param {HttpMethod} [options.method]
    * @returns {ReturnType<createRequest>}
    */
-  async function request({ url, headers = {}, method = 'GET' }) {
+  async function request({ url, headers = {}, method = HTTP_METHOD.GET }) {
     const headersCopy = { ...headers }
     const absoluteUrl = getAbsoluteUrl(url)
 
@@ -53,29 +58,29 @@ function createOrigin({
 
   /**
    * @param {string} url
-   * @returns {string}
+   * @returns {AbsoluteHttpUrl}
    */
   function getAbsoluteUrl(url) {
     if (url.startsWith('http://') || url.startsWith('https://')) {
-      return url
+      return /** @type {AbsoluteHttpUrl} */ (url)
     }
-    return `${host}${url}`
+    return /** @type {AbsoluteHttpUrl} */ (`${host}${url}`)
   }
 
   return { request }
 }
 
 /**
- * @param {string} absoluteUrl
+ * @param {AbsoluteHttpUrl} absoluteUrl
  * @param {URL} parsedProxyUrl
- * @returns {string}
+ * @returns {AbsoluteHttpUrl}
  */
 function rewriteUrlForProxy(absoluteUrl, parsedProxyUrl) {
   const original = new URL(absoluteUrl)
   original.protocol = parsedProxyUrl.protocol
   original.hostname = parsedProxyUrl.hostname
   original.port = parsedProxyUrl.port
-  return original.toString()
+  return /** @type {AbsoluteHttpUrl} */ (original.toString())
 }
 
 export { createOrigin }

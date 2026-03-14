@@ -8,7 +8,7 @@ class TokenBucket {
   #fillFrequency
   /** @type {number} */
   #tokens = 0
-  /** @type {function(any=): void} */
+  /** @type {function(unknown=): void} */
   #refillResolve = () => {}
   /** @type {boolean} */
   #hasPendingRefill = false

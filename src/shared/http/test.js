@@ -46,7 +46,7 @@ describe('getHeaders()', () => {
     }
 
     // When I use `getHeaders()` on it
-    // @ts-ignore
+    // @ts-expect-error — intentionally passing a minimal object to test duck-typing fallback
     const clonedHeaders = getHeaders(request)
 
     // Then it should return a clone of the request's headers

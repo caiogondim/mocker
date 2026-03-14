@@ -4,6 +4,7 @@ import { createServer } from './helpers/async-http-server.js'
 import { createServer as createMathServer } from '../../tools/math-server/index.js'
 import { createServer as createTimeServer } from '../../tools/time-server/index.js'
 import { createRequest, getBody } from '../shared/http/index.js'
+import { parse as parseAbsoluteHttpUrl } from '../shared/absolute-http-url/index.js'
 
 describe(`mode = 'pass'`, () => {
   it('works as a pass-through proxy', async () => {
@@ -16,8 +17,10 @@ describe(`mode = 'pass'`, () => {
     })
     await mocker.listen()
 
+    const parsed1 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/?a=1&b=3&operation=sum`)
+    if (!parsed1.ok) throw parsed1.error
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${mocker.port}/?a=1&b=3&operation=sum`,
+      url: parsed1.value,
     })
     request.end()
     const response = await responsePromise
@@ -42,8 +45,10 @@ describe(`mode = 'read-pass`, () => {
     // Normal flow: client <-> proxy <-> origin
     //
 
+    const parsed2 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/?a=5&b=9&operation=sum`)
+    if (!parsed2.ok) throw parsed2.error
     const [request1, response1Promise] = await createRequest({
-      url: `http://localhost:${mocker.port}/?a=5&b=9&operation=sum`,
+      url: parsed2.value,
     })
     request1.end()
     const response1 = await response1Promise
@@ -55,8 +60,10 @@ describe(`mode = 'read-pass`, () => {
     // Mocked response: client <-> proxy
     //
 
+    const parsed3 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/?a=5&b=9&operation=sum`)
+    if (!parsed3.ok) throw parsed3.error
     const [request2, response2Promise] = await createRequest({
-      url: `http://localhost:${mocker.port}/?a=5&b=9&operation=sum`,
+      url: parsed3.value,
     })
     request2.end()
     const response2 = await response2Promise
@@ -75,8 +82,10 @@ describe(`mode = 'read-pass`, () => {
     })
     await mocker.listen()
 
+    const parsed4 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/?a=1&b=3&operation=sum`)
+    if (!parsed4.ok) throw parsed4.error
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${mocker.port}/?a=1&b=3&operation=sum`,
+      url: parsed4.value,
     })
     request.end()
     const response = await responsePromise
@@ -101,8 +110,10 @@ describe(`mode = 'read-write`, () => {
     // Normal flow: client <-> proxy <-> origin
     //
 
+    const parsed5 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/?a=2&b=5&operation=multiply`)
+    if (!parsed5.ok) throw parsed5.error
     const [request1, response1Promise] = await createRequest({
-      url: `http://localhost:${mocker.port}/?a=2&b=5&operation=multiply`,
+      url: parsed5.value,
     })
     request1.end()
 
@@ -119,8 +130,10 @@ describe(`mode = 'read-write`, () => {
     // Mocked response: client <-> proxy
     //
 
+    const parsed6 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/?a=2&b=5&operation=multiply`)
+    if (!parsed6.ok) throw parsed6.error
     const [request2, response2Promise] = await createRequest({
-      url: `http://localhost:${mocker.port}/?a=2&b=5&operation=multiply`,
+      url: parsed6.value,
     })
     request2.end()
     const response2 = await response2Promise
@@ -143,8 +156,10 @@ describe(`mode = 'read-write`, () => {
     // Normal flow: client <-> proxy <-> origin
     //
 
+    const parsed7 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/?a=5&b=9&operation=sum`)
+    if (!parsed7.ok) throw parsed7.error
     const [request1, response1Promise] = await createRequest({
-      url: `http://localhost:${mocker.port}/?a=5&b=9&operation=sum`,
+      url: parsed7.value,
     })
     request1.end()
     const response1 = await response1Promise
@@ -156,8 +171,10 @@ describe(`mode = 'read-write`, () => {
     // Mocked response: client <-> proxy
     //
 
+    const parsed8 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/?a=5&b=9&operation=sum`)
+    if (!parsed8.ok) throw parsed8.error
     const [request2, response2Promise] = await createRequest({
-      url: `http://localhost:${mocker.port}/?a=5&b=9&operation=sum`,
+      url: parsed8.value,
     })
     request2.end()
     const response2 = await response2Promise
@@ -178,8 +195,10 @@ describe(`mode = 'read'`, () => {
     })
     await mocker.listen()
 
+    const parsed9 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/?a=34&b=35&operation=sum`)
+    if (!parsed9.ok) throw parsed9.error
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${mocker.port}/?a=34&b=35&operation=sum`,
+      url: parsed9.value,
       method: 'GET',
     })
     request.end()
@@ -204,8 +223,10 @@ describe(`mode = 'pass-read'`, () => {
 
     // All responses should come from origin as long as origin is available
     for (let i = 0; i < 3; i += 1) {
+      const parsed10 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
+      if (!parsed10.ok) throw parsed10.error
       const [request1, response1Promise] = await createRequest({
-        url: `http://localhost:${mocker.port}/`,
+        url: parsed10.value,
         method: 'GET',
       })
       request1.end()
@@ -248,8 +269,10 @@ describe(`mode = 'pass-read'`, () => {
     await mocker2.listen()
 
     // Fires request to `mocker1` in order to populate `fs` with a mocked response
+    const parsed11 = parseAbsoluteHttpUrl(`http://localhost:${mocker1.port}/`)
+    if (!parsed11.ok) throw parsed11.error
     const [request1, response1Promise] = await createRequest({
-      url: `http://localhost:${mocker1.port}/`,
+      url: parsed11.value,
       method: 'GET',
     })
     request1.end()
@@ -259,8 +282,10 @@ describe(`mode = 'pass-read'`, () => {
 
     // Now we fire a request to `mocker2` with `mode: 'pass-read` to confirm
     // it is getting a response from origin
+    const parsed12 = parseAbsoluteHttpUrl(`http://localhost:${mocker2.port}/`)
+    if (!parsed12.ok) throw parsed12.error
     const [request2, response2Promise] = await createRequest({
-      url: `http://localhost:${mocker2.port}/`,
+      url: parsed12.value,
       method: 'GET',
     })
     request2.end()
@@ -273,8 +298,10 @@ describe(`mode = 'pass-read'`, () => {
 
     // Fires a request to `mocker2` with origin not available. It should
     // return a mocked response.
+    const parsed13 = parseAbsoluteHttpUrl(`http://localhost:${mocker2.port}/`)
+    if (!parsed13.ok) throw parsed13.error
     const [request3, response3Promise] = await createRequest({
-      url: `http://localhost:${mocker2.port}/`,
+      url: parsed13.value,
       method: 'GET',
     })
     request3.end()
@@ -319,8 +346,10 @@ describe(`mode = 'pass-read'`, () => {
     await mocker2.listen()
 
     // Fires request to `mocker1` in order to populate `fs` with a mocked response
+    const parsed14 = parseAbsoluteHttpUrl(`http://localhost:${mocker1.port}/`)
+    if (!parsed14.ok) throw parsed14.error
     const [request1, response1Promise] = await createRequest({
-      url: `http://localhost:${mocker1.port}/`,
+      url: parsed14.value,
       method: 'GET',
     })
     request1.end()
@@ -330,8 +359,10 @@ describe(`mode = 'pass-read'`, () => {
 
     // Now we fire a request to `mocker2` with `mode: 'pass-read` to confirm
     // it is getting a response from origin
+    const parsed15 = parseAbsoluteHttpUrl(`http://localhost:${mocker2.port}/`)
+    if (!parsed15.ok) throw parsed15.error
     const [request2, response2Promise] = await createRequest({
-      url: `http://localhost:${mocker2.port}/`,
+      url: parsed15.value,
       method: 'GET',
     })
     request2.end()
@@ -344,8 +375,10 @@ describe(`mode = 'pass-read'`, () => {
 
     // Fires a request to `mocker2` with origin returning 500. It should
     // return a mocked response.
+    const parsed16 = parseAbsoluteHttpUrl(`http://localhost:${mocker2.port}/`)
+    if (!parsed16.ok) throw parsed16.error
     const [request3, response3Promise] = await createRequest({
-      url: `http://localhost:${mocker2.port}/`,
+      url: parsed16.value,
       method: 'GET',
     })
     request3.end()
@@ -365,8 +398,10 @@ describe(`mode = 'pass-read'`, () => {
 
     // Fires a request to a mocker instance without an available origin and
     // without mocks
+    const parsed17 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
+    if (!parsed17.ok) throw parsed17.error
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${mocker.port}/`,
+      url: parsed17.value,
       method: 'GET',
     })
     request.end()

@@ -1,4 +1,10 @@
 /** @typedef {import('../types.js').RequestWrite} RequestWrite */
+/** @typedef {import('../../types.js').AbsoluteHttpUrl} AbsoluteHttpUrl */
+/** @typedef {import('../../types.js').HttpMethod} HttpMethod */
+/** @typedef {import('../types.js').Headers} Headers */
+
+import { HTTP_METHOD } from '../../http-method/index.js'
+import { HTTP_STATUS_CODE } from '../../http-status-code/index.js'
 
 import http from 'node:http'
 import https from 'node:https'
@@ -23,14 +29,14 @@ function getNativeRequest(protocol) {
 
 /**
  * @param {URL} urlObj
- * @param {string} method
- * @param {Object<string, any>} headers
+ * @param {HttpMethod} method
+ * @param {Headers} headers
  * @returns {{
  *   method: string
  *   hostname: string
  *   port: number
  *   path: string
- *   headers: Object<string, any>
+ *   headers: Headers
  *   protocol: string
  * }}
  */
@@ -58,16 +64,16 @@ function prepareRequestParams(urlObj, method, headers) {
 
 /**
  * @param {Object} options
- * @param {string} options.url
- * @param {Object} [options.headers]
- * @param {string} [options.method]
+ * @param {AbsoluteHttpUrl} options.url
+ * @param {Headers} [options.headers]
+ * @param {HttpMethod} [options.method]
  * @returns {Promise<[http.ClientRequest, Promise<http.IncomingMessage>]>}
  */
-async function createRequest({ url, headers = {}, method = 'GET' }) {
+async function createRequest({ url, headers = {}, method = HTTP_METHOD.GET }) {
   const urlObj = new URL(url)
   const nativeRequest = getNativeRequest(urlObj.protocol)
   const requestParams = prepareRequestParams(urlObj, method, headers)
-  const request = nativeRequest(requestParams)
+  const request = nativeRequest(/** @type {import('node:http').RequestOptions} */ (requestParams))
 
   await new Promise((resolve, reject) => {
     request.on('error', reject)
@@ -91,9 +97,9 @@ async function createRequest({ url, headers = {}, method = 'GET' }) {
 
 /**
  * @param {Object} options
- * @param {string} options.url
- * @param {Object} [options.headers]
- * @param {string} [options.method]
+ * @param {AbsoluteHttpUrl} options.url
+ * @param {Headers} [options.headers]
+ * @param {HttpMethod} [options.method]
  * @param {number} [options.retries]
  * @param {function(): Promise<void>} [options.backoff]
  * @returns {Promise<[http.ClientRequest, Promise<http.IncomingMessage>]>}
@@ -101,7 +107,7 @@ async function createRequest({ url, headers = {}, method = 'GET' }) {
 async function createRequestWithRetry({
   url,
   headers = {},
-  method = 'GET',
+  method = HTTP_METHOD.GET,
   retries = 0,
   backoff = createBackoff(),
 }) {
@@ -123,8 +129,8 @@ async function createRequestWithRetry({
   // Intercept all `request.write` calls for replay
   //
 
-  /** @type {Parameters<RequestWrite>[] | null} */
-  let requestWriteCalls = null
+  /** @type {Parameters<RequestWrite>[]} */
+  let requestWriteCalls = []
   request.write = new Proxy(request.write, {
     /**
      * @param {RequestWrite} target
@@ -132,11 +138,7 @@ async function createRequestWithRetry({
      * @param {Parameters<RequestWrite>} args
      */
     apply(target, thisArg, args) {
-      if (!requestWriteCalls) {
-        requestWriteCalls = [args]
-      } else {
-        requestWriteCalls.push(args)
-      }
+      requestWriteCalls.push(args)
       return target.apply(thisArg, args)
     },
   })
@@ -145,12 +147,12 @@ async function createRequestWithRetry({
   // Intercept all `request.end` calls for replay
   //
 
-  /** @type {any[]} */
-  let requestEndCall = []
+  /** @type {Parameters<http.ClientRequest['end']> | []} */
+  let requestEndCall = /** @type {[]} */ ([])
   request.end = new Proxy(request.end, {
     apply(target, thisArg, args) {
-      requestEndCall = args
-      return target.apply(thisArg, args)
+      requestEndCall = /** @type {Parameters<http.ClientRequest['end']>} */ (args)
+      return target.apply(thisArg, /** @type {Parameters<http.ClientRequest['end']>} */ (args))
     },
   })
 
@@ -173,7 +175,7 @@ async function createRequestWithRetry({
       numOfTries += 1
 
       const response = await responsePromise
-      if (response.statusCode === 200) {
+      if (response.statusCode === HTTP_STATUS_CODE.OK) {
         resolveResponse(response)
         return
       }
@@ -191,16 +193,14 @@ async function createRequestWithRetry({
         request_.on('error', rejectResponse)
       }
 
-      if (requestWriteCalls) {
-        for (const requestWriteCall of requestWriteCalls) {
-          request_.write(...requestWriteCall)
-        }
+      for (const requestWriteCall of requestWriteCalls) {
+        request_.write(...requestWriteCall)
       }
 
       request_.end(...requestEndCall)
       const response = await responsePromise_
 
-      if (response.statusCode === 200) {
+      if (response.statusCode === HTTP_STATUS_CODE.OK) {
         resolveResponse(response)
         return
       }

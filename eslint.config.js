@@ -3,7 +3,7 @@ import tseslint from 'typescript-eslint'
 import nodePlugin from 'eslint-plugin-n'
 
 export default [
-  { ignores: ['node_modules/', 'out/', 'eslint.config.js'] },
+  { ignores: ['node_modules/', 'out/', 'experiments/'] },
 
   js.configs.recommended,
   nodePlugin.configs['flat/recommended-module'],
@@ -12,6 +12,7 @@ export default [
   {
     files: ['**/*.js'],
     languageOptions: {
+      // @ts-expect-error — typescript-eslint typings don't expose languageOptions on CompatibleConfig
       ...tseslint.configs.base.languageOptions,
       ecmaVersion: 2024,
       sourceType: 'module',

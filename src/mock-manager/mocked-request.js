@@ -1,15 +1,17 @@
 /** @typedef {import('../shared/http/types.js').Headers} Headers */
+/** @typedef {import('../shared/types.js').HttpMethod} HttpMethod */
 
 import { Transform } from 'node:stream'
+import { HTTP_METHOD } from '../shared/http-method/index.js'
 
 class MockedRequest extends Transform {
   /**
    * @param {Object} options
    * @param {string} options.url
    * @param {Headers} [options.headers]
-   * @param {String} [options.method]
+   * @param {HttpMethod} [options.method]
    */
-  constructor({ url, method = 'GET', headers = {} }) {
+  constructor({ url, method = HTTP_METHOD.GET, headers = {} }) {
     super()
 
     /** @readonly */

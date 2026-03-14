@@ -1,16 +1,18 @@
 /** @typedef {import('../shared/http/types.js').Headers} Headers */
+/** @typedef {import('../shared/types.js').ConnectionId} ConnectionId */
+/** @typedef {import('../shared/types.js').HttpStatusCode} HttpStatusCode */
 
 import { Transform } from 'node:stream'
 
 class MockedResponse extends Transform {
   /**
    * @param {Object} options
-   * @param {number} options.statusCode
+   * @param {HttpStatusCode} options.statusCode
    * @param {Headers} [options.headers]
    * @param {string} options.url
-   * @param {string} [options.connectionId]
+   * @param {ConnectionId} [options.connectionId]
    */
-  constructor({ statusCode, headers = {}, url, connectionId = '?' }) {
+  constructor({ statusCode, headers = {}, url, connectionId = /** @type {ConnectionId} */ ('?') }) {
     super()
 
     /** @readonly */

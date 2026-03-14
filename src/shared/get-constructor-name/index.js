@@ -1,5 +1,5 @@
 /**
- * @param {any} x
+ * @param {unknown} x
  * @returns {string}
  */
 function getConstructorName(x) {

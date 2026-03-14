@@ -5,14 +5,18 @@ import createBackoff from '../../backoff/index.js'
 import { setTimeout as sleep } from 'node:timers/promises'
 import { getBody } from '../index.js'
 import createRequest from './index.js'
+import { parse as parseAbsoluteHttpUrl } from '../../absolute-http-url/index.js'
 
 describe('createRequest', () => {
   it('makes a request and receives a response', async () => {
     await using duplicateRequestServer = createDuplicateRequestServer()
     await duplicateRequestServer.listen()
 
+    const parsed = parseAbsoluteHttpUrl(`http://localhost:${duplicateRequestServer.port}`)
+    if (!parsed.ok) throw parsed.error
+
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${duplicateRequestServer.port}`,
+      url: parsed.value,
       method: 'POST',
     })
     request.write('lorem ipsum')
@@ -31,9 +35,12 @@ describe('createRequest', () => {
     const freePort = tempServer.port
     await tempServer.close()
 
+    const parsed = parseAbsoluteHttpUrl(`http://localhost:${freePort}`)
+    if (!parsed.ok) throw parsed.error
+
     await expect(
       createRequest({
-        url: `http://localhost:${freePort}`,
+        url: parsed.value,
       }),
     ).rejects.toThrow()
   })
@@ -47,8 +54,11 @@ describe('createRequest', () => {
     // 3rd attempt, `createRequest` abstracts that.
     //
 
+    const parsed = parseAbsoluteHttpUrl(`http://localhost:${flakyServer.port}`)
+    if (!parsed.ok) throw parsed.error
+
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${flakyServer.port}`,
+      url: parsed.value,
       method: 'POST',
       retries: 3,
       backoff: async () => {},
@@ -68,8 +78,11 @@ describe('createRequest', () => {
     await using flakyServer = createFlakyServer()
     await flakyServer.listen()
 
+    const parsed = parseAbsoluteHttpUrl(`http://localhost:${flakyServer.port}`)
+    if (!parsed.ok) throw parsed.error
+
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${flakyServer.port}`,
+      url: parsed.value,
       method: 'POST',
       retries: 2,
       backoff: async () => {},
@@ -92,8 +105,11 @@ describe('createRequest', () => {
     /** @type {jest.Mock<() => Promise<void>>} */
     const mockBackoff = jest.fn()
 
+    const parsed = parseAbsoluteHttpUrl(`http://localhost:${flakyServer.port}`)
+    if (!parsed.ok) throw parsed.error
+
     const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${flakyServer.port}`,
+      url: parsed.value,
       method: 'POST',
       retries: 3,
       backoff: mockBackoff,
@@ -118,8 +134,11 @@ describe('createRequest', () => {
     await using flakyServer = createFlakyServer()
 
     async function sendRequest() {
+      const parsed = parseAbsoluteHttpUrl(`http://localhost:${port}`)
+      if (!parsed.ok) throw parsed.error
+
       const [request, responsePromise] = await createRequest({
-        url: `http://localhost:${port}`,
+        url: parsed.value,
         method: 'POST',
         retries: 5,
         backoff: createBackoff({ initial: 10 }),

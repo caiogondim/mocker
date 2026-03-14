@@ -4,13 +4,13 @@
  * @returns Promise<<ReturnType<T>>>
  */
 function queueCalls(fn) {
-  /** @type {any[]} */
+  /** @type {Array<[() => unknown, (value: unknown) => void, (error: unknown) => void]>} */
   const queue = []
 
   async function loop() {
     if (queue.length === 0) return
 
-    const [thunk, resolve, reject] = queue.shift()
+    const [thunk, resolve, reject] = /** @type {[() => unknown, (value: unknown) => void, (error: unknown) => void]} */ (queue.shift())
     try {
       resolve(await thunk())
     } catch (error) {
@@ -21,8 +21,8 @@ function queueCalls(fn) {
   }
 
   /**
-   * @param {any[]} args
-   * @returns {Promise<any>}
+   * @param {...unknown} args
+   * @returns {Promise<unknown>}
    */
   async function decoratedFn(...args) {
     const promise = new Promise((resolve, reject) => {
