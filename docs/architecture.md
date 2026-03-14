@@ -56,29 +56,10 @@ used as a mocked response for future requests.
 
 <img src="./img/architecture/no-mock.png" />
 
-## Cluster mode and Error handling
+## Error handling
 
-Mocker runs in [cluster mode](https://nodejs.org/api/cluster.html). There is a
-main process that sits in front of all workers acting as a load balancer. The
-number of workers is determinded by the flag `--workers`.
-
-> 💡**Tip**
->
-> Use `--workers` equal to the number of CPU cores in the host machine to better
-> use the machine hardware.
-
-The main process also works as a supervisor, respawning a new worker if one
-dies. That is possible because all mocker workers are stateless, since state is
-saved in files on disk (the mocked responses).
-
-<img src="./img/architecture/cluster-mode.png" />
-
-By removing the state from the workers and having a supervisor it's possible to
-use error handling in a similar fashion as it's done in Erlang:
-[Let It Crash](http://stratus3d.com/blog/2020/01/20/applying-the-let-it-crash-philosophy-outside-erlang/#:~:text=One%20of%20the%20ideas%20at,certain%20faults%20to%20go%20unhandled.).
-Mocker will not try to recover from errors. It will instead just let the process
-die, log it, and respawn a new one. That greatly simplifies error handling and
-improves the reliability of the application.
+Mocker runs as a single process. It responds to termination signals (SIGHUP,
+SIGINT, SIGTERM) and performs graceful shutdown.
 
 ## Automatic retries for improved resilience on network
 

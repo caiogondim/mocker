@@ -203,33 +203,6 @@ describe('--update', () => {
   })
 })
 
-describe('--workers', () => {
-  it('receives a default value if not set', async () => {
-    const argv = ['', '', ...getRequiredArgs()]
-    const args = await parseArgv(argv)
-
-    expect(args.workers).toBe(1)
-  })
-
-  it('throws an error if not a positive number', async () => {
-    const argv = ['', '', ...getRequiredArgs(), '--workers', '-6']
-    await expect(parseArgv(argv)).rejects.toThrow(/invalid --workers/)
-  })
-
-  it('throws an error if not an integer', async () => {
-    const argv = ['', '', ...getRequiredArgs(), '--workers', 'lorem-ipsum']
-    await expect(parseArgv(argv)).rejects.toThrow(/invalid --workers/)
-  })
-
-  it('is always a positive Number', async () => {
-    const argv = ['', '', ...getRequiredArgs(), '--workers', '123']
-    const args = await parseArgv(argv)
-
-    expect(typeof args.workers).toBe('number')
-    expect(args.workers).toBeGreaterThan(0)
-  })
-})
-
 describe('--responsesDir', () => {
   it('receives a default value if not set', async () => {
     const argv = ['', '', ...getRequiredArgs()]

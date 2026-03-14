@@ -34,7 +34,6 @@ async function getCommonArgs() {
     delay: 0,
     throttle: Infinity,
     retries: 0,
-    workers: 1,
     redactedHeaders: {},
     overwriteResponseHeaders: {},
     overwriteRequestHeaders: {},

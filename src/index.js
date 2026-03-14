@@ -11,8 +11,6 @@
 
 import path from 'node:path'
 import http from 'node:http'
-import cluster from 'node:cluster'
-import os from 'node:os'
 import { createRequire } from 'node:module'
 import createLogger from './shared/logger/index.js'
 import { bold, dim, green, yellow, red } from './shared/logger/format/index.js'
@@ -162,10 +160,6 @@ class Mocker {
   /** @type {(() => Promise<void>)[] } */
   #signalHandlers = []
 
-  #state = {
-    isClosing: false,
-  }
-
   /** @param {Args & { fs: FsLike }} args */
   constructor(args) {
     this.#args = args
@@ -204,9 +198,6 @@ class Mocker {
    */
   async listen(port = this.#args.port) {
     const args = this.#args
-    const state = this.#state
-
-    state.isClosing = false
 
     function printStartMessage() {
       return `\nstarting mocker 🥸 v${
@@ -237,94 +228,40 @@ class Mocker {
         .join('\n')}\n`
     }
 
-    if (cluster.isPrimary) {
-      logger.log(printStartMessage())
+    logger.log(printStartMessage())
+    this.#addListeners()
 
-      this.#addListeners()
+    if (args.update === 'startup' || args.update === 'only') {
+      await this.#updateMocks()
+    }
 
-      if (args.update === 'startup' || args.update === 'only') {
-        await this.#updateMocks()
-      }
-
-      if (args.update === 'only') {
-        this.#removeListeners()
-        logger.log(closingMockerText)
-        return
-      }
+    if (args.update === 'only') {
+      this.#removeListeners()
+      logger.log(closingMockerText)
+      return
     }
 
     return new Promise((resolve) => {
-      // Cluster mode doesn't play well with test runners.
-      if (process.env.NODE_ENV === 'test') {
-        logger.info(
-          `started on port ${bold(port)}, with pid ${bold(
-            process.pid,
-          )}, and proxying ${bold(args.origin)}`,
-        )
-        this.#httpServer = http
-          .createServer(this.#server.bind(this))
-          .listen(port, resolve)
-      } else if (cluster.isPrimary) {
-        logger.info(
-          `started on port ${bold(port)}, with pid ${bold(
-            process.pid,
-          )}, and proxying ${bold(args.origin)}`,
-        )
-
-        const numCpus = os.cpus().length
-        logger.info(
-          `system has ${bold(numCpus)} CPU${
-            numCpus > 1 ? 's' : ''
-          }, spawning ${bold(args.workers)} worker${
-            args.workers > 1 ? 's' : ''
-          }`,
-        )
-
-        for (let i = 0; i < args.workers; i += 1) {
-          cluster.fork()
-        }
-
-        cluster.on('online', (worker) => {
-          logger.info(`worker pid ${bold(worker.process.pid)} started`)
-        })
-
-        cluster.on('exit', (worker) => {
-          if (!state.isClosing) {
-            logger.warn(`worker pid ${bold(worker.process.pid)} died`)
-
-            cluster.fork()
-          }
-        })
-
-        cluster.on('listening', resolve)
-      } else if (cluster.isWorker) {
-        this.#httpServer = http
-          .createServer(this.#server.bind(this))
-          .listen(port, resolve)
-      }
+      logger.info(
+        `started on port ${bold(port)}, with pid ${bold(
+          process.pid,
+        )}, and proxying ${bold(args.origin)}`,
+      )
+      this.#httpServer = http
+        .createServer(this.#server.bind(this))
+        .listen(port, resolve)
     })
   }
 
   /** @returns {Promise<void>} */
   async close() {
-    const state = this.#state
     const httpServer = this.#httpServer
 
-    state.isClosing = true
-
     this.#removeListeners()
-
-    if (process.env.NODE_ENV !== 'test' && cluster.isPrimary) {
-      return new Promise((resolve) => {
-        cluster.disconnect(resolve)
-      })
-    }
 
     return new Promise((resolve, reject) => {
       if (httpServer && httpServer.listening) {
         httpServer.close((error) => {
-          state.isClosing = false
-
           if (error) {
             reject(error)
           } else {
@@ -332,7 +269,6 @@ class Mocker {
           }
         })
       } else {
-        state.isClosing = false
         resolve()
       }
     })

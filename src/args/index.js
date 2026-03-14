@@ -56,7 +56,6 @@ const MOCK_KEYS_DEFAULT = new Set(['method', 'url'])
 const PORT_DEFAULT = 8273
 const DELAY_DEFAULT = 0
 const THROTTLE_DEFAULT = Infinity
-const WORKERS_DEFAULT = 1
 const LOGGING_DEFAULT = 'verbose'
 /** @type {Args['redactedHeaders']} */
 const REDACTED_HEADERS_DEFAULT = {}
@@ -113,7 +112,6 @@ function validateArgvKeys(argv) {
     '--throttle',
     '--update',
     '--mode',
-    '--workers',
     '--responsesDir',
     '--logging',
     '--mockKeys',
@@ -444,25 +442,6 @@ async function getResponsesDir(argvMap) {
 }
 
 /**
- * @param {ArgvMap} argvMap
- * @returns {NonNegativeInteger}
- */
-function getWorkers(argvMap) {
-  const argvWorkers = argvMap.get('workers') ?? String(WORKERS_DEFAULT)
-  const result = parseNonNegativeInteger(argvWorkers)
-
-  if (!result.ok) {
-    throw prettifyError({
-      error: new TypeError(`invalid --workers`),
-      expected: `positive integer`,
-      received: stringify(argvWorkers),
-    })
-  }
-
-  return result.value
-}
-
-/**
  * @param {string} logging
  * @returns {Result<Args['logging']>}
  */
@@ -547,7 +526,6 @@ async function parseArgv(argv) {
   const delay = getDelay(argvMap)
   const throttle = getThrottle(argvMap)
   const responsesDir = await getResponsesDir(argvMap)
-  const workers = getWorkers(argvMap)
   const mockKeys = getMockKeys(argvMap)
   const retries = getRetries(argvMap)
   const redactedHeaders = getRedactedHeaders(argvMap)
@@ -565,7 +543,6 @@ async function parseArgv(argv) {
     delay,
     throttle,
     responsesDir,
-    workers,
     logging,
     mockKeys,
     redactedHeaders,
@@ -588,7 +565,6 @@ export {
   MODE_DEFAULT,
   UPDATE_DEFAULT,
   THROTTLE_DEFAULT,
-  WORKERS_DEFAULT,
   LOGGING_DEFAULT,
   MOCK_KEYS_DEFAULT,
   MODE_VALID_VALUES,

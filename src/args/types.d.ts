@@ -22,7 +22,6 @@ export type Args = Readonly<{
   mode: 'read' | 'write' | 'read-write' | 'pass' | 'pass-read' | 'read-pass';
   update: 'off' | 'startup' | 'only';
   responsesDir: AbsoluteDirPath;
-  workers: NonNegativeInteger;
   logging: LoggerLevels;
   mockKeys: ReadonlySet<MockKey>;
   retries: NonNegativeInteger;
@@ -41,7 +40,6 @@ export type UnbrandedArgs = Readonly<{
   mode: Args['mode'];
   update: Args['update'];
   responsesDir: string;
-  workers: number;
   logging: Args['logging'];
   mockKeys: ReadonlySet<MockKey>;
   retries: number;

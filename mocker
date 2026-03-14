@@ -10,7 +10,6 @@ import {
   THROTTLE_DEFAULT,
   MODE_DEFAULT,
   UPDATE_DEFAULT,
-  WORKERS_DEFAULT,
   MOCK_KEYS_DEFAULT,
   MODE_VALID_VALUES,
   UPDATE_VALID_VALUES,
@@ -111,10 +110,6 @@ function printHelp() {
         )}`,
       ],
       [
-        `  [--workers <n>]`,
-        `Number of workers ${dim(`[default: ${stringify(WORKERS_DEFAULT)}]`)}`,
-      ],
-      [
         `  [--logging <logging>]`,
         `One of: ${stringify(LOGGING_VALID_VALUES)} ${dim(
           `[default: ${stringify(LOGGING_DEFAULT)}]`,
@@ -139,8 +134,8 @@ function printHelp() {
       |${bold('USAGE')}
       |  mocker --origin http://example.com --responsesDir /path/to/folder
       |  mocker --origin http://example.com --responsesDir /path/to/folder --mockKeys url,method,body.variables.id
-      |  mocker --origin http://example.com --responsesDir /path/to/folder --mode read-write --workers 4
-      |  mocker --origin http://example.com --responsesDir /path/to/folder --update startup --workers 4`),
+      |  mocker --origin http://example.com --responsesDir /path/to/folder --mode read-write
+      |  mocker --origin http://example.com --responsesDir /path/to/folder --update startup`),
   )
   logger.log(
     stripMargin(`

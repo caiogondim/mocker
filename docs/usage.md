@@ -93,14 +93,6 @@ Adds a synthetic throttling to each request. Value in kB/s.
   - `pass-read`: if origin is available and returns a not-500, use it, otherwise
     tries to use a mocked response
 
-`--workers`
-
-- Required: `false`
-- Default: `1`
-
-The total number of spawned process is `workers + 1` since there is also a load
-balancer on top of all workers.
-
 `--logging`
 
 - Required: `false`
