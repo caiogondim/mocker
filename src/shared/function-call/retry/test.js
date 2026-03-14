@@ -49,7 +49,7 @@ describe('retry', () => {
       let num = 0
       return async () => {
         num += 1
-        await sleep(100)
+        await sleep(1)
         return num
       }
     }

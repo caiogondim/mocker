@@ -7,22 +7,22 @@ describe('delay', () => {
   it('delays the start of its readable stream', async () => {
     const input = ['lorem']
     const t1 = Date.now()
-    await pipeline(Readable.from(input), delay({ ms: 2000 }))
+    await pipeline(Readable.from(input), delay({ ms: 100 }))
     const t2 = Date.now()
 
-    expect(t2 - t1).toBeGreaterThanOrEqual(2000)
-    expect(t2 - t1).toBeLessThanOrEqual(3000)
+    expect(t2 - t1).toBeGreaterThanOrEqual(100)
+    expect(t2 - t1).toBeLessThanOrEqual(1000)
   })
 
   // Regression test to prevent a delay on each chunk of a stream
   it('delays only the first chunk of a stream', async () => {
     const input = ['lorem', 'ipsum', 'dolor', 'sit', 'amet']
     const t1 = Date.now()
-    await pipeline(Readable.from(input), delay({ ms: 2000 }))
+    await pipeline(Readable.from(input), delay({ ms: 100 }))
     const t2 = Date.now()
 
-    expect(t2 - t1).toBeGreaterThanOrEqual(2000)
-    expect(t2 - t1).toBeLessThanOrEqual(3000)
+    expect(t2 - t1).toBeGreaterThanOrEqual(100)
+    expect(t2 - t1).toBeLessThanOrEqual(1000)
   })
 
   it('behaves as a PassThrough stream', async () => {

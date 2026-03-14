@@ -7,7 +7,7 @@ describe('queue', () => {
     function count() {
       return new Promise((resolve) => {
         counter += 1
-        setTimeout(resolve, 100)
+        setTimeout(resolve, 1)
       })
     }
 

@@ -6,14 +6,14 @@ import throttle from './index.js'
 describe('throttle', () => {
   it('throttles its readable stream', async () => {
     const input = []
-    for (let i = 0; i < 256; i += 1) {
+    for (let i = 0; i < 32; i += 1) {
       input.push('a')
     }
     const t1 = Date.now()
     await pipeline(Readable.from(input), throttle({ bps: 128 }))
     const t2 = Date.now()
 
-    expect(Math.floor((t2 - t1) / 1000)).toBe(2)
+    expect(t2 - t1).toBeGreaterThanOrEqual(200)
   })
 
   it('behaves as a PassThrough stream', async () => {

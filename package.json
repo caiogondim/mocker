@@ -5,6 +5,7 @@
   "type": "module",
   "main": "src/index.js",
   "scripts": {
+    "ci": "npm run lint && npm run type-check && npm run test",
     "test:all": "npm run lint && npm run type-check && npm run test",
     "start": "NODE_OPTIONS='--max-http-header-size=1000000 --unhandled-rejections=strict' ./mocker",
     "dev:httpbin": "node --watch-path=./src mocker --responsesDir ./responses/httpbin --origin http://httpbin.org --logging verbose --mode read-write",

@@ -38,7 +38,7 @@ describe('args.update', () => {
     await mocker1.close()
 
     // Sleeping so origin returns a new timestamp
-    await sleep(100)
+    await sleep(10)
 
     // Create a new mocker instance with same file system as previous instance
     // and `update:'startup'`
@@ -95,7 +95,7 @@ describe('args.update', () => {
     await mocker1.close()
 
     // And I wait a bit so origin returns a new timestamp
-    await sleep(100)
+    await sleep(10)
 
     // When I create a new mocker instance with same file system as previous instance
     // and `update:'only'`
