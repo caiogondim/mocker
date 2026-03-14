@@ -104,7 +104,7 @@ function printHelp() {
         )}`,
       ],
       [
-        `  [--throttle <kB/s>]`,
+        `  [--throttle <B/s>]`,
         `Artificial throttle to every request ${dim(
           `[default: ${stringify(THROTTLE_DEFAULT)}]`,
         )}`,

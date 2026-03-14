@@ -65,7 +65,7 @@ Adds a synthetic delay to each request. Value in miliseconds.
 - Required: `false`
 - Default: `Infinity`
 
-Adds a synthetic throttling to each request. Value in kB/s.
+Adds a synthetic throttling to each request. Value in bytes/s.
 
 `--update`
 
