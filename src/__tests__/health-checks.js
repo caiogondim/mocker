@@ -20,10 +20,12 @@ describe('health checks endpoints', () => {
       `http://localhost:${mocker.port}/.well-known/live`,
     )
     if (!parsed1.ok) throw parsed1.error
-    const [request, responsePromise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed1.value,
       method: 'GET',
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
     request.end()
     const response = await responsePromise
     const responseBody = `${await getBody(response)}`
@@ -49,10 +51,12 @@ describe('health checks endpoints', () => {
       `http://localhost:${mocker.port}/.well-known/ready`,
     )
     if (!parsed2.ok) throw parsed2.error
-    const [request, responsePromise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed2.value,
       method: 'GET',
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
     request.end()
     const response = await responsePromise
     const responseBody = `${await getBody(response)}`
@@ -81,10 +85,12 @@ describe('health checks endpoints', () => {
       `http://localhost:${mocker.port}/.well-known/availability`,
     )
     if (!parsed3.ok) throw parsed3.error
-    const [request, responsePromise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed3.value,
       method: 'GET',
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
     request.end()
     const response = await responsePromise
     const responseBody = `${await getBody(response)}`

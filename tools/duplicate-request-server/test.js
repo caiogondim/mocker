@@ -13,10 +13,12 @@ describe('duplicate-request-server', () => {
     // Fire request
     const parsed1 = parseAbsoluteHttpUrl(serverUrl)
     if (!parsed1.ok) throw parsed1.error
-    const [request1, responsePromise1] = await createRequest({
+    const __createRequestResult1 = await createRequest({
       url: parsed1.value,
       method: 'POST',
     })
+    if (!__createRequestResult1.ok) throw __createRequestResult1.error
+    const [request1, responsePromise1] = __createRequestResult1.value
     const payload = createPayload({ size: 1e6 }) // 1e6B = 1MB
     request1.end(payload)
     const response1 = await responsePromise1

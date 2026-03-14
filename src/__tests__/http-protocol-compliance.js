@@ -88,10 +88,12 @@ describe('HTTP methods (RFC 9110 §9)', () => {
       `http://localhost:${mocker.port}/resource`,
     )
     if (!parsed1.ok) throw parsed1.error
-    const [request, responsePromise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed1.value,
       method,
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
     request.end()
     const response = await responsePromise
     const body = JSON.parse(`${await getBody(response)}`)
@@ -111,10 +113,12 @@ describe('HTTP methods (RFC 9110 §9)', () => {
 
     const parsed2 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
     if (!parsed2.ok) throw parsed2.error
-    const [request, responsePromise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed2.value,
       method: 'HEAD',
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
     request.end()
     const response = await responsePromise
     expect(response.statusCode).toBe(200)
@@ -135,10 +139,12 @@ describe('HTTP methods (RFC 9110 §9)', () => {
 
     const parsed3 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
     if (!parsed3.ok) throw parsed3.error
-    const [request, responsePromise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed3.value,
       method: 'OPTIONS',
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
     request.end()
     const response = await responsePromise
     expect(response.statusCode).toBe(200)
@@ -161,10 +167,12 @@ describe('HTTP methods (RFC 9110 §9)', () => {
       `http://localhost:${mocker.port}/cache`,
     )
     if (!parsed4.ok) throw parsed4.error
-    const [request, responsePromise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed4.value,
       method: /** @type {HttpMethod} */ ('PURGE'),
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
     request.end()
     const response = await responsePromise
     expect(response.statusCode).toBe(200)
@@ -193,11 +201,13 @@ describe('status code relaying (RFC 9110 §15)', () => {
 
       const parsed5 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
       if (!parsed5.ok) throw parsed5.error
-      const [request, responsePromise] = await createRequest({
+      const requestResult = await createRequest({
         url: parsed5.value,
         method: 'GET',
         headers: { 'response-status-code': `${statusCode}` },
       })
+      if (!requestResult.ok) throw requestResult.error
+      const [request, responsePromise] = requestResult.value
       request.end()
       const response = await responsePromise
       expect(response.statusCode).toBe(statusCode)
@@ -219,11 +229,13 @@ describe('status code relaying (RFC 9110 §15)', () => {
 
       const parsed6 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
       if (!parsed6.ok) throw parsed6.error
-      const [request, responsePromise] = await createRequest({
+      const requestResult = await createRequest({
         url: parsed6.value,
         method: 'GET',
         headers: { 'response-status-code': `${statusCode}` },
       })
+      if (!requestResult.ok) throw requestResult.error
+      const [request, responsePromise] = requestResult.value
       request.end()
       const response = await responsePromise
       expect(response.statusCode).toBe(statusCode)
@@ -245,11 +257,13 @@ describe('status code relaying (RFC 9110 §15)', () => {
 
       const parsed7 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
       if (!parsed7.ok) throw parsed7.error
-      const [request, responsePromise] = await createRequest({
+      const requestResult = await createRequest({
         url: parsed7.value,
         method: 'GET',
         headers: { 'response-status-code': `${statusCode}` },
       })
+      if (!requestResult.ok) throw requestResult.error
+      const [request, responsePromise] = requestResult.value
       request.end()
       const response = await responsePromise
       expect(response.statusCode).toBe(statusCode)
@@ -271,11 +285,13 @@ describe('status code relaying (RFC 9110 §15)', () => {
 
       const parsed8 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
       if (!parsed8.ok) throw parsed8.error
-      const [request, responsePromise] = await createRequest({
+      const requestResult = await createRequest({
         url: parsed8.value,
         method: 'GET',
         headers: { 'response-status-code': `${statusCode}` },
       })
+      if (!requestResult.ok) throw requestResult.error
+      const [request, responsePromise] = requestResult.value
       request.end()
       const response = await responsePromise
       expect(response.statusCode).toBe(statusCode)
@@ -295,11 +311,13 @@ describe('status code relaying (RFC 9110 §15)', () => {
 
     const parsed9 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
     if (!parsed9.ok) throw parsed9.error
-    const [request, responsePromise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed9.value,
       method: 'GET',
       headers: { 'response-status-code': '299' },
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
     request.end()
     const response = await responsePromise
     expect(response.statusCode).toBe(299)
@@ -334,10 +352,12 @@ describe('Content-Length and body framing (RFC 9112 §6)', () => {
 
     const parsed10 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
     if (!parsed10.ok) throw parsed10.error
-    const [request, responsePromise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed10.value,
       method: 'GET',
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
     request.end()
     const response = await responsePromise
     const body = await getBody(response)
@@ -365,10 +385,12 @@ describe('Content-Length and body framing (RFC 9112 §6)', () => {
 
     const parsed11 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
     if (!parsed11.ok) throw parsed11.error
-    const [request, responsePromise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed11.value,
       method: 'GET',
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
     request.end()
     const response = await responsePromise
     expect(response.statusCode).toBe(200)
@@ -390,7 +412,7 @@ describe('Content-Length and body framing (RFC 9112 §6)', () => {
 
     const parsed12 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
     if (!parsed12.ok) throw parsed12.error
-    const [request, responsePromise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed12.value,
       method: 'POST',
       headers: {
@@ -398,6 +420,8 @@ describe('Content-Length and body framing (RFC 9112 §6)', () => {
         'content-length': Buffer.byteLength(payload).toString(),
       },
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
     request.end(payload)
     const response = await responsePromise
     const body = JSON.parse(`${await getBody(response)}`)
@@ -426,10 +450,12 @@ describe('Content-Length and body framing (RFC 9112 §6)', () => {
 
     const parsed13 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
     if (!parsed13.ok) throw parsed13.error
-    const [request, responsePromise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed13.value,
       method: 'HEAD',
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
     request.end()
     const response = await responsePromise
     expect(response.statusCode).toBe(200)
@@ -450,11 +476,13 @@ describe('Content-Length and body framing (RFC 9112 §6)', () => {
 
     const parsed14 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
     if (!parsed14.ok) throw parsed14.error
-    const [request, responsePromise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed14.value,
       method: 'GET',
       headers: { 'response-status-code': '204' },
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
     request.end()
     const response = await responsePromise
     expect(response.statusCode).toBe(204)
@@ -475,11 +503,13 @@ describe('Content-Length and body framing (RFC 9112 §6)', () => {
 
     const parsed15 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
     if (!parsed15.ok) throw parsed15.error
-    const [request, responsePromise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed15.value,
       method: 'GET',
       headers: { 'response-status-code': '304' },
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
     request.end()
     const response = await responsePromise
     expect(response.statusCode).toBe(304)
@@ -507,10 +537,12 @@ describe('Content-Length and body framing (RFC 9112 §6)', () => {
 
     const parsed16 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
     if (!parsed16.ok) throw parsed16.error
-    const [request, responsePromise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed16.value,
       method: 'GET',
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
     request.end()
     const response = await responsePromise
     const body = await getBody(response)
@@ -548,10 +580,12 @@ describe('Transfer-Encoding: chunked (RFC 9112 §7)', () => {
 
     const parsed17 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
     if (!parsed17.ok) throw parsed17.error
-    const [request, responsePromise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed17.value,
       method: 'GET',
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
     request.end()
     const response = await responsePromise
     expect(response.statusCode).toBe(200)
@@ -582,10 +616,12 @@ describe('Transfer-Encoding: chunked (RFC 9112 §7)', () => {
 
     const parsed18 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
     if (!parsed18.ok) throw parsed18.error
-    const [request, responsePromise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed18.value,
       method: 'GET',
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
     request.end()
     const response = await responsePromise
     expect(response.statusCode).toBe(200)
@@ -615,10 +651,12 @@ describe('connection management (RFC 9112 §9)', () => {
       `http://localhost:${mocker.port}/first`,
     )
     if (!parsed19.ok) throw parsed19.error
-    const [request1, responsePromise1] = await createRequest({
+    const requestResult1 = await createRequest({
       url: parsed19.value,
       method: 'GET',
     })
+    if (!requestResult1.ok) throw requestResult1.error
+    const [request1, responsePromise1] = requestResult1.value
     request1.end()
     const response1 = await responsePromise1
     const body1 = JSON.parse(`${await getBody(response1)}`)
@@ -629,10 +667,12 @@ describe('connection management (RFC 9112 §9)', () => {
       `http://localhost:${mocker.port}/second`,
     )
     if (!parsed20.ok) throw parsed20.error
-    const [request2, responsePromise2] = await createRequest({
+    const requestResult2 = await createRequest({
       url: parsed20.value,
       method: 'GET',
     })
+    if (!requestResult2.ok) throw requestResult2.error
+    const [request2, responsePromise2] = requestResult2.value
     request2.end()
     const response2 = await responsePromise2
     const body2 = JSON.parse(`${await getBody(response2)}`)
@@ -687,10 +727,12 @@ describe('connection management (RFC 9112 §9)', () => {
         `http://localhost:${mocker.port}/request-${i}`,
       )
       if (!parsed21.ok) throw parsed21.error
-      const [request, responsePromise] = await createRequest({
+      const requestResult = await createRequest({
         url: parsed21.value,
         method: 'GET',
       })
+      if (!requestResult.ok) throw requestResult.error
+      const [request, responsePromise] = requestResult.value
       request.end()
       const response = await responsePromise
       const body = JSON.parse(`${await getBody(response)}`)
@@ -717,13 +759,15 @@ describe('headers (RFC 9110 §5, §7)', () => {
 
     const parsed22 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
     if (!parsed22.ok) throw parsed22.error
-    const [request, responsePromise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed22.value,
       method: 'GET',
       headers: {
         'X-Custom-Header': 'test-value',
       },
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
     request.end()
     const response = await responsePromise
     const body = JSON.parse(`${await getBody(response)}`)
@@ -752,10 +796,12 @@ describe('headers (RFC 9110 §5, §7)', () => {
 
     const parsed23 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
     if (!parsed23.ok) throw parsed23.error
-    const [request, responsePromise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed23.value,
       method: 'GET',
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
     request.end()
     const response = await responsePromise
     const setCookies = response.headers['set-cookie']
@@ -777,13 +823,15 @@ describe('headers (RFC 9110 §5, §7)', () => {
 
     const parsed24 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
     if (!parsed24.ok) throw parsed24.error
-    const [request, responsePromise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed24.value,
       method: 'GET',
       headers: {
         'x-empty-header': '',
       },
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
     request.end()
     const response = await responsePromise
     const body = JSON.parse(`${await getBody(response)}`)
@@ -804,13 +852,15 @@ describe('headers (RFC 9110 §5, §7)', () => {
 
     const parsed25 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
     if (!parsed25.ok) throw parsed25.error
-    const [request, responsePromise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed25.value,
       method: 'GET',
       headers: {
         'x-long-header': longValue,
       },
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
     request.end()
     const response = await responsePromise
     const body = JSON.parse(`${await getBody(response)}`)
@@ -838,10 +888,12 @@ describe('headers (RFC 9110 §5, §7)', () => {
 
     const parsed26 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
     if (!parsed26.ok) throw parsed26.error
-    const [request, responsePromise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed26.value,
       method: 'GET',
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
     request.end()
     const response = await responsePromise
     expect(response.headers['content-type']).toBe('text/html; charset=utf-8')
@@ -866,10 +918,12 @@ describe('headers (RFC 9110 §5, §7)', () => {
 
     const parsed27 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
     if (!parsed27.ok) throw parsed27.error
-    const [request, responsePromise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed27.value,
       method: 'GET',
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
     request.end()
     const response = await responsePromise
     expect(response.headers['content-encoding']).toBe('gzip')
@@ -890,13 +944,15 @@ describe('headers (RFC 9110 §5, §7)', () => {
 
     const parsed28 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
     if (!parsed28.ok) throw parsed28.error
-    const [request, responsePromise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed28.value,
       method: 'GET',
       headers: {
         'accept-encoding': 'gzip, deflate, br',
       },
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
     request.end()
     const response = await responsePromise
     const body = JSON.parse(`${await getBody(response)}`)
@@ -924,10 +980,12 @@ describe('request target and URL handling (RFC 9112 §3.2)', () => {
       `http://localhost:${mocker.port}/api/v2/users/42/posts`,
     )
     if (!parsed29.ok) throw parsed29.error
-    const [request, responsePromise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed29.value,
       method: 'GET',
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
     request.end()
     const response = await responsePromise
     const body = JSON.parse(`${await getBody(response)}`)
@@ -949,10 +1007,12 @@ describe('request target and URL handling (RFC 9112 §3.2)', () => {
       `http://localhost:${mocker.port}/search?q=hello+world&page=2&limit=10`,
     )
     if (!parsed30.ok) throw parsed30.error
-    const [request, responsePromise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed30.value,
       method: 'GET',
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
     request.end()
     const response = await responsePromise
     const body = JSON.parse(`${await getBody(response)}`)
@@ -974,10 +1034,12 @@ describe('request target and URL handling (RFC 9112 §3.2)', () => {
       `http://localhost:${mocker.port}/path%20with%20spaces/file%2Fname`,
     )
     if (!parsed31.ok) throw parsed31.error
-    const [request, responsePromise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed31.value,
       method: 'GET',
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
     request.end()
     const response = await responsePromise
     const body = JSON.parse(`${await getBody(response)}`)
@@ -997,10 +1059,12 @@ describe('request target and URL handling (RFC 9112 §3.2)', () => {
 
     const parsed32 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
     if (!parsed32.ok) throw parsed32.error
-    const [request, responsePromise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed32.value,
       method: 'GET',
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
     request.end()
     const response = await responsePromise
     const body = JSON.parse(`${await getBody(response)}`)
@@ -1022,10 +1086,12 @@ describe('request target and URL handling (RFC 9112 §3.2)', () => {
       `http://localhost:${mocker.port}/?key=value`,
     )
     if (!parsed33.ok) throw parsed33.error
-    const [request, responsePromise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed33.value,
       method: 'GET',
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
     request.end()
     const response = await responsePromise
     const body = JSON.parse(`${await getBody(response)}`)
@@ -1047,10 +1113,12 @@ describe('request target and URL handling (RFC 9112 §3.2)', () => {
       `http://localhost:${mocker.port}//double//slashes//path`,
     )
     if (!parsed34.ok) throw parsed34.error
-    const [request, responsePromise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed34.value,
       method: 'GET',
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
     request.end()
     const response = await responsePromise
     const body = JSON.parse(`${await getBody(response)}`)
@@ -1091,10 +1159,12 @@ describe('response body integrity', () => {
 
     const parsed35 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
     if (!parsed35.ok) throw parsed35.error
-    const [request, responsePromise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed35.value,
       method: 'GET',
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
     request.end()
     const response = await responsePromise
     const body = JSON.parse(`${await getBody(response)}`)
@@ -1121,10 +1191,12 @@ describe('response body integrity', () => {
 
     const parsed36 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
     if (!parsed36.ok) throw parsed36.error
-    const [request, responsePromise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed36.value,
       method: 'GET',
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
     request.end()
     const response = await responsePromise
     const body = await getBody(response)
@@ -1150,10 +1222,12 @@ describe('response body integrity', () => {
 
     const parsed37 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
     if (!parsed37.ok) throw parsed37.error
-    const [request, responsePromise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed37.value,
       method: 'GET',
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
     request.end()
     const response = await responsePromise
     expect(response.statusCode).toBe(200)
@@ -1181,10 +1255,12 @@ describe('response body integrity', () => {
 
     const parsed38 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
     if (!parsed38.ok) throw parsed38.error
-    const [request, responsePromise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed38.value,
       method: 'GET',
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
     request.end()
     const response = await responsePromise
     const body = await getBody(response)
@@ -1220,10 +1296,12 @@ describe('error conditions', () => {
 
     const parsed39 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
     if (!parsed39.ok) throw parsed39.error
-    const [request, responsePromise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed39.value,
       method: 'GET',
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
     request.end()
     const response = await responsePromise
     expect(response.statusCode).toBe(500)
@@ -1253,10 +1331,12 @@ describe('error conditions', () => {
 
     const parsed40 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
     if (!parsed40.ok) throw parsed40.error
-    const [request, responsePromise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed40.value,
       method: 'GET',
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
     request.end()
     const response = await responsePromise
     expect(response.statusCode).toBe(200)

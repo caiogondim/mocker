@@ -27,9 +27,11 @@ describe('redactHeaders', () => {
       host: 'example.com',
     }
     const redactedHeaders1 = { 'example-token': '12341234', foo: 'ipsum' }
+    const unredactResult1 = unredactHeaders(headers1, redactedHeaders1)
+    expect(unredactResult1.ok).toBe(true)
     expect(
       redactHeaders(
-        unredactHeaders(headers1, redactedHeaders1),
+        /** @type {{ ok: true; value: any }} */ (unredactResult1).value,
         redactedHeaders1,
       ),
     ).toEqual(headers1)
@@ -41,27 +43,28 @@ describe('redactHeaders', () => {
       host: 'example.com',
     }
     const redactedHeaders2 = { 'example-token': '12341234' }
+    const unredactResult2 = unredactHeaders(
+      redactHeaders(headers2, redactedHeaders2),
+      redactedHeaders2,
+    )
+    expect(unredactResult2.ok).toBe(true)
     expect(
-      unredactHeaders(
-        redactHeaders(headers2, redactedHeaders2),
-        redactedHeaders2,
-      ),
+      /** @type {{ ok: true; value: any }} */ (unredactResult2).value,
     ).toEqual(headers2)
   })
 })
 
 describe('unredactHeaders', () => {
-  it('throws an error in case the redacted secret is not available in the secrets map', () => {
+  it('returns an error result in case the redacted secret is not available in the secrets map', () => {
     const headers = {
       'example-token': '[REDACTED]',
       foo: '[REDACTED]',
       host: 'example.com',
     }
     const redactedHeaders = { 'example-token': '12341234' }
-    expect(() => unredactHeaders(headers, redactedHeaders)).toThrow()
-    expect(() => unredactHeaders(headers, redactedHeaders)).toThrow(
-      expect.any(SecretNotFoundError),
-    )
+    const result = unredactHeaders(headers, redactedHeaders)
+    expect(result.ok).toBe(false)
+    expect(/** @type {{ ok: false; error: any }} */ (result).error).toBeInstanceOf(SecretNotFoundError)
   })
 
   it('unredacts secrets from headers', async () => {
@@ -71,7 +74,9 @@ describe('unredactHeaders', () => {
       host: 'example.com',
     }
     const redactedHeaders = { 'example-token': '12341234', foo: 'ipsum' }
-    expect(unredactHeaders(headers, redactedHeaders)).toEqual({
+    const result = unredactHeaders(headers, redactedHeaders)
+    expect(result.ok).toBe(true)
+    expect(/** @type {{ ok: true; value: any }} */ (result).value).toEqual({
       'example-token': '12341234',
       foo: 'ipsum',
       host: 'example.com',
@@ -86,8 +91,9 @@ describe('unredactHeaders', () => {
     }
     const inputSnapshot = JSON.stringify(input)
     const redactedHeaders = { 'example-token': '12341234', foo: 'ipsum' }
-    const output = unredactHeaders(input, redactedHeaders)
-    expect(output).not.toBe(input)
+    const result = unredactHeaders(input, redactedHeaders)
+    expect(result.ok).toBe(true)
+    expect(/** @type {{ ok: true; value: any }} */ (result).value).not.toBe(input)
     expect(JSON.stringify(input)).toEqual(inputSnapshot)
   })
 
@@ -99,9 +105,11 @@ describe('unredactHeaders', () => {
       host: 'example.com',
     }
     const redactedHeaders1 = { 'example-token': '12341234', foo: 'ipsum' }
+    const unredactResult1 = unredactHeaders(headers1, redactedHeaders1)
+    expect(unredactResult1.ok).toBe(true)
     expect(
       redactHeaders(
-        unredactHeaders(headers1, redactedHeaders1),
+        /** @type {{ ok: true; value: any }} */ (unredactResult1).value,
         redactedHeaders1,
       ),
     ).toEqual(headers1)
@@ -113,11 +121,13 @@ describe('unredactHeaders', () => {
       host: 'example.com',
     }
     const redactedHeaders2 = { 'example-token': '12341234' }
+    const unredactResult2 = unredactHeaders(
+      redactHeaders(headers2, redactedHeaders2),
+      redactedHeaders2,
+    )
+    expect(unredactResult2.ok).toBe(true)
     expect(
-      unredactHeaders(
-        redactHeaders(headers2, redactedHeaders2),
-        redactedHeaders2,
-      ),
+      /** @type {{ ok: true; value: any }} */ (unredactResult2).value,
     ).toEqual(headers2)
   })
 })

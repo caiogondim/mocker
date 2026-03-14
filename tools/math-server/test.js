@@ -12,9 +12,11 @@ describe('tools/math-server', () => {
       `http://localhost:${mathService.port}/?a=1&b=3&operation=sum`,
     )
     if (!parsed1.ok) throw parsed1.error
-    const [request1, responsePromise1] = await createRequest({
+    const __createRequestResult1 = await createRequest({
       url: parsed1.value,
     })
+    if (!__createRequestResult1.ok) throw __createRequestResult1.error
+    const [request1, responsePromise1] = __createRequestResult1.value
     request1.end()
     const response1 = await responsePromise1
     const responseBody1 = (await getBody(response1)).toString()
@@ -25,9 +27,11 @@ describe('tools/math-server', () => {
       `http://localhost:${mathService.port}/?a=1000&b=3000&operation=sum`,
     )
     if (!parsed2.ok) throw parsed2.error
-    const [request2, responsePromise2] = await createRequest({
+    const __createRequestResult2 = await createRequest({
       url: parsed2.value,
     })
+    if (!__createRequestResult2.ok) throw __createRequestResult2.error
+    const [request2, responsePromise2] = __createRequestResult2.value
     request2.end()
     const response2 = await responsePromise2
     const responseBody2 = (await getBody(response2)).toString()
@@ -45,9 +49,11 @@ describe('tools/math-server', () => {
       `http://localhost:${mathService.port}/?a=7&b=9&operation=multiply`,
     )
     if (!parsed3.ok) throw parsed3.error
-    const [request1, responsePromise1] = await createRequest({
+    const __createRequestResult3 = await createRequest({
       url: parsed3.value,
     })
+    if (!__createRequestResult3.ok) throw __createRequestResult3.error
+    const [request1, responsePromise1] = __createRequestResult3.value
     request1.end()
     const response1 = await responsePromise1
     const responseBody1 = (await getBody(response1)).toString()
@@ -58,9 +64,11 @@ describe('tools/math-server', () => {
       `http://localhost:${mathService.port}/?a=1000&b=3000&operation=multiply`,
     )
     if (!parsed4.ok) throw parsed4.error
-    const [request2, responsePromise2] = await createRequest({
+    const __createRequestResult4 = await createRequest({
       url: parsed4.value,
     })
+    if (!__createRequestResult4.ok) throw __createRequestResult4.error
+    const [request2, responsePromise2] = __createRequestResult4.value
     request2.end()
     const response2 = await responsePromise2
     const responseBody2 = (await getBody(response2)).toString()

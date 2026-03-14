@@ -27,10 +27,12 @@ describe('args.update', () => {
     // First request to mocker to create a new mocked response
     const parsed1 = parseAbsoluteHttpUrl(`http://localhost:${mocker1.port}/`)
     if (!parsed1.ok) throw parsed1.error
-    const [request1, response1Promise] = await createRequest({
+    const requestResult1 = await createRequest({
       url: parsed1.value,
       method: 'GET',
     })
+    if (!requestResult1.ok) throw requestResult1.error
+    const [request1, response1Promise] = requestResult1.value
     request1.end()
     const response1 = await response1Promise
     const response1Body = `${await getBody(response1)}`
@@ -55,10 +57,12 @@ describe('args.update', () => {
     // mock and with an updated body due to `update: startup`
     const parsed2 = parseAbsoluteHttpUrl(`http://localhost:${mocker2.port}/`)
     if (!parsed2.ok) throw parsed2.error
-    const [request2, response2Promise] = await createRequest({
+    const requestResult2 = await createRequest({
       url: parsed2.value,
       method: 'GET',
     })
+    if (!requestResult2.ok) throw requestResult2.error
+    const [request2, response2Promise] = requestResult2.value
     request2.end()
     const response2 = await response2Promise
     const response2Body = `${await getBody(response2)}`
@@ -85,10 +89,12 @@ describe('args.update', () => {
     // And I create a request to mocker in order to generate a mocked response
     const parsed3 = parseAbsoluteHttpUrl(`http://localhost:${mocker1.port}/`)
     if (!parsed3.ok) throw parsed3.error
-    const [request1, response1Promise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed3.value,
       method: 'GET',
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request1, response1Promise] = requestResult.value
     request1.end()
     const response1 = await response1Promise
     const response1Body = `${await getBody(response1)}`
@@ -141,10 +147,12 @@ describe('args.update', () => {
     async function createRequestThunk() {
       const parsed4 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
       if (!parsed4.ok) throw parsed4.error
-      const [request1] = await createRequest({
+      const requestResult = await createRequest({
         url: parsed4.value,
         method: 'GET',
       })
+      if (!requestResult.ok) throw requestResult.error
+      const [request1] = requestResult.value
       request1.end()
     }
 
@@ -170,10 +178,12 @@ describe('args.update', () => {
 
     const parsed5 = parseAbsoluteHttpUrl(`http://localhost:${mocker1.port}/`)
     if (!parsed5.ok) throw parsed5.error
-    const [request1, response1Promise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed5.value,
       method: 'GET',
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request1, response1Promise] = requestResult.value
     request1.end()
     await response1Promise
     await mocker1.close()
@@ -221,10 +231,12 @@ describe('args.update', () => {
 
     const parsed6 = parseAbsoluteHttpUrl(`http://localhost:${mocker1.port}/`)
     if (!parsed6.ok) throw parsed6.error
-    const [request1, response1Promise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed6.value,
       method: 'GET',
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request1, response1Promise] = requestResult.value
     request1.end()
     await response1Promise
     await mocker1.close()
@@ -274,11 +286,13 @@ describe('args.update', () => {
     // Make a request with the secret header
     const parsed7 = parseAbsoluteHttpUrl(`http://localhost:${mocker1.port}/`)
     if (!parsed7.ok) throw parsed7.error
-    const [request1, response1Promise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed7.value,
       method: 'GET',
       headers: { authorization: 'Bearer secret-token' },
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request1, response1Promise] = requestResult.value
     request1.end()
     await response1Promise
     await mocker1.close()
@@ -310,11 +324,13 @@ describe('args.update', () => {
 
     const parsed8 = parseAbsoluteHttpUrl(`http://localhost:${mocker1.port}/`)
     if (!parsed8.ok) throw parsed8.error
-    const [request1, response1Promise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed8.value,
       method: 'GET',
       headers: { authorization: 'Bearer secret-token' },
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request1, response1Promise] = requestResult.value
     request1.end()
     await response1Promise
     await mocker1.close()
@@ -361,10 +377,12 @@ describe('args.update', () => {
 
     const parsed9 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
     if (!parsed9.ok) throw parsed9.error
-    const [request1, response1Promise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed9.value,
       method: 'GET',
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request1, response1Promise] = requestResult.value
     request1.end()
     const response1 = await response1Promise
 

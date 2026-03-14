@@ -14,7 +14,6 @@
 import path from 'node:path'
 import nativeFs from 'node:fs'
 import zlib from 'node:zlib'
-import { Readable } from 'node:stream'
 import crypto from 'node:crypto'
 import { promisify } from 'node:util'
 import MockedResponse from './mocked-response.js'
@@ -24,7 +23,7 @@ import {
   redactHeaders,
   unredactHeaders,
 } from '../shared/http/index.js'
-import { pipeline, rewindable } from '../shared/stream/index.js'
+import { rewindable } from '../shared/stream/index.js'
 import createLogger from '../shared/logger/index.js'
 import { dim } from '../shared/logger/format/index.js'
 import MockedRequest from './mocked-request.js'
@@ -32,6 +31,16 @@ import { parse as parseHttpStatusCode } from '../shared/http-status-code/index.j
 import { parse as parseHttpMethod } from '../shared/http-method/index.js'
 import { tryCatch, tryCatchAsync } from '../shared/try-catch/index.js'
 import { MockFileError } from './mock-file-error.js'
+import atomicWrite from '../shared/atomic-write/index.js'
+
+class MockGetError extends Error {
+  /** @param {string} mockPath @param {Error} cause */
+  constructor(mockPath, cause) {
+    super(cause.message, { cause })
+    this.name = 'MockGetError'
+    this.mockPath = mockPath
+  }
+}
 
 const logger = createLogger()
 
@@ -286,45 +295,56 @@ async function requestToMockPath(request, connectionId, mocksDir, mockKeys) {
 }
 
 /**
+ * @param {{ headers?: Record<string, unknown>; body: unknown }} part
+ * @returns {string}
+ */
+function serializeBody(part) {
+  const contentType = `${part.headers?.['content-type'] ?? ''}`
+  return contentType.includes('application/json')
+    ? JSON.stringify(part.body)
+    : /** @type {string} */ (part.body)
+}
+
+/**
  * @param {MockFile} fileJson
  * @param {HttpStatusCode} statusCode
  * @param {Headers} redactedHeaders
- * @returns {{ mockedResponse: MockedResponse & Rewindable; mockedRequest: MockedRequest & Rewindable }}
+ * @returns {import('../shared/types.js').Result<{ mockedResponse: MockedResponse & Rewindable; mockedRequest: MockedRequest & Rewindable }, Error>}
  */
 function buildMockedPair(fileJson, statusCode, redactedHeaders) {
-  const responseBody =
-    `${fileJson.response.headers?.['content-type'] ?? ''}`.includes(
-      'application/json',
-    )
-      ? JSON.stringify(fileJson.response.body)
-      : fileJson.response.body
+  const responseHeadersResult = unredactHeaders(fileJson.response.headers, redactedHeaders)
+  if (!responseHeadersResult.ok) return responseHeadersResult
 
-  const mockedResponse = rewindable(
+  const mockedResponseResult = rewindable(
     new MockedResponse({
       statusCode,
-      headers: unredactHeaders(fileJson.response.headers, redactedHeaders),
+      headers: responseHeadersResult.value,
       url: fileJson.request.url || '',
     }),
   )
-  mockedResponse.end(responseBody)
+  if (!mockedResponseResult.ok) return mockedResponseResult
+  mockedResponseResult.value.end(serializeBody(fileJson.response))
 
-  const requestBody =
-    `${fileJson.request.headers?.['content-type'] ?? ''}`.includes(
-      'application/json',
-    )
-      ? JSON.stringify(fileJson.request.body)
-      : fileJson.request.body
+  const requestHeadersResult = unredactHeaders(fileJson.request.headers, redactedHeaders)
+  if (!requestHeadersResult.ok) return requestHeadersResult
 
-  const mockedRequest = rewindable(
+  const mockedRequestResult = rewindable(
     new MockedRequest({
       url: fileJson.request.url,
-      headers: unredactHeaders(fileJson.request.headers, redactedHeaders),
+      headers: requestHeadersResult.value,
       method: fileJson.request.method,
     }),
   )
-  mockedRequest.end(requestBody)
+  if (!mockedRequestResult.ok) return mockedRequestResult
+  mockedRequestResult.value.end(serializeBody(fileJson.request))
 
-  return { mockedResponse, mockedRequest }
+  return {
+    ok: true,
+    value: {
+      mockedResponse: mockedResponseResult.value,
+      mockedRequest: mockedRequestResult.value,
+    },
+  }
 }
 
 /**
@@ -345,30 +365,34 @@ function createMockManager({
   )
 
   /**
-   * @param {Object} options
-   * @param {(HttpIncomingMessage | MockedRequest) & Rewindable} options.request
-   * @param {ConnectionId} [options.connectionId]
-   * @returns {Promise<{ mockPath: string; hasMock: boolean }>}
+   * @param {string} filePath
+   * @returns {Promise<Result<unknown>>}
    */
-  async function has({
-    request,
-    connectionId = /** @type {ConnectionId} */ ('?'),
-  }) {
-    const mockPath = await requestToMockPath(
-      request,
-      connectionId,
-      mocksDir,
-      mockKeys,
-    )
-    const accessResult = await tryCatchAsync(() => fsPromises.access(mockPath))
-    return { hasMock: accessResult.ok, mockPath }
+  async function readMockFile(filePath) {
+    const readResult = await tryCatchAsync(() => fsPromises.readFile(filePath))
+    if (!readResult.ok) return readResult
+
+    const parseResult = tryCatch(() => JSON.parse(readResult.value.toString('utf8')))
+    if (!parseResult.ok) return parseResult
+
+    const fileJson = parseResult.value
+
+    if (
+      (fileJson.response.headers?.['content-type'] ?? '').includes(
+        'application/json',
+      )
+    ) {
+      fileJson.response.body = JSON.stringify(fileJson.response.body)
+    }
+
+    return { ok: true, value: fileJson }
   }
 
   /**
    * @param {Object} options
    * @param {(HttpIncomingMessage | MockedRequest) & Rewindable} options.request
    * @param {ConnectionId} [options.connectionId]
-   * @returns {Promise<{ mockPath: string; mockedResponse: MockedResponse }>}
+   * @returns {Promise<Result<{ mockPath: string; mockedResponse: MockedResponse }, MockGetError>>}
    */
   async function get({
     request,
@@ -380,31 +404,32 @@ function createMockManager({
       mocksDir,
       mockKeys,
     )
-    const fileContent = await fsPromises.readFile(filePath)
-    const fileJson = JSON.parse(fileContent.toString('utf8'))
 
-    if (
-      (fileJson.response.headers?.['content-type'] ?? '').includes(
-        'application/json',
-      )
-    ) {
-      fileJson.response.body = JSON.stringify(fileJson.response.body)
-    }
+    const fileResult = await readMockFile(filePath)
+    if (!fileResult.ok) return { ok: false, error: new MockGetError(filePath, fileResult.error) }
+
+    const fileJson = /** @type {MockFile} */ (fileResult.value)
 
     const statusCodeResult = parseHttpStatusCode(fileJson.response.statusCode)
-    if (!statusCodeResult.ok) throw statusCodeResult.error
+    if (!statusCodeResult.ok) return { ok: false, error: new MockGetError(filePath, statusCodeResult.error) }
+
+    const unredactResult = unredactHeaders(fileJson.response.headers, redactedHeaders)
+    if (!unredactResult.ok) return { ok: false, error: new MockGetError(filePath, unredactResult.error) }
 
     const mockedResponse = new MockedResponse({
       statusCode: statusCodeResult.value,
-      headers: unredactHeaders(fileJson.response.headers, redactedHeaders),
+      headers: unredactResult.value,
       url: fileJson.request.url || request.url || '',
       connectionId,
     })
     mockedResponse.end(fileJson.response.body)
 
     return {
-      mockPath: filePath,
-      mockedResponse,
+      ok: true,
+      value: {
+        mockPath: filePath,
+        mockedResponse,
+      },
     }
   }
 
@@ -413,19 +438,13 @@ function createMockManager({
    * @param {(HttpIncomingMessage | MockedRequest) & Rewindable} options.request
    * @param {(HttpIncomingMessage | MockedResponse) & Rewindable} options.response
    * @param {ConnectionId} [options.connectionId]
-   * @param {Function} [options.fault]
-   * @returns {Promise<{ mockPath: string }>}
+   * @returns {Promise<Result<{ mockPath: string }>>}
    */
   async function set({
     request,
     response,
     connectionId = /** @type {ConnectionId} */ ('?'),
-    fault = () => {},
   }) {
-    const {
-      createWriteStream,
-      promises: { unlink },
-    } = fs
     const filePath = await requestToMockPath(
       request,
       connectionId,
@@ -437,10 +456,10 @@ function createMockManager({
     const reqBody = parseBody(reqBodyBuffer, request, connectionId)
 
     const methodResult = parseHttpMethod(request.method)
-    if (!methodResult.ok) throw methodResult.error
+    if (!methodResult.ok) return methodResult
 
     const statusCodeResult = parseHttpStatusCode(response.statusCode || 0)
-    if (!statusCodeResult.ok) throw statusCodeResult.error
+    if (!statusCodeResult.ok) return statusCodeResult
 
     /** @type {MockFile} */
     const fileContent = {
@@ -478,25 +497,16 @@ function createMockManager({
 
     const fileContentSerialized = JSON.stringify(fileContent, null, 2)
 
-    try {
-      await pipeline(
-        Readable.from(fileContentSerialized),
-        createWriteStream(filePath, { autoClose: true }),
-      )
-      fault()
-    } catch (error) {
-      // Deletes a file if there is an error while writing to it to avoid having
-      // a corrupted file.
-      // If the error is "no write access", do nothing.
-      if (error && Reflect.get(error, 'code') !== 'EACCES') {
-        await unlink(filePath)
-      }
-
-      throw error
-    }
+    const writeResult = await atomicWrite({
+      filePath,
+      content: fileContentSerialized,
+      fs,
+    })
+    if (!writeResult.ok) return writeResult
 
     return {
-      mockPath: filePath,
+      ok: true,
+      value: { mockPath: filePath },
     }
   }
 
@@ -525,33 +535,41 @@ function createMockManager({
         continue
       }
 
-      try {
-        const fileContent = await fsPromises.readFile(filePath)
-        const fileJson = JSON.parse(fileContent.toString('utf8'))
+      const readResult = await tryCatchAsync(() => fsPromises.readFile(filePath))
+      if (!readResult.ok) {
+        yield { ok: false, error: new MockFileError(readResult.error, filePath) }
+        continue
+      }
 
-        const statusCodeResult = parseHttpStatusCode(
-          fileJson.response.statusCode,
-        )
-        if (!statusCodeResult.ok) throw statusCodeResult.error
+      const parseResult = tryCatch(() => JSON.parse(readResult.value.toString('utf8')))
+      if (!parseResult.ok) {
+        yield { ok: false, error: new MockFileError(parseResult.error, filePath) }
+        continue
+      }
 
-        const { mockedResponse, mockedRequest } = buildMockedPair(
-          fileJson,
-          statusCodeResult.value,
-          redactedHeaders,
-        )
+      const fileJson = parseResult.value
 
-        yield {
-          ok: true,
-          value: { mockPath: filePath, mockedResponse, mockedRequest },
-        }
-      } catch (error) {
-        yield {
-          ok: false,
-          error: new MockFileError(
-            error instanceof Error ? error : new Error(String(error)),
-            filePath,
-          ),
-        }
+      const statusCodeResult = parseHttpStatusCode(
+        fileJson.response.statusCode,
+      )
+      if (!statusCodeResult.ok) {
+        yield { ok: false, error: new MockFileError(statusCodeResult.error, filePath) }
+        continue
+      }
+
+      const buildResult = buildMockedPair(
+        fileJson,
+        statusCodeResult.value,
+        redactedHeaders,
+      )
+      if (!buildResult.ok) {
+        yield { ok: false, error: new MockFileError(buildResult.error, filePath) }
+        continue
+      }
+
+      yield {
+        ok: true,
+        value: { mockPath: filePath, ...buildResult.value },
       }
     }
   }
@@ -573,7 +591,7 @@ function createMockManager({
     return output
   }
 
-  return { has, get, set, clear, getAll, size }
+  return { get, set, clear, getAll, size }
 }
 
-export { createMockManager }
+export { createMockManager, MockGetError }

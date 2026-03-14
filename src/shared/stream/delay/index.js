@@ -21,11 +21,7 @@ function delay({ ms }) {
         }
         return callback(null, chunk)
       } catch (error) {
-        if (error instanceof Error) {
-          return callback(error)
-        } else {
-          throw error
-        }
+        return callback(error instanceof Error ? error : new Error(String(error)))
       }
     },
     flush(callback) {

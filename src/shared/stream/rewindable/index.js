@@ -1,4 +1,5 @@
 /** @typedef {import('./types.js').Rewindable} Rewindable */
+/** @template T @template {Error} [E=Error] @typedef {import('../../types.js').Result<T, E>} Result */
 
 import { Readable } from 'node:stream'
 
@@ -27,11 +28,11 @@ function waitForNewChunkOrEnd(stream) {
 /**
  * @template {Readable} T
  * @param {T} stream
- * @returns {T & Rewindable}
+ * @returns {Result<T & Rewindable, Error>}
  */
 function rewindable(stream) {
   if (!stream.readable) {
-    throw new Error('Stream is not readable')
+    return { ok: false, error: new Error('Stream is not readable') }
   }
 
   // Saves all generated values by the stream for future playback, but making
@@ -93,7 +94,7 @@ function rewindable(stream) {
 
   // Set `stream` as prototype of a newly created object so we extend without
   // mutating.
-  return Object.setPrototypeOf({ rewind }, stream)
+  return { ok: true, value: Object.setPrototypeOf({ rewind }, stream) }
 }
 
 export default rewindable

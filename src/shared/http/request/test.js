@@ -18,10 +18,12 @@ describe('createRequest', () => {
     )
     if (!parsed.ok) throw parsed.error
 
-    const [request, responsePromise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed.value,
       method: 'POST',
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
     request.write('lorem ipsum')
     request.end()
 
@@ -31,7 +33,7 @@ describe('createRequest', () => {
     expect(responseBody.toString()).toBe('lorem ipsumlorem ipsum')
   })
 
-  it('throws an error in case a connection cannot be made', async () => {
+  it('returns an error result in case a connection cannot be made', async () => {
     // Get a free port by briefly listening then closing
     await using tempServer = createDuplicateRequestServer()
     await tempServer.listen()
@@ -41,11 +43,10 @@ describe('createRequest', () => {
     const parsed = parseAbsoluteHttpUrl(`http://localhost:${freePort}`)
     if (!parsed.ok) throw parsed.error
 
-    await expect(
-      createRequest({
-        url: parsed.value,
-      }),
-    ).rejects.toThrow()
+    const result = await createRequest({
+      url: parsed.value,
+    })
+    expect(result.ok).toBe(false)
   })
 
   it('retries up to `retries`', async () => {
@@ -60,12 +61,14 @@ describe('createRequest', () => {
     const parsed = parseAbsoluteHttpUrl(`http://localhost:${flakyServer.port}`)
     if (!parsed.ok) throw parsed.error
 
-    const [request, responsePromise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed.value,
       method: 'POST',
       retries: 3,
       backoff: async () => {},
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
     request.write('dolor')
     request.write(' sit amet')
     request.end()
@@ -84,12 +87,14 @@ describe('createRequest', () => {
     const parsed = parseAbsoluteHttpUrl(`http://localhost:${flakyServer.port}`)
     if (!parsed.ok) throw parsed.error
 
-    const [request, responsePromise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed.value,
       method: 'POST',
       retries: 2,
       backoff: async () => {},
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
     request.write('dolor')
     request.write(' sit amet')
     request.end()
@@ -111,12 +116,14 @@ describe('createRequest', () => {
     const parsed = parseAbsoluteHttpUrl(`http://localhost:${flakyServer.port}`)
     if (!parsed.ok) throw parsed.error
 
-    const [request, responsePromise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed.value,
       method: 'POST',
       retries: 3,
       backoff: mockBackoff,
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
     request.write('dolor')
     request.write(' sit amet')
     request.end()
@@ -138,13 +145,15 @@ describe('createRequest', () => {
     /** @type {jest.Mock<() => Promise<void>>} */
     const mockBackoff = jest.fn()
 
-    const [request, responsePromise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed.value,
       method: 'POST',
       retries: 3,
       backoff: mockBackoff,
       headers: { 'response-status-code': '201' },
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
     request.end()
 
     const response = await responsePromise
@@ -164,13 +173,15 @@ describe('createRequest', () => {
     /** @type {jest.Mock<() => Promise<void>>} */
     const mockBackoff = jest.fn()
 
-    const [request, responsePromise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed.value,
       method: 'POST',
       retries: 3,
       backoff: mockBackoff,
       headers: { 'response-status-code': '404' },
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
     request.end()
 
     const response = await responsePromise
@@ -188,12 +199,14 @@ describe('createRequest', () => {
     /** @type {jest.Mock<() => Promise<void>>} */
     const mockBackoff = jest.fn()
 
-    const [request, responsePromise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed.value,
       method: 'POST',
       retries: 3,
       backoff: mockBackoff,
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
     request.write('dolor sit amet')
     request.end()
 
@@ -231,7 +244,7 @@ describe('createRequest', () => {
       }
     })
 
-    await new Promise((resolve) => httpServer.listen(0, '127.0.0.1', resolve))
+    await new Promise((resolve) => httpServer.listen(0, '127.0.0.1', /** @type {() => void} */ (resolve)))
     const port = /** @type {import('node:net').AddressInfo} */ (
       httpServer.address()
     ).port
@@ -240,12 +253,14 @@ describe('createRequest', () => {
       const parsed = parseAbsoluteHttpUrl(`http://127.0.0.1:${port}`)
       if (!parsed.ok) throw parsed.error
 
-      const [request, responsePromise] = await createRequest({
+      const requestResult = await createRequest({
         url: parsed.value,
         method: 'POST',
         retries: 3,
         backoff: async () => {},
       })
+      if (!requestResult.ok) throw requestResult.error
+      const [request, responsePromise] = requestResult.value
       request.write('hello')
       request.end()
 
@@ -270,12 +285,14 @@ describe('createRequest', () => {
       const parsed = parseAbsoluteHttpUrl(`http://localhost:${port}`)
       if (!parsed.ok) throw parsed.error
 
-      const [request, responsePromise] = await createRequest({
+      const requestResult = await createRequest({
         url: parsed.value,
         method: 'POST',
         retries: 5,
         backoff: createBackoff({ initial: 10 }),
       })
+      if (!requestResult.ok) throw requestResult.error
+      const [request, responsePromise] = requestResult.value
       request.write('dolor')
       request.write(' sit amet')
       request.end()

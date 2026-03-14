@@ -1,3 +1,5 @@
+/** @template T @template {Error} [E=Error] @typedef {import('../../types.js').Result<T, E>} Result */
+
 import createBackoff from '../../backoff/index.js'
 
 /**
@@ -24,7 +26,7 @@ async function attempt(asyncThunk, shouldRetry, onRetry) {
  * @param {function(T): boolean} [options.shouldRetry]
  * @param {function(): void} [options.onRetry]
  * @param {function(): Promise<void>} [options.backoff]
- * @returns {Promise<T>}
+ * @returns {Promise<Result<T>>}
  */
 async function retry(
   asyncThunk,
@@ -38,15 +40,15 @@ async function retry(
   for (let attempts = 0; attempts < retries; attempts += 1) {
     try {
       const result = await attempt(asyncThunk, shouldRetry, onRetry)
-      if (result.done) return /** @type {T} */ (result.value)
+      if (result.done) return { ok: true, value: /** @type {T} */ (result.value) }
     } catch (error) {
-      if (attempts === retries - 1) throw error
+      if (attempts === retries - 1) return { ok: false, error: /** @type {Error} */ (error) }
       onRetry()
     }
     await backoff()
   }
 
-  throw new Error('retry exhausted all attempts without a successful response')
+  return { ok: false, error: new Error('retry exhausted all attempts without a successful response') }
 }
 
 export default retry

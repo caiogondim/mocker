@@ -22,10 +22,12 @@ describe('args.overwriteResponseHeaders', () => {
       `http://localhost:${mocker.port}/?a=34&b=35&operation=sum`,
     )
     if (!parsed1.ok) throw parsed1.error
-    const [request1, response1Promise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed1.value,
       method: 'GET',
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request1, response1Promise] = requestResult.value
     request1.end()
     const response1 = await response1Promise
 
@@ -51,10 +53,12 @@ describe('args.overwriteResponseHeaders', () => {
       `http://localhost:${mocker.port}/?a=34&b=35&operation=sum`,
     )
     if (!parsed2.ok) throw parsed2.error
-    const [request1, response1Promise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed2.value,
       method: 'GET',
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request1, response1Promise] = requestResult.value
     request1.end()
     const response1 = await response1Promise
 
@@ -83,10 +87,12 @@ describe('args.overwriteResponseHeaders', () => {
       `http://localhost:${mocker.port}/?a=34&b=35&operation=sum`,
     )
     if (!parsed3.ok) throw parsed3.error
-    const [request1, response1Promise] = await createRequest({
+    const requestResult1 = await createRequest({
       url: parsed3.value,
       method: 'GET',
     })
+    if (!requestResult1.ok) throw requestResult1.error
+    const [request1, response1Promise] = requestResult1.value
     request1.end()
     const response1 = await response1Promise
 
@@ -101,10 +107,12 @@ describe('args.overwriteResponseHeaders', () => {
       `http://localhost:${mocker.port}/?a=34&b=35&operation=sum`,
     )
     if (!parsed4.ok) throw parsed4.error
-    const [request2, response2Promise] = await createRequest({
+    const requestResult2 = await createRequest({
       url: parsed4.value,
       method: 'GET',
     })
+    if (!requestResult2.ok) throw requestResult2.error
+    const [request2, response2Promise] = requestResult2.value
     request2.end()
     const response2 = await response2Promise
 

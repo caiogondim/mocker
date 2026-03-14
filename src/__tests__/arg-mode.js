@@ -21,9 +21,11 @@ describe(`mode = 'pass'`, () => {
       `http://localhost:${mocker.port}/?a=1&b=3&operation=sum`,
     )
     if (!parsed1.ok) throw parsed1.error
-    const [request, responsePromise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed1.value,
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
     request.end()
     const response = await responsePromise
     const responseBody = (await getBody(response)).toString()
@@ -51,9 +53,11 @@ describe(`mode = 'read-pass`, () => {
       `http://localhost:${mocker.port}/?a=5&b=9&operation=sum`,
     )
     if (!parsed2.ok) throw parsed2.error
-    const [request1, response1Promise] = await createRequest({
+    const requestResult1 = await createRequest({
       url: parsed2.value,
     })
+    if (!requestResult1.ok) throw requestResult1.error
+    const [request1, response1Promise] = requestResult1.value
     request1.end()
     const response1 = await response1Promise
     const response1Body = (await getBody(response1)).toString()
@@ -68,9 +72,11 @@ describe(`mode = 'read-pass`, () => {
       `http://localhost:${mocker.port}/?a=5&b=9&operation=sum`,
     )
     if (!parsed3.ok) throw parsed3.error
-    const [request2, response2Promise] = await createRequest({
+    const requestResult2 = await createRequest({
       url: parsed3.value,
     })
+    if (!requestResult2.ok) throw requestResult2.error
+    const [request2, response2Promise] = requestResult2.value
     request2.end()
     const response2 = await response2Promise
     const response2Body = (await getBody(response2)).toString()
@@ -92,9 +98,11 @@ describe(`mode = 'read-pass`, () => {
       `http://localhost:${mocker.port}/?a=1&b=3&operation=sum`,
     )
     if (!parsed4.ok) throw parsed4.error
-    const [request, responsePromise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed4.value,
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
     request.end()
     const response = await responsePromise
     const responseBody = (await getBody(response)).toString()
@@ -122,9 +130,11 @@ describe(`mode = 'read-write`, () => {
       `http://localhost:${mocker.port}/?a=2&b=5&operation=multiply`,
     )
     if (!parsed5.ok) throw parsed5.error
-    const [request1, response1Promise] = await createRequest({
+    const requestResult1 = await createRequest({
       url: parsed5.value,
     })
+    if (!requestResult1.ok) throw requestResult1.error
+    const [request1, response1Promise] = requestResult1.value
     request1.end()
 
     const response1 = await response1Promise
@@ -144,9 +154,11 @@ describe(`mode = 'read-write`, () => {
       `http://localhost:${mocker.port}/?a=2&b=5&operation=multiply`,
     )
     if (!parsed6.ok) throw parsed6.error
-    const [request2, response2Promise] = await createRequest({
+    const requestResult2 = await createRequest({
       url: parsed6.value,
     })
+    if (!requestResult2.ok) throw requestResult2.error
+    const [request2, response2Promise] = requestResult2.value
     request2.end()
     const response2 = await response2Promise
     const response2Body = (await getBody(response2)).toString()
@@ -172,9 +184,11 @@ describe(`mode = 'read-write`, () => {
       `http://localhost:${mocker.port}/?a=5&b=9&operation=sum`,
     )
     if (!parsed7.ok) throw parsed7.error
-    const [request1, response1Promise] = await createRequest({
+    const requestResult1 = await createRequest({
       url: parsed7.value,
     })
+    if (!requestResult1.ok) throw requestResult1.error
+    const [request1, response1Promise] = requestResult1.value
     request1.end()
     const response1 = await response1Promise
     const response1Body = (await getBody(response1)).toString()
@@ -189,9 +203,11 @@ describe(`mode = 'read-write`, () => {
       `http://localhost:${mocker.port}/?a=5&b=9&operation=sum`,
     )
     if (!parsed8.ok) throw parsed8.error
-    const [request2, response2Promise] = await createRequest({
+    const requestResult2 = await createRequest({
       url: parsed8.value,
     })
+    if (!requestResult2.ok) throw requestResult2.error
+    const [request2, response2Promise] = requestResult2.value
     request2.end()
     const response2 = await response2Promise
     const response2Body = (await getBody(response2)).toString()
@@ -215,10 +231,12 @@ describe(`mode = 'read'`, () => {
       `http://localhost:${mocker.port}/?a=34&b=35&operation=sum`,
     )
     if (!parsed9.ok) throw parsed9.error
-    const [request, responsePromise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed9.value,
       method: 'GET',
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
     request.end()
     const response = await responsePromise
 
@@ -243,10 +261,12 @@ describe(`mode = 'pass-read'`, () => {
     for (let i = 0; i < 3; i += 1) {
       const parsed10 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
       if (!parsed10.ok) throw parsed10.error
-      const [request1, response1Promise] = await createRequest({
+      const requestResult = await createRequest({
         url: parsed10.value,
         method: 'GET',
       })
+      if (!requestResult.ok) throw requestResult.error
+      const [request1, response1Promise] = requestResult.value
       request1.end()
       const response1 = await response1Promise
 
@@ -289,10 +309,12 @@ describe(`mode = 'pass-read'`, () => {
     // Fires request to `mocker1` in order to populate `fs` with a mocked response
     const parsed11 = parseAbsoluteHttpUrl(`http://localhost:${mocker1.port}/`)
     if (!parsed11.ok) throw parsed11.error
-    const [request1, response1Promise] = await createRequest({
+    const requestResult1 = await createRequest({
       url: parsed11.value,
       method: 'GET',
     })
+    if (!requestResult1.ok) throw requestResult1.error
+    const [request1, response1Promise] = requestResult1.value
     request1.end()
     const response1 = await response1Promise
 
@@ -302,10 +324,12 @@ describe(`mode = 'pass-read'`, () => {
     // it is getting a response from origin
     const parsed12 = parseAbsoluteHttpUrl(`http://localhost:${mocker2.port}/`)
     if (!parsed12.ok) throw parsed12.error
-    const [request2, response2Promise] = await createRequest({
+    const requestResult2 = await createRequest({
       url: parsed12.value,
       method: 'GET',
     })
+    if (!requestResult2.ok) throw requestResult2.error
+    const [request2, response2Promise] = requestResult2.value
     request2.end()
     const response2 = await response2Promise
 
@@ -318,10 +342,12 @@ describe(`mode = 'pass-read'`, () => {
     // return a mocked response.
     const parsed13 = parseAbsoluteHttpUrl(`http://localhost:${mocker2.port}/`)
     if (!parsed13.ok) throw parsed13.error
-    const [request3, response3Promise] = await createRequest({
+    const requestResult3 = await createRequest({
       url: parsed13.value,
       method: 'GET',
     })
+    if (!requestResult3.ok) throw requestResult3.error
+    const [request3, response3Promise] = requestResult3.value
     request3.end()
     const response3 = await response3Promise
 
@@ -366,10 +392,12 @@ describe(`mode = 'pass-read'`, () => {
     // Fires request to `mocker1` in order to populate `fs` with a mocked response
     const parsed14 = parseAbsoluteHttpUrl(`http://localhost:${mocker1.port}/`)
     if (!parsed14.ok) throw parsed14.error
-    const [request1, response1Promise] = await createRequest({
+    const requestResult1 = await createRequest({
       url: parsed14.value,
       method: 'GET',
     })
+    if (!requestResult1.ok) throw requestResult1.error
+    const [request1, response1Promise] = requestResult1.value
     request1.end()
     const response1 = await response1Promise
 
@@ -379,10 +407,12 @@ describe(`mode = 'pass-read'`, () => {
     // it is getting a response from origin
     const parsed15 = parseAbsoluteHttpUrl(`http://localhost:${mocker2.port}/`)
     if (!parsed15.ok) throw parsed15.error
-    const [request2, response2Promise] = await createRequest({
+    const requestResult2 = await createRequest({
       url: parsed15.value,
       method: 'GET',
     })
+    if (!requestResult2.ok) throw requestResult2.error
+    const [request2, response2Promise] = requestResult2.value
     request2.end()
     const response2 = await response2Promise
 
@@ -395,10 +425,12 @@ describe(`mode = 'pass-read'`, () => {
     // return a mocked response.
     const parsed16 = parseAbsoluteHttpUrl(`http://localhost:${mocker2.port}/`)
     if (!parsed16.ok) throw parsed16.error
-    const [request3, response3Promise] = await createRequest({
+    const requestResult3 = await createRequest({
       url: parsed16.value,
       method: 'GET',
     })
+    if (!requestResult3.ok) throw requestResult3.error
+    const [request3, response3Promise] = requestResult3.value
     request3.end()
     const response3 = await response3Promise
 
@@ -418,10 +450,12 @@ describe(`mode = 'pass-read'`, () => {
     // without mocks
     const parsed17 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
     if (!parsed17.ok) throw parsed17.error
-    const [request, responsePromise] = await createRequest({
+    const requestResult = await createRequest({
       url: parsed17.value,
       method: 'GET',
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
     request.end()
     const response = await responsePromise
 

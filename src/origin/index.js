@@ -46,14 +46,18 @@ function createOrigin({
       ? rewriteUrlForProxy(absoluteUrl, parsedProxyUrl)
       : absoluteUrl
 
-    const [req, responsePromise] = await createRequest({
+    const result = await createRequest({
       url: requestUrl,
       headers: headersCopy,
       method,
       retries,
     })
 
-    return [req, responsePromise]
+    if (!result.ok) {
+      return result
+    }
+
+    return { ok: true, value: result.value }
   }
 
   /**

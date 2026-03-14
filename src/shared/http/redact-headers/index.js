@@ -1,4 +1,5 @@
 /** @typedef {import('../types.js').Headers} Headers */
+/** @template T @template {Error} [E=Error] @typedef {import('../../types.js').Result<T, E>} Result */
 
 class SecretNotFoundError extends Error {
   /** @param {string} message */
@@ -28,7 +29,7 @@ function redactHeaders(headers, redactedHeaders) {
 /**
  * @param {Headers} headers
  * @param {Headers} redactedHeaders
- * @returns {Headers}
+ * @returns {Result<Headers, SecretNotFoundError>}
  */
 function unredactHeaders(headers, redactedHeaders) {
   const headersClone = structuredClone(headers)
@@ -37,13 +38,13 @@ function unredactHeaders(headers, redactedHeaders) {
     if (value !== '[REDACTED]') continue
 
     if (!(key in redactedHeaders)) {
-      throw new SecretNotFoundError(`missing key \`${key}\` in redactedHeaders`)
+      return { ok: false, error: new SecretNotFoundError(`missing key \`${key}\` in redactedHeaders`) }
     }
 
     headersClone[key] = redactedHeaders[key]
   }
 
-  return headersClone
+  return { ok: true, value: headersClone }
 }
 
 export { redactHeaders, unredactHeaders, SecretNotFoundError }

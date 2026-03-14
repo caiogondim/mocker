@@ -21,7 +21,10 @@ describe('origin', () => {
         ),
         overwriteRequestHeaders: { lorem: 'ipsum', dolor: 5, host: 'dolor' },
       })
-      const [request, responsePromise] = await origin.request({ url: `/` })
+      const result = await origin.request({ url: `/` })
+      expect(result.ok).toBe(true)
+      if (!result.ok) throw result.error
+      const [request, responsePromise] = result.value
       request.end()
       const response = await responsePromise
       const responseBody = (await getBody(response)).toString()
@@ -48,7 +51,10 @@ describe('origin', () => {
           via: null,
         },
       })
-      const [request, responsePromise] = await origin.request({ url: `/` })
+      const result = await origin.request({ url: `/` })
+      expect(result.ok).toBe(true)
+      if (!result.ok) throw result.error
+      const [request, responsePromise] = result.value
       request.end()
       const response = await responsePromise
       const responseBody = (await getBody(response)).toString()
@@ -68,10 +74,13 @@ describe('origin', () => {
         host: /** @type {HttpUrl} */ (`http://localhost:${flakyServer.port}`),
         retries: /** @type {NonNegativeInteger} */ (3),
       })
-      const [request, responsePromise] = await origin.request({
+      const result = await origin.request({
         url: `/`,
         method: 'POST',
       })
+      expect(result.ok).toBe(true)
+      if (!result.ok) throw result.error
+      const [request, responsePromise] = result.value
       request.write('lorem ipsum')
       request.write(' dolor')
       request.end(' sit amet')
@@ -94,9 +103,12 @@ describe('origin', () => {
       const origin = createOrigin({
         host: /** @type {HttpUrl} */ (`http://localhost:${mathServer.port}`),
       })
-      const [request, responsePromise] = await origin.request({
+      const result = await origin.request({
         url: `http://localhost:${mathServer.port}?a=1&b=2&operation=sum`,
       })
+      expect(result.ok).toBe(true)
+      if (!result.ok) throw result.error
+      const [request, responsePromise] = result.value
       request.end()
 
       // Then it should work as it does for relative URLs

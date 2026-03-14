@@ -29,11 +29,11 @@ class TokenBucket {
 
   /**
    * @param {number} quantity
-   * @returns {boolean}
+   * @returns {{ ok: true; value: boolean } | { ok: false; error: TypeError }}
    */
   take(quantity) {
     if (!Number.isInteger(quantity) || quantity <= 0) {
-      throw TypeError('quantity must be a positive integer')
+      return { ok: false, error: TypeError('quantity must be a positive integer') }
     }
 
     if (!this.#hasPendingRefill) {
@@ -43,9 +43,9 @@ class TokenBucket {
 
     if (quantity <= this.#tokens) {
       this.#tokens -= quantity
-      return true
+      return { ok: true, value: true }
     }
-    return false
+    return { ok: true, value: false }
   }
 
   async refill() {
@@ -82,7 +82,11 @@ function throttle({ bps }) {
         for (let chunkStart = 0; chunkStart < data.length; chunkStart += bps) {
           const chunkEnd = Math.min(data.length, chunkStart + bps + 1)
           const chunkSize = chunkEnd - chunkStart
-          if (!tokenBucket.take(chunkSize)) {
+          const takeResult = tokenBucket.take(chunkSize)
+          if (!takeResult.ok) {
+            return callback(takeResult.error)
+          }
+          if (!takeResult.value) {
             await tokenBucket.refill()
             chunkStart -= bps
             continue
@@ -91,11 +95,7 @@ function throttle({ bps }) {
         }
         return callback(null)
       } catch (error) {
-        if (error === null || error === undefined || error instanceof Error) {
-          return callback(error)
-        } else {
-          throw error
-        }
+        return callback(error instanceof Error ? error : new Error(String(error)))
       }
     },
   })

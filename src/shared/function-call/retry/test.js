@@ -35,13 +35,17 @@ describe('retry', () => {
     // Test behavior with `retry`
     //
 
-    expect(await retry(createThrowUntilN(3), { backoff })).toBe('lorem')
+    const result = await retry(createThrowUntilN(3), { backoff })
+    expect(result.ok).toBe(true)
+    if (!result.ok) throw result.error
+    expect(result.value).toBe('lorem')
   })
 
   it('retries up to `retries`', async () => {
-    await expect(
-      retry(createThrowUntilN(3), { retries: 2, backoff }),
-    ).rejects.toThrow(Error)
+    const result = await retry(createThrowUntilN(3), { retries: 2, backoff })
+    expect(result.ok).toBe(false)
+    if (result.ok) throw new Error('expected failure')
+    expect(result.error).toBeInstanceOf(Error)
   })
 
   it('retries in case `shouldRetry` returns true', async () => {
@@ -63,7 +67,10 @@ describe('retry', () => {
       return num < 2
     }
 
-    expect(await retry(numberGenerator, { shouldRetry, backoff })).toBe(2)
+    const result = await retry(numberGenerator, { shouldRetry, backoff })
+    expect(result.ok).toBe(true)
+    if (!result.ok) throw result.error
+    expect(result.value).toBe(2)
   })
 
   it('executes `onRetry` on each retry', async () => {
@@ -86,7 +93,9 @@ describe('retry', () => {
 
     const result = await retry(throwUntil3, { retries, backoff: mockBackoff })
 
-    expect(result).toBe('lorem')
+    expect(result.ok).toBe(true)
+    if (!result.ok) throw result.error
+    expect(result.value).toBe('lorem')
     expect(mockBackoff).toHaveBeenCalledTimes(2)
   })
 })
