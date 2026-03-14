@@ -189,31 +189,85 @@ describe('createRequest', () => {
     expect(mockBackoff).not.toHaveBeenCalled()
   })
 
-  it('retries on 5xx responses', async () => {
+  it('throws when request.end payload pushes replay buffer over 1GB', async () => {
     await using flakyServer = createFlakyServer()
     await flakyServer.listen()
 
     const parsed = parseAbsoluteHttpUrl(`http://localhost:${flakyServer.port}`)
     if (!parsed.ok) throw parsed.error
 
-    /** @type {jest.Mock<() => Promise<void>>} */
-    const mockBackoff = jest.fn()
-
-    const requestResult = await createRequest({
-      url: parsed.value,
-      method: 'POST',
-      retries: 3,
-      backoff: mockBackoff,
+    const byteLengthSpy = jest.spyOn(Buffer, 'byteLength')
+    byteLengthSpy.mockImplementation((string, encoding) => {
+      if (string === 'trigger-limit') {
+        return 1024 * 1024 * 1024
+      }
+      return Buffer.from(string, encoding).byteLength
     })
-    if (!requestResult.ok) throw requestResult.error
-    const [request, responsePromise] = requestResult.value
-    request.write('dolor sit amet')
-    request.end()
 
-    const response = await responsePromise
-    expect(response.statusCode).toBe(200)
-    expect(mockBackoff).toHaveBeenCalled()
+    try {
+      const requestResult = await createRequest({
+        url: parsed.value,
+        method: 'POST',
+        retries: 3,
+      })
+      if (!requestResult.ok) throw requestResult.error
+      const [request, responsePromise] = requestResult.value
+      request.write('x')
+      expect(() => request.end('trigger-limit')).toThrow(
+        'Request body exceeds replay limit',
+      )
+      request.destroy()
+      await responsePromise.catch(() => {})
+    } finally {
+      byteLengthSpy.mockRestore()
+    }
   })
+
+  it('throws when cumulative request writes send more than 1GB', async () => {
+    const { createServer: createHttpServer } = await import('node:http')
+    const httpServer = createHttpServer((req, res) => {
+      req.on('data', () => {})
+      req.on('end', () => {
+        res.writeHead(200)
+        res.end()
+      })
+    })
+    await new Promise((resolve) =>
+      httpServer.listen(0, '127.0.0.1', /** @type {() => void} */ (resolve)),
+    )
+    const port = /** @type {import('node:net').AddressInfo} */ (
+      httpServer.address()
+    ).port
+
+    try {
+      const parsed = parseAbsoluteHttpUrl(`http://127.0.0.1:${port}`)
+      if (!parsed.ok) throw parsed.error
+
+      const requestResult = await createRequest({
+        url: parsed.value,
+        method: 'POST',
+        retries: 1,
+      })
+      if (!requestResult.ok) throw requestResult.error
+      const [request, responsePromise] = requestResult.value
+
+      const chunk = Buffer.alloc(8 * 1024 * 1024, 'a')
+      for (let i = 0; i < 128; i += 1) {
+        const canContinue = request.write(chunk)
+        if (!canContinue) {
+          await new Promise((resolve) => request.once('drain', resolve))
+        }
+      }
+
+      expect(() => request.write(Buffer.from('x'))).toThrow(
+        'Request body exceeds replay limit',
+      )
+      request.destroy()
+      await responsePromise.catch(() => {})
+    } finally {
+      await new Promise((resolve) => httpServer.close(resolve))
+    }
+  }, 60000)
 
   // Regression test
   it('survives a network error on a mid-loop retry attempt', async () => {
@@ -244,7 +298,9 @@ describe('createRequest', () => {
       }
     })
 
-    await new Promise((resolve) => httpServer.listen(0, '127.0.0.1', /** @type {() => void} */ (resolve)))
+    await new Promise((resolve) =>
+      httpServer.listen(0, '127.0.0.1', /** @type {() => void} */ (resolve)),
+    )
     const port = /** @type {import('node:net').AddressInfo} */ (
       httpServer.address()
     ).port

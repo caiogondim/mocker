@@ -40,15 +40,22 @@ async function retry(
   for (let attempts = 0; attempts < retries; attempts += 1) {
     try {
       const result = await attempt(asyncThunk, shouldRetry, onRetry)
-      if (result.done) return { ok: true, value: /** @type {T} */ (result.value) }
+      if (result.done)
+        return { ok: true, value: /** @type {T} */ (result.value) }
     } catch (error) {
-      if (attempts === retries - 1) return { ok: false, error: /** @type {Error} */ (error) }
+      if (attempts === retries - 1)
+        return { ok: false, error: /** @type {Error} */ (error) }
       onRetry()
     }
     await backoff()
   }
 
-  return { ok: false, error: new Error('retry exhausted all attempts without a successful response') }
+  return {
+    ok: false,
+    error: new Error(
+      'retry exhausted all attempts without a successful response',
+    ),
+  }
 }
 
 export default retry

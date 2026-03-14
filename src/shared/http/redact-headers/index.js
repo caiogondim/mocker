@@ -38,7 +38,12 @@ function unredactHeaders(headers, redactedHeaders) {
     if (value !== '[REDACTED]') continue
 
     if (!(key in redactedHeaders)) {
-      return { ok: false, error: new SecretNotFoundError(`missing key \`${key}\` in redactedHeaders`) }
+      return {
+        ok: false,
+        error: new SecretNotFoundError(
+          `missing key \`${key}\` in redactedHeaders`,
+        ),
+      }
     }
 
     headersClone[key] = redactedHeaders[key]

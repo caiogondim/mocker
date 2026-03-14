@@ -312,7 +312,10 @@ function serializeBody(part) {
  * @returns {import('../shared/types.js').Result<{ mockedResponse: MockedResponse & Rewindable; mockedRequest: MockedRequest & Rewindable }, Error>}
  */
 function buildMockedPair(fileJson, statusCode, redactedHeaders) {
-  const responseHeadersResult = unredactHeaders(fileJson.response.headers, redactedHeaders)
+  const responseHeadersResult = unredactHeaders(
+    fileJson.response.headers,
+    redactedHeaders,
+  )
   if (!responseHeadersResult.ok) return responseHeadersResult
 
   const mockedResponseResult = rewindable(
@@ -325,7 +328,10 @@ function buildMockedPair(fileJson, statusCode, redactedHeaders) {
   if (!mockedResponseResult.ok) return mockedResponseResult
   mockedResponseResult.value.end(serializeBody(fileJson.response))
 
-  const requestHeadersResult = unredactHeaders(fileJson.request.headers, redactedHeaders)
+  const requestHeadersResult = unredactHeaders(
+    fileJson.request.headers,
+    redactedHeaders,
+  )
   if (!requestHeadersResult.ok) return requestHeadersResult
 
   const mockedRequestResult = rewindable(
@@ -372,7 +378,9 @@ function createMockManager({
     const readResult = await tryCatchAsync(() => fsPromises.readFile(filePath))
     if (!readResult.ok) return readResult
 
-    const parseResult = tryCatch(() => JSON.parse(readResult.value.toString('utf8')))
+    const parseResult = tryCatch(() =>
+      JSON.parse(readResult.value.toString('utf8')),
+    )
     if (!parseResult.ok) return parseResult
 
     const fileJson = parseResult.value
@@ -406,15 +414,27 @@ function createMockManager({
     )
 
     const fileResult = await readMockFile(filePath)
-    if (!fileResult.ok) return { ok: false, error: new MockGetError(filePath, fileResult.error) }
+    if (!fileResult.ok)
+      return { ok: false, error: new MockGetError(filePath, fileResult.error) }
 
     const fileJson = /** @type {MockFile} */ (fileResult.value)
 
     const statusCodeResult = parseHttpStatusCode(fileJson.response.statusCode)
-    if (!statusCodeResult.ok) return { ok: false, error: new MockGetError(filePath, statusCodeResult.error) }
+    if (!statusCodeResult.ok)
+      return {
+        ok: false,
+        error: new MockGetError(filePath, statusCodeResult.error),
+      }
 
-    const unredactResult = unredactHeaders(fileJson.response.headers, redactedHeaders)
-    if (!unredactResult.ok) return { ok: false, error: new MockGetError(filePath, unredactResult.error) }
+    const unredactResult = unredactHeaders(
+      fileJson.response.headers,
+      redactedHeaders,
+    )
+    if (!unredactResult.ok)
+      return {
+        ok: false,
+        error: new MockGetError(filePath, unredactResult.error),
+      }
 
     const mockedResponse = new MockedResponse({
       statusCode: statusCodeResult.value,
@@ -535,25 +555,36 @@ function createMockManager({
         continue
       }
 
-      const readResult = await tryCatchAsync(() => fsPromises.readFile(filePath))
+      const readResult = await tryCatchAsync(() =>
+        fsPromises.readFile(filePath),
+      )
       if (!readResult.ok) {
-        yield { ok: false, error: new MockFileError(readResult.error, filePath) }
+        yield {
+          ok: false,
+          error: new MockFileError(readResult.error, filePath),
+        }
         continue
       }
 
-      const parseResult = tryCatch(() => JSON.parse(readResult.value.toString('utf8')))
+      const parseResult = tryCatch(() =>
+        JSON.parse(readResult.value.toString('utf8')),
+      )
       if (!parseResult.ok) {
-        yield { ok: false, error: new MockFileError(parseResult.error, filePath) }
+        yield {
+          ok: false,
+          error: new MockFileError(parseResult.error, filePath),
+        }
         continue
       }
 
       const fileJson = parseResult.value
 
-      const statusCodeResult = parseHttpStatusCode(
-        fileJson.response.statusCode,
-      )
+      const statusCodeResult = parseHttpStatusCode(fileJson.response.statusCode)
       if (!statusCodeResult.ok) {
-        yield { ok: false, error: new MockFileError(statusCodeResult.error, filePath) }
+        yield {
+          ok: false,
+          error: new MockFileError(statusCodeResult.error, filePath),
+        }
         continue
       }
 
@@ -563,7 +594,10 @@ function createMockManager({
         redactedHeaders,
       )
       if (!buildResult.ok) {
-        yield { ok: false, error: new MockFileError(buildResult.error, filePath) }
+        yield {
+          ok: false,
+          error: new MockFileError(buildResult.error, filePath),
+        }
         continue
       }
 

@@ -33,7 +33,8 @@ function createAsyncHttpServer(connectionHandler) {
           }
         }, SHUTDOWN_TIMEOUT_MS)
 
-        server.close((error) => (error ? reject(error) : resolve()))
+        server
+          .close((error) => (error ? reject(error) : resolve()))
           .once('close', () => {
             clearTimeout(forceCloseTimeout)
           })

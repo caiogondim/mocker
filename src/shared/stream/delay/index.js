@@ -21,7 +21,9 @@ function delay({ ms }) {
         }
         return callback(null, chunk)
       } catch (error) {
-        return callback(error instanceof Error ? error : new Error(String(error)))
+        return callback(
+          error instanceof Error ? error : new Error(String(error)),
+        )
       }
     },
     flush(callback) {

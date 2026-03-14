@@ -302,7 +302,6 @@ describe('mockManager.set', () => {
       expect(typeof getResult.value.mockPath).toBe('string')
     }
   })
-
 })
 
 describe('mock filenames', () => {

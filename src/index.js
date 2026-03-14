@@ -387,11 +387,17 @@ class Mocker {
         }
         default: {
           const _exhaustiveCheck = /** @type {never} */ (args.mode)
-          return { ok: false, error: new TypeError(`invalid args.mode: ${_exhaustiveCheck}`) }
+          return {
+            ok: false,
+            error: new TypeError(`invalid args.mode: ${_exhaustiveCheck}`),
+          }
         }
       }
     } catch (error) {
-      return { ok: false, error: error instanceof Error ? error : new Error(String(error)) }
+      return {
+        ok: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      }
     }
   }
 
@@ -441,7 +447,11 @@ class Mocker {
       return
     }
 
-    const result = await this.#dispatchByMode(requestRewindable, response, connectionId)
+    const result = await this.#dispatchByMode(
+      requestRewindable,
+      response,
+      connectionId,
+    )
     if (!result.ok) {
       logger.error(`${dim(connectionId)} ${result.error}`)
 
@@ -463,11 +473,18 @@ class Mocker {
   async #handleConnectionWithReadWriteMode(request, response, connectionId) {
     const getResult = await this.#mockManager.get({ request, connectionId })
     if (getResult.ok) {
-      await this.#serveFromMockResult(getResult.value, request, response, connectionId)
+      await this.#serveFromMockResult(
+        getResult.value,
+        request,
+        response,
+        connectionId,
+      )
       return
     }
     const mockBasename = path.basename(getResult.error.mockPath)
-    logger.warn(`${dim(connectionId)} mocked response "${mockBasename}" was not found`)
+    logger.warn(
+      `${dim(connectionId)} mocked response "${mockBasename}" was not found`,
+    )
     await this.#respondFromOrigin(request, response, connectionId)
   }
 
@@ -480,11 +497,18 @@ class Mocker {
   async #handleConnectionWithReadPassMode(request, response, connectionId) {
     const getResult = await this.#mockManager.get({ request, connectionId })
     if (getResult.ok) {
-      await this.#serveFromMockResult(getResult.value, request, response, connectionId)
+      await this.#serveFromMockResult(
+        getResult.value,
+        request,
+        response,
+        connectionId,
+      )
       return
     }
     const mockBasename = path.basename(getResult.error.mockPath)
-    logger.info(`${dim(connectionId)} mocked response "${mockBasename}" was not found`)
+    logger.info(
+      `${dim(connectionId)} mocked response "${mockBasename}" was not found`,
+    )
     await this.#respondFromOrigin(request, response, connectionId)
   }
 
@@ -521,11 +545,18 @@ class Mocker {
   async #handleConnectionWithReadMode(request, response, connectionId) {
     const getResult = await this.#mockManager.get({ request, connectionId })
     if (getResult.ok) {
-      await this.#serveFromMockResult(getResult.value, request, response, connectionId)
+      await this.#serveFromMockResult(
+        getResult.value,
+        request,
+        response,
+        connectionId,
+      )
       return
     }
     const mockBasename = path.basename(getResult.error.mockPath)
-    logger.warn(`${dim(connectionId)} mocked response "${mockBasename}" was not found`)
+    logger.warn(
+      `${dim(connectionId)} mocked response "${mockBasename}" was not found`,
+    )
     await respondNotFound(response, connectionId)
   }
 
@@ -553,11 +584,18 @@ class Mocker {
 
       const getResult = await this.#mockManager.get({ request, connectionId })
       if (getResult.ok) {
-        await this.#serveFromMockResult(getResult.value, request, response, connectionId)
+        await this.#serveFromMockResult(
+          getResult.value,
+          request,
+          response,
+          connectionId,
+        )
         return
       }
       const mockBasename = path.basename(getResult.error.mockPath)
-      logger.warn(`${dim(connectionId)} mocked response "${mockBasename}" was not found`)
+      logger.warn(
+        `${dim(connectionId)} mocked response "${mockBasename}" was not found`,
+      )
       await respondNotFound(response, connectionId)
       return
     }
@@ -570,11 +608,18 @@ class Mocker {
    * @param {ConnectionId} connectionId
    * @returns {Promise<void>}
    */
-  async #serveFromMockResult({ mockedResponse, mockPath }, request, response, connectionId) {
+  async #serveFromMockResult(
+    { mockedResponse, mockPath },
+    request,
+    response,
+    connectionId,
+  ) {
     const args = this.#args
     const mockBasename = path.basename(mockPath)
 
-    logger.info(`${dim(connectionId)} 👈 ${formatStatusCode(mockedResponse.statusCode)} serving from mocked response "${mockBasename}"`)
+    logger.info(
+      `${dim(connectionId)} 👈 ${formatStatusCode(mockedResponse.statusCode)} serving from mocked response "${mockBasename}"`,
+    )
 
     response.statusCode = mockedResponse.statusCode
     response.setHeader('x-mocker-mock-path', mockPath)
@@ -585,10 +630,18 @@ class Mocker {
       response.setHeader(key, value)
     }
 
-    this.#overwriteResponseHeaders(response, /** @type {Headers} */ (request.headers))
+    this.#overwriteResponseHeaders(
+      response,
+      /** @type {Headers} */ (request.headers),
+    )
 
     try {
-      await pipeline(mockedResponse, delay({ ms: args.delay }), throttle({ bps: args.throttle }), response)
+      await pipeline(
+        mockedResponse,
+        delay({ ms: args.delay }),
+        throttle({ bps: args.throttle }),
+        response,
+      )
     } catch (error) {
       logger.error(`${dim(connectionId)} error piping mocked response.`, error)
       if (!response.headersSent) {
@@ -635,7 +688,9 @@ class Mocker {
       originToProxyResponsePromise,
       pipeline(clientToProxyRequest.rewind(), proxyToOriginRequest),
     ])
-    const originToProxyResponseRewindableResult = rewindable(originToProxyResponse)
+    const originToProxyResponseRewindableResult = rewindable(
+      originToProxyResponse,
+    )
     if (!originToProxyResponseRewindableResult.ok) {
       throw originToProxyResponseRewindableResult.error
     }
@@ -727,7 +782,10 @@ class Mocker {
           `${dim(connectionId)} mock for request created on "${mockBasename}"`,
         )
       } else {
-        logger.error(`${dim(connectionId)} error while saving mock`, setResult.error)
+        logger.error(
+          `${dim(connectionId)} error while saving mock`,
+          setResult.error,
+        )
       }
     } else {
       logger.warn(
@@ -823,13 +881,16 @@ class Mocker {
           await using mockedResponse = item.value.mockedResponse
           void mockedResponse
 
-          await this.#updateMock({
-            ok: true,
-            value: {
-              mockPath: item.value.mockPath,
-              mockedRequest,
+          await this.#updateMock(
+            {
+              ok: true,
+              value: {
+                mockPath: item.value.mockPath,
+                mockedRequest,
+              },
             },
-          }, progress())
+            progress(),
+          )
         } else {
           await this.#updateMock(item, progress())
         }

@@ -64,7 +64,9 @@ describe('unredactHeaders', () => {
     const redactedHeaders = { 'example-token': '12341234' }
     const result = unredactHeaders(headers, redactedHeaders)
     expect(result.ok).toBe(false)
-    expect(/** @type {{ ok: false; error: any }} */ (result).error).toBeInstanceOf(SecretNotFoundError)
+    expect(
+      /** @type {{ ok: false; error: any }} */ (result).error,
+    ).toBeInstanceOf(SecretNotFoundError)
   })
 
   it('unredacts secrets from headers', async () => {
@@ -93,7 +95,9 @@ describe('unredactHeaders', () => {
     const redactedHeaders = { 'example-token': '12341234', foo: 'ipsum' }
     const result = unredactHeaders(input, redactedHeaders)
     expect(result.ok).toBe(true)
-    expect(/** @type {{ ok: true; value: any }} */ (result).value).not.toBe(input)
+    expect(/** @type {{ ok: true; value: any }} */ (result).value).not.toBe(
+      input,
+    )
     expect(JSON.stringify(input)).toEqual(inputSnapshot)
   })
 

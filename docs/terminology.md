@@ -19,8 +19,8 @@ scheme     authority       path        query   fragment
 
 ### Mock keys
 
-Mock keys are a group of HTTP request attributes used to create a hash sum
-for a mocked response. They are used in mocker to check whether, for a given request,
+Mock keys are a group of HTTP request attributes used to create a hash sum for a
+mocked response. They are used in mocker to check whether, for a given request,
 there is a mocked response.
 
 The valid values for mock keys are:
@@ -106,8 +106,8 @@ Implements:
 
 ### Streams
 
-Streams are used for I/O throughout the project because they are a more idiomatic
-and performant way to do I/O in Node.js.
+Streams are used for I/O throughout the project because they are a more
+idiomatic and performant way to do I/O in Node.js.
 
 More info on
 [Node.js docs](https://nodejs.org/dist/latest-v14.x/docs/api/stream.html).

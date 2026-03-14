@@ -33,7 +33,10 @@ class TokenBucket {
    */
   take(quantity) {
     if (!Number.isInteger(quantity) || quantity <= 0) {
-      return { ok: false, error: TypeError('quantity must be a positive integer') }
+      return {
+        ok: false,
+        error: TypeError('quantity must be a positive integer'),
+      }
     }
 
     if (!this.#hasPendingRefill) {
@@ -95,7 +98,9 @@ function throttle({ bps }) {
         }
         return callback(null)
       } catch (error) {
-        return callback(error instanceof Error ? error : new Error(String(error)))
+        return callback(
+          error instanceof Error ? error : new Error(String(error)),
+        )
       }
     },
   })

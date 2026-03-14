@@ -71,9 +71,8 @@ resilience layer. Especially useful in conjunction with `--mode pass`.
 ## Secrets hiding
 
 It's possible to redact tokens and secrets from request and response headers
-before saving them to mock files or logging them on screen using the
-param `--redactedHeaders`. The redacted headers will be replaced by
-`'[REDACTED]'`;
+before saving them to mock files or logging them on screen using the param
+`--redactedHeaders`. The redacted headers will be replaced by `'[REDACTED]'`;
 
 ## Folder structure
 
@@ -92,8 +91,8 @@ Library entry point.
 
 ### `src/mock-manager`
 
-`MockManager` is responsible for managing mocks saved on disk.
-It implements the following API:
+`MockManager` is responsible for managing mocks saved on disk. It implements the
+following API:
 
 - `get`
 - `set`
