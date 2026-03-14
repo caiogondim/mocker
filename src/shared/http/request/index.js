@@ -182,7 +182,7 @@ async function createRequestWithRetry({
       numOfTries += 1
 
       const response = await responsePromise
-      if (response.statusCode === HTTP_STATUS_CODE.OK) {
+      if (response.statusCode < HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR) {
         resolveResponse(response)
         return
       }
@@ -195,9 +195,12 @@ async function createRequestWithRetry({
         method,
       })
 
-      // Add `'error'` listener only on last attempt
-      if (numOfTries === retries) {
+      if (numOfTries >= retries) {
         request_.on('error', rejectResponse)
+      } else {
+        request_.on('error', () => {
+          setTimeout(loop, 0).unref()
+        })
       }
 
       for (const requestWriteCall of requestWriteCalls) {
@@ -207,7 +210,7 @@ async function createRequestWithRetry({
       request_.end(...requestEndCall)
       const response = await responsePromise_
 
-      if (response.statusCode === HTTP_STATUS_CODE.OK) {
+      if (response.statusCode < HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR) {
         resolveResponse(response)
         return
       }

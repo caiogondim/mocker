@@ -244,12 +244,7 @@ function buildLabel(body, request, mockKeys) {
  * @param {Args['mockKeys']} mockKeys
  * @returns {Promise<string>}
  */
-async function requestToMockPath(
-  request,
-  connectionId,
-  mocksDir,
-  mockKeys,
-) {
+async function requestToMockPath(request, connectionId, mocksDir, mockKeys) {
   const reqBody = await getBody(request.rewind())
   const body = parseBody(reqBody, request, connectionId)
 
@@ -506,9 +501,7 @@ function createMockManager({
   }
 
   async function clear() {
-    const files = /** @type {string[]} */ (
-      await fsPromises.readdir(mocksDir)
-    )
+    const files = /** @type {string[]} */ (await fsPromises.readdir(mocksDir))
     for (const file of files) {
       if (RESPONSE_FILE_REGEX.test(file)) {
         await fsPromises.unlink(path.join(mocksDir, file))
@@ -525,9 +518,7 @@ function createMockManager({
    * }, MockFileError>>}
    */
   async function* getAll() {
-    const files = /** @type {string[]} */ (
-      await fsPromises.readdir(mocksDir)
-    )
+    const files = /** @type {string[]} */ (await fsPromises.readdir(mocksDir))
     for (const file of files) {
       const filePath = path.join(mocksDir, file)
       if (!filePath.endsWith('.json')) {
@@ -570,9 +561,7 @@ function createMockManager({
    * @returns {Promise<number>}
    */
   async function size() {
-    const files = /** @type {string[]} */ (
-      await fsPromises.readdir(mocksDir)
-    )
+    const files = /** @type {string[]} */ (await fsPromises.readdir(mocksDir))
     let output = 0
     for (const file of files) {
       const filePath = path.join(mocksDir, file)

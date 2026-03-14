@@ -38,8 +38,8 @@ us an id that represents that request.
 const filename = `${hash(`${url} ${method} ${body}`)}.json`
 ```
 
-If a file with a filename equals to `filename` exists on `--mocksDir`, we
-use that file as a mocked response.
+If a file with a filename equals to `filename` exists on `--mocksDir`, we use
+that file as a mocked response.
 
 ### Has mocked response for the request
 

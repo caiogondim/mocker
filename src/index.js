@@ -475,10 +475,7 @@ class Mocker {
     logger.info(`${dim(connectionId)} 👈 ${formatStatusCode(200)} CORS`)
 
     if (request.headers.origin) {
-      response.setHeader(
-        'access-control-allow-origin',
-        request.headers.origin,
-      )
+      response.setHeader('access-control-allow-origin', request.headers.origin)
     }
     response.setHeader('access-control-allow-credentials', 'true')
     response.setHeader(
@@ -704,10 +701,7 @@ class Mocker {
     }
 
     if (args.cors && requestHeaders.origin) {
-      response.setHeader(
-        'access-control-allow-origin',
-        requestHeaders.origin,
-      )
+      response.setHeader('access-control-allow-origin', requestHeaders.origin)
     }
   }
 
