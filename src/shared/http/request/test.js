@@ -196,12 +196,16 @@ describe('createRequest', () => {
     const parsed = parseAbsoluteHttpUrl(`http://localhost:${flakyServer.port}`)
     if (!parsed.ok) throw parsed.error
 
+    const originalByteLength = Buffer.byteLength
     const byteLengthSpy = jest.spyOn(Buffer, 'byteLength')
-    byteLengthSpy.mockImplementation((string, encoding) => {
-      if (string === 'trigger-limit') {
+    byteLengthSpy.mockImplementation((value, encoding) => {
+      if (value === 'trigger-limit') {
         return 1024 * 1024 * 1024
       }
-      return Buffer.from(string, encoding).byteLength
+      if (typeof value === 'string') {
+        return originalByteLength(value, encoding)
+      }
+      return originalByteLength(value)
     })
 
     try {
