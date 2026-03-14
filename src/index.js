@@ -31,6 +31,7 @@ import { HTTP_STATUS_CODE } from './shared/http-status-code/index.js'
 const packageJson = createRequire(import.meta.url)('../package.json')
 const logger = createLogger()
 const closingMockerText = '\r  \nclosing mocker 👋'
+const SHUTDOWN_TIMEOUT_MS = 3000
 
 class OriginResponseError extends Error {
   /** @param {string} message */
@@ -155,6 +156,12 @@ class Mocker {
   /** @type {http.Server | null} */
   #httpServer = null
 
+  /** @type {Set<import('node:net').Socket>} */
+  #connections = new Set()
+
+  /** @type {Promise<void> | null} */
+  #closingPromise = null
+
   /** @type {(() => Promise<void>)[] } */
   #signalHandlers = []
 
@@ -245,21 +252,41 @@ class Mocker {
           process.pid,
         )}, and proxying ${bold(args.origin)}`,
       )
-      this.#httpServer = http
-        .createServer(this.#server.bind(this))
-        .listen(port, resolve)
+      const httpServer = http.createServer(this.#server.bind(this))
+      httpServer.on('connection', (socket) => {
+        this.#connections.add(socket)
+        socket.on('close', () => {
+          this.#connections.delete(socket)
+        })
+      })
+      this.#httpServer = httpServer.listen(port, resolve)
     })
   }
 
   /** @returns {Promise<void>} */
   async close() {
+    if (this.#closingPromise) {
+      return this.#closingPromise
+    }
+
     const httpServer = this.#httpServer
 
     this.#removeListeners()
 
-    return new Promise((resolve, reject) => {
+    this.#closingPromise = new Promise((resolve, reject) => {
       if (httpServer && httpServer.listening) {
+        const forceCloseTimeout = setTimeout(() => {
+          if (typeof httpServer.closeIdleConnections === 'function') {
+            httpServer.closeIdleConnections()
+          }
+          for (const connection of this.#connections) {
+            connection.destroy()
+          }
+        }, SHUTDOWN_TIMEOUT_MS)
+
         httpServer.close((error) => {
+          clearTimeout(forceCloseTimeout)
+          this.#closingPromise = null
           if (error) {
             reject(error)
           } else {
@@ -267,9 +294,12 @@ class Mocker {
           }
         })
       } else {
+        this.#closingPromise = null
         resolve()
       }
     })
+
+    return this.#closingPromise
   }
 
   async [Symbol.asyncDispose]() {
