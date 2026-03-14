@@ -16,7 +16,9 @@ describe('origin', () => {
       await requestHeaderOnResponseBodyServer.listen()
 
       const origin = createOrigin({
-        host: /** @type {HttpUrl} */ (`http://localhost:${requestHeaderOnResponseBodyServer.port}`),
+        host: /** @type {HttpUrl} */ (
+          `http://localhost:${requestHeaderOnResponseBodyServer.port}`
+        ),
         overwriteRequestHeaders: { lorem: 'ipsum', dolor: 5, host: 'dolor' },
       })
       const [request, responsePromise] = await origin.request({ url: `/` })
@@ -36,7 +38,9 @@ describe('origin', () => {
       await requestHeaderOnResponseBodyServer.listen()
 
       const origin = createOrigin({
-        host: /** @type {HttpUrl} */ (`http://localhost:${requestHeaderOnResponseBodyServer.port}`),
+        host: /** @type {HttpUrl} */ (
+          `http://localhost:${requestHeaderOnResponseBodyServer.port}`
+        ),
         overwriteRequestHeaders: {
           host: 'example.com',
           lorem: 'ipsum',
@@ -87,7 +91,9 @@ describe('origin', () => {
       // And a mocker server proxying it
 
       // When I make a request to the mocker server using an absolute URL
-      const origin = createOrigin({ host: /** @type {HttpUrl} */ (`http://localhost:${mathServer.port}`) })
+      const origin = createOrigin({
+        host: /** @type {HttpUrl} */ (`http://localhost:${mathServer.port}`),
+      })
       const [request, responsePromise] = await origin.request({
         url: `http://localhost:${mathServer.port}?a=1&b=2&operation=sum`,
       })

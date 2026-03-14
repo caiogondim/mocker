@@ -137,30 +137,33 @@ describe('request forwarding integrity', () => {
   /**
    * @see RFC 9110 §9 — Methods
    */
-  it.each([HTTP_METHOD.GET, HTTP_METHOD.POST, HTTP_METHOD.PUT, HTTP_METHOD.DELETE, HTTP_METHOD.PATCH])(
-    'preserves %s method through proxy',
-    async (method) => {
-      await using origin = createEchoServer()
-      await origin.listen()
+  it.each([
+    HTTP_METHOD.GET,
+    HTTP_METHOD.POST,
+    HTTP_METHOD.PUT,
+    HTTP_METHOD.DELETE,
+    HTTP_METHOD.PATCH,
+  ])('preserves %s method through proxy', async (method) => {
+    await using origin = createEchoServer()
+    await origin.listen()
 
-      await using mocker = await createMocker({
-        mode: 'pass',
-        origin: `http://localhost:${origin.port}`,
-      })
-      await mocker.listen()
+    await using mocker = await createMocker({
+      mode: 'pass',
+      origin: `http://localhost:${origin.port}`,
+    })
+    await mocker.listen()
 
-      const parsed1 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/test`)
-      if (!parsed1.ok) throw parsed1.error
-      const [request, responsePromise] = await createRequest({
-        url: parsed1.value,
-        method,
-      })
-      request.end()
-      const response = await responsePromise
-      const body = JSON.parse(`${await getBody(response)}`)
-      expect(body.method).toBe(method)
-    },
-  )
+    const parsed1 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/test`)
+    if (!parsed1.ok) throw parsed1.error
+    const [request, responsePromise] = await createRequest({
+      url: parsed1.value,
+      method,
+    })
+    request.end()
+    const response = await responsePromise
+    const body = JSON.parse(`${await getBody(response)}`)
+    expect(body.method).toBe(method)
+  })
 
   /** @see RFC 9110 §9.3.2 — HEAD */
   it('preserves HEAD method and returns no body', async () => {
@@ -197,7 +200,9 @@ describe('request forwarding integrity', () => {
     })
     await mocker.listen()
 
-    const parsed3 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/api/v2/users/42`)
+    const parsed3 = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/api/v2/users/42`,
+    )
     if (!parsed3.ok) throw parsed3.error
     const [request, responsePromise] = await createRequest({
       url: parsed3.value,
@@ -220,7 +225,9 @@ describe('request forwarding integrity', () => {
     })
     await mocker.listen()
 
-    const parsed4 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/search?q=hello+world&page=2&limit=10`)
+    const parsed4 = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/search?q=hello+world&page=2&limit=10`,
+    )
     if (!parsed4.ok) throw parsed4.error
     const [request, responsePromise] = await createRequest({
       url: parsed4.value,
@@ -233,35 +240,42 @@ describe('request forwarding integrity', () => {
   })
 
   it.each([
-    ['JSON body', 'application/json', JSON.stringify({ key: 'value', nested: { a: 1 } })],
-    ['form-encoded body', 'application/x-www-form-urlencoded', 'username=admin&password=secret'],
+    [
+      'JSON body',
+      'application/json',
+      JSON.stringify({ key: 'value', nested: { a: 1 } }),
+    ],
+    [
+      'form-encoded body',
+      'application/x-www-form-urlencoded',
+      'username=admin&password=secret',
+    ],
     ['empty body', 'text/plain', ''],
-  ])(
-    'forwards %s byte-for-byte',
-    async (_label, contentType, payload) => {
-      await using origin = createEchoServer()
-      await origin.listen()
+  ])('forwards %s byte-for-byte', async (_label, contentType, payload) => {
+    await using origin = createEchoServer()
+    await origin.listen()
 
-      await using mocker = await createMocker({
-        mode: 'pass',
-        origin: `http://localhost:${origin.port}`,
-      })
-      await mocker.listen()
+    await using mocker = await createMocker({
+      mode: 'pass',
+      origin: `http://localhost:${origin.port}`,
+    })
+    await mocker.listen()
 
-      const headers = /** @type {import('../shared/http/index.js').Headers} */ (payload.length > 0 ? { 'content-type': contentType } : {})
-      const parsed5 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
-      if (!parsed5.ok) throw parsed5.error
-      const [request, responsePromise] = await createRequest({
-        url: parsed5.value,
-        method: 'POST',
-        headers,
-      })
-      request.end(payload)
-      const response = await responsePromise
-      const body = JSON.parse(`${await getBody(response)}`)
-      expect(body.body).toBe(payload)
-    },
-  )
+    const headers = /** @type {import('../shared/http/index.js').Headers} */ (
+      payload.length > 0 ? { 'content-type': contentType } : {}
+    )
+    const parsed5 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
+    if (!parsed5.ok) throw parsed5.error
+    const [request, responsePromise] = await createRequest({
+      url: parsed5.value,
+      method: 'POST',
+      headers,
+    })
+    request.end(payload)
+    const response = await responsePromise
+    const body = JSON.parse(`${await getBody(response)}`)
+    expect(body.body).toBe(payload)
+  })
 
   /** @see RFC 9110 §7.2 — End-to-end headers */
   it('forwards request headers to origin', async () => {
@@ -664,7 +678,9 @@ describe('proxy-specific response headers', () => {
     const response = await responsePromise
     expect(response.headers['x-mocker-request-id']).toBeDefined()
     expect(typeof response.headers['x-mocker-request-id']).toBe('string')
-    expect(/** @type {string} */ (response.headers['x-mocker-request-id']).length).toBeGreaterThan(0)
+    expect(
+      /** @type {string} */ (response.headers['x-mocker-request-id']).length,
+    ).toBeGreaterThan(0)
   })
 
   it('sets x-mocker-response-from to Origin in pass mode', async () => {
@@ -1082,7 +1098,9 @@ describe('connection management', () => {
     await mocker.listen()
 
     for (let i = 0; i < 5; i++) {
-      const parsed35 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/request-${i}`)
+      const parsed35 = parseAbsoluteHttpUrl(
+        `http://localhost:${mocker.port}/request-${i}`,
+      )
       if (!parsed35.ok) throw parsed35.error
       const [request, responsePromise] = await createRequest({
         url: parsed35.value,
@@ -1136,7 +1154,9 @@ describe('URL rewriting', () => {
     })
     await mocker.listen()
 
-    const parsed37 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/deeply/nested/path/resource`)
+    const parsed37 = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/deeply/nested/path/resource`,
+    )
     if (!parsed37.ok) throw parsed37.error
     const [request, responsePromise] = await createRequest({
       url: parsed37.value,
@@ -1158,7 +1178,9 @@ describe('URL rewriting', () => {
     })
     await mocker.listen()
 
-    const parsed38 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/api?foo=bar&baz=qux&arr=1&arr=2`)
+    const parsed38 = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/api?foo=bar&baz=qux&arr=1&arr=2`,
+    )
     if (!parsed38.ok) throw parsed38.error
     const [request, responsePromise] = await createRequest({
       url: parsed38.value,
@@ -1181,7 +1203,9 @@ describe('URL rewriting', () => {
     })
     await mocker.listen()
 
-    const parsed39 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/path%20with%20spaces/%E4%B8%AD%E6%96%87`)
+    const parsed39 = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/path%20with%20spaces/%E4%B8%AD%E6%96%87`,
+    )
     if (!parsed39.ok) throw parsed39.error
     const [request, responsePromise] = await createRequest({
       url: parsed39.value,
@@ -1244,7 +1268,9 @@ describe('concurrent requests', () => {
     const concurrency = 10
     const results = await Promise.all(
       Array.from({ length: concurrency }, async (_, i) => {
-        const parsed41 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/concurrent/${i}`)
+        const parsed41 = parseAbsoluteHttpUrl(
+          `http://localhost:${mocker.port}/concurrent/${i}`,
+        )
         if (!parsed41.ok) throw parsed41.error
         const [request, responsePromise] = await createRequest({
           url: parsed41.value,
@@ -1279,8 +1305,13 @@ describe('concurrent requests', () => {
     const concurrency = 20
     const results = await Promise.all(
       Array.from({ length: concurrency }, async (_, i) => {
-        const uniquePayload = JSON.stringify({ requestIndex: i, nonce: crypto.randomUUID() })
-        const parsed42 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/isolation/${i}`)
+        const uniquePayload = JSON.stringify({
+          requestIndex: i,
+          nonce: crypto.randomUUID(),
+        })
+        const parsed42 = parseAbsoluteHttpUrl(
+          `http://localhost:${mocker.port}/isolation/${i}`,
+        )
         if (!parsed42.ok) throw parsed42.error
         const [request, responsePromise] = await createRequest({
           url: parsed42.value,
@@ -1293,7 +1324,12 @@ describe('concurrent requests', () => {
         request.end(uniquePayload)
         const response = await responsePromise
         const body = JSON.parse(`${await getBody(response)}`)
-        return { sent: uniquePayload, received: body.body, index: i, url: body.url }
+        return {
+          sent: uniquePayload,
+          received: body.body,
+          index: i,
+          url: body.url,
+        }
       }),
     )
 
@@ -1322,7 +1358,9 @@ describe('edge cases', () => {
 
     // Build a long path that's close to 8KB (leaving room for the host portion)
     const longSegment = 'a'.repeat(7500)
-    const parsed43 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/${longSegment}`)
+    const parsed43 = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/${longSegment}`,
+    )
     if (!parsed43.ok) throw parsed43.error
     const [request, responsePromise] = await createRequest({
       url: parsed43.value,

@@ -12,7 +12,12 @@ class MockedResponse extends Transform {
    * @param {string} options.url
    * @param {ConnectionId} [options.connectionId]
    */
-  constructor({ statusCode, headers = {}, url, connectionId = /** @type {ConnectionId} */ ('?') }) {
+  constructor({
+    statusCode,
+    headers = {},
+    url,
+    connectionId = /** @type {ConnectionId} */ ('?'),
+  }) {
     super()
 
     /** @readonly */

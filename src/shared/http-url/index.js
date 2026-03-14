@@ -8,7 +8,10 @@ import { tryCatch } from '../try-catch/index.js'
  */
 function isHttpUrl(input) {
   const result = tryCatch(() => new URL(input))
-  return result.ok && (result.value.protocol === 'http:' || result.value.protocol === 'https:')
+  return (
+    result.ok &&
+    (result.value.protocol === 'http:' || result.value.protocol === 'https:')
+  )
 }
 
 /**

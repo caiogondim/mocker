@@ -8,7 +8,9 @@ describe('tools/math-server', () => {
     const mathService = createServer()
     await mathService.listen()
 
-    const parsed1 = parseAbsoluteHttpUrl(`http://localhost:${mathService.port}/?a=1&b=3&operation=sum`)
+    const parsed1 = parseAbsoluteHttpUrl(
+      `http://localhost:${mathService.port}/?a=1&b=3&operation=sum`,
+    )
     if (!parsed1.ok) throw parsed1.error
     const [request1, responsePromise1] = await createRequest({
       url: parsed1.value,
@@ -19,7 +21,9 @@ describe('tools/math-server', () => {
 
     expect(responseBody1).toBe('4')
 
-    const parsed2 = parseAbsoluteHttpUrl(`http://localhost:${mathService.port}/?a=1000&b=3000&operation=sum`)
+    const parsed2 = parseAbsoluteHttpUrl(
+      `http://localhost:${mathService.port}/?a=1000&b=3000&operation=sum`,
+    )
     if (!parsed2.ok) throw parsed2.error
     const [request2, responsePromise2] = await createRequest({
       url: parsed2.value,
@@ -37,7 +41,9 @@ describe('tools/math-server', () => {
     const mathService = createServer()
     await mathService.listen()
 
-    const parsed3 = parseAbsoluteHttpUrl(`http://localhost:${mathService.port}/?a=7&b=9&operation=multiply`)
+    const parsed3 = parseAbsoluteHttpUrl(
+      `http://localhost:${mathService.port}/?a=7&b=9&operation=multiply`,
+    )
     if (!parsed3.ok) throw parsed3.error
     const [request1, responsePromise1] = await createRequest({
       url: parsed3.value,
@@ -48,7 +54,9 @@ describe('tools/math-server', () => {
 
     expect(responseBody1).toBe('63')
 
-    const parsed4 = parseAbsoluteHttpUrl(`http://localhost:${mathService.port}/?a=1000&b=3000&operation=multiply`)
+    const parsed4 = parseAbsoluteHttpUrl(
+      `http://localhost:${mathService.port}/?a=1000&b=3000&operation=multiply`,
+    )
     if (!parsed4.ok) throw parsed4.error
     const [request2, responsePromise2] = await createRequest({
       url: parsed4.value,

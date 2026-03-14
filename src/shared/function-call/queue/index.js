@@ -10,7 +10,10 @@ function queueCalls(fn) {
   async function loop() {
     if (queue.length === 0) return
 
-    const [thunk, resolve, reject] = /** @type {[() => unknown, (value: unknown) => void, (error: unknown) => void]} */ (queue.shift())
+    const [thunk, resolve, reject] =
+      /** @type {[() => unknown, (value: unknown) => void, (error: unknown) => void]} */ (
+        queue.shift()
+      )
     try {
       resolve(await thunk())
     } catch (error) {

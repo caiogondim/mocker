@@ -10,16 +10,27 @@ import { tryCatchAsync } from '../try-catch/index.js'
  */
 async function parse(input) {
   if (input === '') {
-    return { ok: false, error: new TypeError(`Expected a valid directory path, got: "${input}"`) }
+    return {
+      ok: false,
+      error: new TypeError(`Expected a valid directory path, got: "${input}"`),
+    }
   }
 
   const result = await tryCatchAsync(() => fs.stat(input))
 
   if (!result.ok || !result.value.isDirectory()) {
-    return { ok: false, error: new TypeError(`Expected an accessible directory path, got: "${input}"`) }
+    return {
+      ok: false,
+      error: new TypeError(
+        `Expected an accessible directory path, got: "${input}"`,
+      ),
+    }
   }
 
-  return { ok: true, value: /** @type {AbsoluteDirPath} */ (path.resolve(input)) }
+  return {
+    ok: true,
+    value: /** @type {AbsoluteDirPath} */ (path.resolve(input)),
+  }
 }
 
 export { parse }

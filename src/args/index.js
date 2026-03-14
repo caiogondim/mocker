@@ -24,14 +24,16 @@ import { parse as parseThrottleValue } from '../shared/throttle-value/index.js'
 import { parse as parseAbsoluteDirPath } from '../shared/absolute-dir-path/index.js'
 import { parse as parseHttpPort } from '../shared/http-port/index.js'
 
-const MODE = /** @satisfies {Record<string, Args['mode']>} */ (/** @type {const} */ ({
-  READ: 'read',
-  WRITE: 'write',
-  READ_WRITE: 'read-write',
-  PASS: 'pass',
-  READ_PASS: 'read-pass',
-  PASS_READ: 'pass-read',
-}))
+const MODE = /** @satisfies {Record<string, Args['mode']>} */ (
+  /** @type {const} */ ({
+    READ: 'read',
+    WRITE: 'write',
+    READ_WRITE: 'read-write',
+    PASS: 'pass',
+    READ_PASS: 'read-pass',
+    PASS_READ: 'pass-read',
+  })
+)
 
 /** @type {Readonly<string[]>} */
 const MODE_VALID_VALUES = Object.values(MODE)
@@ -216,7 +218,10 @@ function getUpdate(argvMap) {
  */
 function parseMockKeys(mockKeys) {
   for (const mockKey of mockKeys) {
-    if (!MOCK_KEYS_VALID_VALUES.includes(mockKey) && !MOCK_KEYS_BODY_REGEX.test(mockKey)) {
+    if (
+      !MOCK_KEYS_VALID_VALUES.includes(mockKey) &&
+      !MOCK_KEYS_BODY_REGEX.test(mockKey)
+    ) {
       return { ok: false, error: new TypeError('invalid --mockKeys') }
     }
   }
@@ -462,7 +467,9 @@ function getWorkers(argvMap) {
  * @returns {Result<Args['logging']>}
  */
 function parseLogging(logging) {
-  if (!LOGGING_VALID_VALUES.includes(/** @type {Args['logging']} */ (logging))) {
+  if (
+    !LOGGING_VALID_VALUES.includes(/** @type {Args['logging']} */ (logging))
+  ) {
     return { ok: false, error: new TypeError('invalid --logging') }
   }
   return { ok: true, value: /** @type {Args['logging']} */ (logging) }

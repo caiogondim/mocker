@@ -11,10 +11,15 @@ import { join } from 'node:path'
 async function getJsFiles(dir) {
   const files = []
   for (const entry of await fs.readdir(dir, { withFileTypes: true })) {
-    if (entry.name === 'node_modules' || entry.name === 'out' || entry.name === 'experiments') continue
+    if (
+      entry.name === 'node_modules' ||
+      entry.name === 'out' ||
+      entry.name === 'experiments'
+    )
+      continue
     const full = join(dir, entry.name)
     if (entry.isDirectory()) {
-      files.push(...await getJsFiles(full))
+      files.push(...(await getJsFiles(full)))
     } else if (entry.name.endsWith('.js')) {
       files.push(full)
     }
@@ -27,10 +32,12 @@ const dirs = [join(root, 'src'), join(root, 'scripts')]
 /** @type {string[]} */
 const allFiles = []
 for (const dir of dirs) {
-  allFiles.push(...await getJsFiles(dir))
+  allFiles.push(...(await getJsFiles(dir)))
 }
 
-const contents = await Promise.all(allFiles.map((file) => fs.readFile(file, 'utf8')))
+const contents = await Promise.all(
+  allFiles.map((file) => fs.readFile(file, 'utf8')),
+)
 
 /** @type {string[]} */
 const errors = []
@@ -51,7 +58,9 @@ for (let f = 0; f < allFiles.length; f++) {
   if (firstImportLine === -1) continue
   for (let i = firstImportLine + 1; i < lines.length; i++) {
     if (TYPEDEF_PATTERN.test(lines[i])) {
-      errors.push(`${file}:${i + 1}: @${'typedef'} must appear before import statements`)
+      errors.push(
+        `${file}:${i + 1}: @${'typedef'} must appear before import statements`,
+      )
     }
   }
 }

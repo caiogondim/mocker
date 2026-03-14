@@ -63,11 +63,7 @@ function shortHash(input) {
  * @returns {string}
  */
 function getGraphQLFileName(body) {
-  if (
-    body === null ||
-    typeof body !== 'object' ||
-    Array.isArray(body)
-  ) {
+  if (body === null || typeof body !== 'object' || Array.isArray(body)) {
     return ''
   }
 
@@ -109,9 +105,11 @@ function getHttpFileName(url, method, mockKeys) {
 
   if (mockKeys.has('url')) {
     const urlResult = tryCatch(() => new URL(url || '/', 'http://localhost'))
-    const pathname = urlResult.ok ? urlResult.value.pathname : (url || '/')
+    const pathname = urlResult.ok ? urlResult.value.pathname : url || '/'
 
-    const safePath = toSafeSlug(pathname.replace(/^\/+|\/+$/g, '').replace(/\//g, '-'))
+    const safePath = toSafeSlug(
+      pathname.replace(/^\/+|\/+$/g, '').replace(/\//g, '-'),
+    )
 
     if (safePath) {
       parts.push(safePath)
@@ -174,7 +172,9 @@ function parseBody(bodyBuffer, request, connectionId) {
     if (parseResult.ok) {
       body = parseResult.value
     } else {
-      logger.warn(`${dim(connectionId)} error trying to parse response body. serving as is.`)
+      logger.warn(
+        `${dim(connectionId)} error trying to parse response body. serving as is.`,
+      )
     }
   }
 
@@ -228,7 +228,10 @@ function sanitizeResponseHeaders(headers, secrets) {
 function buildLabel(body, request, mockKeys) {
   for (const k of mockKeys) {
     if (k === 'body' || k.startsWith('body.')) {
-      return getGraphQLFileName(body) || getHttpFileName(request.url, request.method, mockKeys)
+      return (
+        getGraphQLFileName(body) ||
+        getHttpFileName(request.url, request.method, mockKeys)
+      )
     }
   }
   return getHttpFileName(request.url, request.method, mockKeys)
@@ -294,9 +297,12 @@ async function requestToMockPath(
  * @returns {{ mockedResponse: MockedResponse & Rewindable; mockedRequest: MockedRequest & Rewindable }}
  */
 function buildMockedPair(fileJson, statusCode, redactedHeaders) {
-  const responseBody = (`${fileJson.response.headers?.['content-type'] ?? ''}`).includes('application/json')
-    ? JSON.stringify(fileJson.response.body)
-    : fileJson.response.body
+  const responseBody =
+    `${fileJson.response.headers?.['content-type'] ?? ''}`.includes(
+      'application/json',
+    )
+      ? JSON.stringify(fileJson.response.body)
+      : fileJson.response.body
 
   const mockedResponse = rewindable(
     new MockedResponse({
@@ -307,9 +313,12 @@ function buildMockedPair(fileJson, statusCode, redactedHeaders) {
   )
   mockedResponse.end(responseBody)
 
-  const requestBody = (`${fileJson.request.headers?.['content-type'] ?? ''}`).includes('application/json')
-    ? JSON.stringify(fileJson.request.body)
-    : fileJson.request.body
+  const requestBody =
+    `${fileJson.request.headers?.['content-type'] ?? ''}`.includes(
+      'application/json',
+    )
+      ? JSON.stringify(fileJson.request.body)
+      : fileJson.request.body
 
   const mockedRequest = rewindable(
     new MockedRequest({
@@ -336,7 +345,9 @@ function createMockManager({
   redactedHeaders = {},
   fs = nativeFs,
 }) {
-  const fsPromises = /** @type {typeof import('node:fs/promises')} */ (fs.promises)
+  const fsPromises = /** @type {typeof import('node:fs/promises')} */ (
+    fs.promises
+  )
 
   /**
    * @param {Object} options
@@ -344,7 +355,10 @@ function createMockManager({
    * @param {ConnectionId} [options.connectionId]
    * @returns {Promise<{ mockPath: string; hasMock: boolean }>}
    */
-  async function has({ request, connectionId = /** @type {ConnectionId} */ ('?') }) {
+  async function has({
+    request,
+    connectionId = /** @type {ConnectionId} */ ('?'),
+  }) {
     const mockPath = await requestToMockPath(
       request,
       connectionId,
@@ -361,7 +375,10 @@ function createMockManager({
    * @param {ConnectionId} [options.connectionId]
    * @returns {Promise<{ mockPath: string; mockedResponse: MockedResponse }>}
    */
-  async function get({ request, connectionId = /** @type {ConnectionId} */ ('?') }) {
+  async function get({
+    request,
+    connectionId = /** @type {ConnectionId} */ ('?'),
+  }) {
     const filePath = await requestToMockPath(
       request,
       connectionId,
@@ -489,8 +506,9 @@ function createMockManager({
   }
 
   async function clear() {
-    const files =
-      /** @type {string[]} */ (await fsPromises.readdir(responsesDir))
+    const files = /** @type {string[]} */ (
+      await fsPromises.readdir(responsesDir)
+    )
     for (const file of files) {
       if (RESPONSE_FILE_REGEX.test(file)) {
         await fsPromises.unlink(path.join(responsesDir, file))
@@ -507,8 +525,9 @@ function createMockManager({
    * }, MockFileError>>}
    */
   async function* getAll() {
-    const files =
-      /** @type {string[]} */ (await fsPromises.readdir(responsesDir))
+    const files = /** @type {string[]} */ (
+      await fsPromises.readdir(responsesDir)
+    )
     for (const file of files) {
       const filePath = path.join(responsesDir, file)
       if (!filePath.endsWith('.json')) {
@@ -519,7 +538,9 @@ function createMockManager({
         const fileContent = await fsPromises.readFile(filePath)
         const fileJson = JSON.parse(fileContent.toString('utf8'))
 
-        const statusCodeResult = parseHttpStatusCode(fileJson.response.statusCode)
+        const statusCodeResult = parseHttpStatusCode(
+          fileJson.response.statusCode,
+        )
         if (!statusCodeResult.ok) throw statusCodeResult.error
 
         const { mockedResponse, mockedRequest } = buildMockedPair(
@@ -528,7 +549,10 @@ function createMockManager({
           redactedHeaders,
         )
 
-        yield { ok: true, value: { mockPath: filePath, mockedResponse, mockedRequest } }
+        yield {
+          ok: true,
+          value: { mockPath: filePath, mockedResponse, mockedRequest },
+        }
       } catch (error) {
         yield {
           ok: false,
@@ -546,8 +570,9 @@ function createMockManager({
    * @returns {Promise<number>}
    */
   async function size() {
-    const files =
-      /** @type {string[]} */ (await fsPromises.readdir(responsesDir))
+    const files = /** @type {string[]} */ (
+      await fsPromises.readdir(responsesDir)
+    )
     let output = 0
     for (const file of files) {
       const filePath = path.join(responsesDir, file)

@@ -28,7 +28,9 @@ function parse(input) {
   if (!Number.isInteger(input) || input < 100 || input > 599) {
     return {
       ok: false,
-      error: new TypeError(`Expected an HTTP status code (100–599), got: ${input}`),
+      error: new TypeError(
+        `Expected an HTTP status code (100–599), got: ${input}`,
+      ),
     }
   }
 

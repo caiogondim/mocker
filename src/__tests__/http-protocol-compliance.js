@@ -68,30 +68,35 @@ function createStatusCodeServer() {
 
 describe('HTTP methods (RFC 9110 §9)', () => {
   /** @see RFC 9110 §9.1 — Overview of HTTP methods */
-  it.each([HTTP_METHOD.GET, HTTP_METHOD.POST, HTTP_METHOD.PUT, HTTP_METHOD.DELETE, HTTP_METHOD.PATCH])(
-    'forwards %s method to origin',
-    async (method) => {
-      await using origin = createEchoServer()
-      await origin.listen()
+  it.each([
+    HTTP_METHOD.GET,
+    HTTP_METHOD.POST,
+    HTTP_METHOD.PUT,
+    HTTP_METHOD.DELETE,
+    HTTP_METHOD.PATCH,
+  ])('forwards %s method to origin', async (method) => {
+    await using origin = createEchoServer()
+    await origin.listen()
 
-      await using mocker = await createMocker({
-        mode: 'pass',
-        origin: `http://localhost:${origin.port}`,
-      })
-      await mocker.listen()
+    await using mocker = await createMocker({
+      mode: 'pass',
+      origin: `http://localhost:${origin.port}`,
+    })
+    await mocker.listen()
 
-      const parsed1 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/resource`)
-      if (!parsed1.ok) throw parsed1.error
-      const [request, responsePromise] = await createRequest({
-        url: parsed1.value,
-        method,
-      })
-      request.end()
-      const response = await responsePromise
-      const body = JSON.parse(`${await getBody(response)}`)
-      expect(body.method).toBe(method)
-    },
-  )
+    const parsed1 = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/resource`,
+    )
+    if (!parsed1.ok) throw parsed1.error
+    const [request, responsePromise] = await createRequest({
+      url: parsed1.value,
+      method,
+    })
+    request.end()
+    const response = await responsePromise
+    const body = JSON.parse(`${await getBody(response)}`)
+    expect(body.method).toBe(method)
+  })
 
   /** @see RFC 9110 §9.3.2 — HEAD must not return a body */
   it('HEAD returns no body in response', async () => {
@@ -152,7 +157,9 @@ describe('HTTP methods (RFC 9110 §9)', () => {
     })
     await mocker.listen()
 
-    const parsed4 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/cache`)
+    const parsed4 = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/cache`,
+    )
     if (!parsed4.ok) throw parsed4.error
     const [request, responsePromise] = await createRequest({
       url: parsed4.value,
@@ -604,7 +611,9 @@ describe('connection management (RFC 9112 §9)', () => {
     await mocker.listen()
 
     // First request
-    const parsed19 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/first`)
+    const parsed19 = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/first`,
+    )
     if (!parsed19.ok) throw parsed19.error
     const [request1, responsePromise1] = await createRequest({
       url: parsed19.value,
@@ -616,7 +625,9 @@ describe('connection management (RFC 9112 §9)', () => {
     expect(body1.url).toBe('/first')
 
     // Second request on a new connection (verifying proxy handles sequential requests)
-    const parsed20 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/second`)
+    const parsed20 = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/second`,
+    )
     if (!parsed20.ok) throw parsed20.error
     const [request2, responsePromise2] = await createRequest({
       url: parsed20.value,
@@ -672,7 +683,9 @@ describe('connection management (RFC 9112 §9)', () => {
     await mocker.listen()
 
     for (let i = 0; i < 5; i++) {
-      const parsed21 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/request-${i}`)
+      const parsed21 = parseAbsoluteHttpUrl(
+        `http://localhost:${mocker.port}/request-${i}`,
+      )
       if (!parsed21.ok) throw parsed21.error
       const [request, responsePromise] = await createRequest({
         url: parsed21.value,
@@ -905,7 +918,9 @@ describe('request target and URL handling (RFC 9112 §3.2)', () => {
     })
     await mocker.listen()
 
-    const parsed29 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/api/v2/users/42/posts`)
+    const parsed29 = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/api/v2/users/42/posts`,
+    )
     if (!parsed29.ok) throw parsed29.error
     const [request, responsePromise] = await createRequest({
       url: parsed29.value,
@@ -928,7 +943,9 @@ describe('request target and URL handling (RFC 9112 §3.2)', () => {
     })
     await mocker.listen()
 
-    const parsed30 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/search?q=hello+world&page=2&limit=10`)
+    const parsed30 = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/search?q=hello+world&page=2&limit=10`,
+    )
     if (!parsed30.ok) throw parsed30.error
     const [request, responsePromise] = await createRequest({
       url: parsed30.value,
@@ -951,7 +968,9 @@ describe('request target and URL handling (RFC 9112 §3.2)', () => {
     })
     await mocker.listen()
 
-    const parsed31 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/path%20with%20spaces/file%2Fname`)
+    const parsed31 = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/path%20with%20spaces/file%2Fname`,
+    )
     if (!parsed31.ok) throw parsed31.error
     const [request, responsePromise] = await createRequest({
       url: parsed31.value,
@@ -997,7 +1016,9 @@ describe('request target and URL handling (RFC 9112 §3.2)', () => {
     })
     await mocker.listen()
 
-    const parsed33 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/?key=value`)
+    const parsed33 = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/?key=value`,
+    )
     if (!parsed33.ok) throw parsed33.error
     const [request, responsePromise] = await createRequest({
       url: parsed33.value,
@@ -1020,7 +1041,9 @@ describe('request target and URL handling (RFC 9112 §3.2)', () => {
     })
     await mocker.listen()
 
-    const parsed34 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}//double//slashes//path`)
+    const parsed34 = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}//double//slashes//path`,
+    )
     if (!parsed34.ok) throw parsed34.error
     const [request, responsePromise] = await createRequest({
       url: parsed34.value,

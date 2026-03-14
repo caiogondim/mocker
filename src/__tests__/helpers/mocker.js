@@ -52,16 +52,18 @@ async function createMocker(args = {}) {
   }
 
   const { responsesDir, fs } = await createMemFs()
-  return new Mocker(/** @type {Args & { fs: FsLike }} */ ({
-    responsesDir,
-    fs,
-    origin: '',
-    mode: 'read-write',
-    cors: false,
-    proxy: '',
-    ...(await getCommonArgs()),
-    ...args,
-  }))
+  return new Mocker(
+    /** @type {Args & { fs: FsLike }} */ ({
+      responsesDir,
+      fs,
+      origin: '',
+      mode: 'read-write',
+      cors: false,
+      proxy: '',
+      ...(await getCommonArgs()),
+      ...args,
+    }),
+  )
 }
 
 export { createMocker, createMemFs }

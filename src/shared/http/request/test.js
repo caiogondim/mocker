@@ -12,7 +12,9 @@ describe('createRequest', () => {
     await using duplicateRequestServer = createDuplicateRequestServer()
     await duplicateRequestServer.listen()
 
-    const parsed = parseAbsoluteHttpUrl(`http://localhost:${duplicateRequestServer.port}`)
+    const parsed = parseAbsoluteHttpUrl(
+      `http://localhost:${duplicateRequestServer.port}`,
+    )
     if (!parsed.ok) throw parsed.error
 
     const [request, responsePromise] = await createRequest({

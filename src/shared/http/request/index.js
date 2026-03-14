@@ -73,7 +73,9 @@ async function createRequest({ url, headers = {}, method = HTTP_METHOD.GET }) {
   const urlObj = new URL(url)
   const nativeRequest = getNativeRequest(urlObj.protocol)
   const requestParams = prepareRequestParams(urlObj, method, headers)
-  const request = nativeRequest(/** @type {import('node:http').RequestOptions} */ (requestParams))
+  const request = nativeRequest(
+    /** @type {import('node:http').RequestOptions} */ (requestParams),
+  )
 
   await new Promise((resolve, reject) => {
     request.on('error', reject)
@@ -151,8 +153,13 @@ async function createRequestWithRetry({
   let requestEndCall = /** @type {[]} */ ([])
   request.end = new Proxy(request.end, {
     apply(target, thisArg, args) {
-      requestEndCall = /** @type {Parameters<http.ClientRequest['end']>} */ (args)
-      return target.apply(thisArg, /** @type {Parameters<http.ClientRequest['end']>} */ (args))
+      requestEndCall = /** @type {Parameters<http.ClientRequest['end']>} */ (
+        args
+      )
+      return target.apply(
+        thisArg,
+        /** @type {Parameters<http.ClientRequest['end']>} */ (args),
+      )
     },
   })
 

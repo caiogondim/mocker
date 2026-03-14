@@ -17,7 +17,9 @@ describe(`mode = 'pass'`, () => {
     })
     await mocker.listen()
 
-    const parsed1 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/?a=1&b=3&operation=sum`)
+    const parsed1 = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/?a=1&b=3&operation=sum`,
+    )
     if (!parsed1.ok) throw parsed1.error
     const [request, responsePromise] = await createRequest({
       url: parsed1.value,
@@ -45,7 +47,9 @@ describe(`mode = 'read-pass`, () => {
     // Normal flow: client <-> proxy <-> origin
     //
 
-    const parsed2 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/?a=5&b=9&operation=sum`)
+    const parsed2 = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/?a=5&b=9&operation=sum`,
+    )
     if (!parsed2.ok) throw parsed2.error
     const [request1, response1Promise] = await createRequest({
       url: parsed2.value,
@@ -60,7 +64,9 @@ describe(`mode = 'read-pass`, () => {
     // Mocked response: client <-> proxy
     //
 
-    const parsed3 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/?a=5&b=9&operation=sum`)
+    const parsed3 = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/?a=5&b=9&operation=sum`,
+    )
     if (!parsed3.ok) throw parsed3.error
     const [request2, response2Promise] = await createRequest({
       url: parsed3.value,
@@ -82,7 +88,9 @@ describe(`mode = 'read-pass`, () => {
     })
     await mocker.listen()
 
-    const parsed4 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/?a=1&b=3&operation=sum`)
+    const parsed4 = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/?a=1&b=3&operation=sum`,
+    )
     if (!parsed4.ok) throw parsed4.error
     const [request, responsePromise] = await createRequest({
       url: parsed4.value,
@@ -110,7 +118,9 @@ describe(`mode = 'read-write`, () => {
     // Normal flow: client <-> proxy <-> origin
     //
 
-    const parsed5 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/?a=2&b=5&operation=multiply`)
+    const parsed5 = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/?a=2&b=5&operation=multiply`,
+    )
     if (!parsed5.ok) throw parsed5.error
     const [request1, response1Promise] = await createRequest({
       url: parsed5.value,
@@ -130,7 +140,9 @@ describe(`mode = 'read-write`, () => {
     // Mocked response: client <-> proxy
     //
 
-    const parsed6 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/?a=2&b=5&operation=multiply`)
+    const parsed6 = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/?a=2&b=5&operation=multiply`,
+    )
     if (!parsed6.ok) throw parsed6.error
     const [request2, response2Promise] = await createRequest({
       url: parsed6.value,
@@ -156,7 +168,9 @@ describe(`mode = 'read-write`, () => {
     // Normal flow: client <-> proxy <-> origin
     //
 
-    const parsed7 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/?a=5&b=9&operation=sum`)
+    const parsed7 = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/?a=5&b=9&operation=sum`,
+    )
     if (!parsed7.ok) throw parsed7.error
     const [request1, response1Promise] = await createRequest({
       url: parsed7.value,
@@ -171,7 +185,9 @@ describe(`mode = 'read-write`, () => {
     // Mocked response: client <-> proxy
     //
 
-    const parsed8 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/?a=5&b=9&operation=sum`)
+    const parsed8 = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/?a=5&b=9&operation=sum`,
+    )
     if (!parsed8.ok) throw parsed8.error
     const [request2, response2Promise] = await createRequest({
       url: parsed8.value,
@@ -195,7 +211,9 @@ describe(`mode = 'read'`, () => {
     })
     await mocker.listen()
 
-    const parsed9 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/?a=34&b=35&operation=sum`)
+    const parsed9 = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/?a=34&b=35&operation=sum`,
+    )
     if (!parsed9.ok) throw parsed9.error
     const [request, responsePromise] = await createRequest({
       url: parsed9.value,

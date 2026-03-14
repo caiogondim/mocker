@@ -16,7 +16,9 @@ describe('health checks endpoints', () => {
     await mocker.listen()
 
     // When I fire a request to /.well-known/live
-    const parsed1 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/.well-known/live`)
+    const parsed1 = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/.well-known/live`,
+    )
     if (!parsed1.ok) throw parsed1.error
     const [request, responsePromise] = await createRequest({
       url: parsed1.value,
@@ -43,7 +45,9 @@ describe('health checks endpoints', () => {
     await mocker.listen()
 
     // When I fire a request to /.well-known/ready
-    const parsed2 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/.well-known/ready`)
+    const parsed2 = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/.well-known/ready`,
+    )
     if (!parsed2.ok) throw parsed2.error
     const [request, responsePromise] = await createRequest({
       url: parsed2.value,
@@ -73,7 +77,9 @@ describe('health checks endpoints', () => {
 
     // When I fire a request to any '/.well-known' URL
     // besides '/.well-known/live' or '/.well-known/ready'
-    const parsed3 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/.well-known/availability`)
+    const parsed3 = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/.well-known/availability`,
+    )
     if (!parsed3.ok) throw parsed3.error
     const [request, responsePromise] = await createRequest({
       url: parsed3.value,

@@ -7,7 +7,11 @@ const prettyErrorSymbol = Symbol('pretty-error')
  * @returns {Boolean}
  */
 function isPrettyError(x) {
-  return typeof x === 'object' && x !== null && Reflect.get(x, prettyErrorSymbol) === true
+  return (
+    typeof x === 'object' &&
+    x !== null &&
+    Reflect.get(x, prettyErrorSymbol) === true
+  )
 }
 
 /**

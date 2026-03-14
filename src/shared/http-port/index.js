@@ -10,7 +10,9 @@ function parse(input) {
   if (!Number.isInteger(n) || n < 0 || n > 65535 || String(n) !== input) {
     return {
       ok: false,
-      error: new TypeError(`Expected a valid HTTP port (0–65535), got: "${input}"`),
+      error: new TypeError(
+        `Expected a valid HTTP port (0–65535), got: "${input}"`,
+      ),
     }
   }
 

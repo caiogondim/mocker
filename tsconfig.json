@@ -13,5 +13,10 @@
     "noImplicitReturns": true,
     "resolveJsonModule": true
   },
-  "include": ["./src/**/*.js", "./tools/**/*.js", "./scripts/**/*.js", "./eslint.config.js"]
+  "include": [
+    "./src/**/*.js",
+    "./tools/**/*.js",
+    "./scripts/**/*.js",
+    "./eslint.config.js"
+  ]
 }

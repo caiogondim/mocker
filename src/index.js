@@ -53,11 +53,17 @@ const nonFatalErrors = ['ENOTFOUND', 'ERR_TLS_CERT_ALTNAME_INVALID']
  */
 function logUpdateError(error, mockBasename, progressStr) {
   if (error instanceof SecretNotFoundError) {
-    logger.warn(`${dim(progressStr)} ${bold(mockBasename)} ${error.message}. mock was not modified`)
+    logger.warn(
+      `${dim(progressStr)} ${bold(mockBasename)} ${error.message}. mock was not modified`,
+    )
   } else if (error && Reflect.get(error, 'code') === 'EACCES') {
-    logger.warn(`${dim(progressStr)} ${bold(mockBasename)} file is read-only. mock was not modified`)
+    logger.warn(
+      `${dim(progressStr)} ${bold(mockBasename)} file is read-only. mock was not modified`,
+    )
   } else {
-    logger.warn(`${dim(progressStr)} ${bold(mockBasename)} error while updating mock. mock was not modified`)
+    logger.warn(
+      `${dim(progressStr)} ${bold(mockBasename)} error while updating mock. mock was not modified`,
+    )
   }
 }
 
@@ -375,15 +381,27 @@ class Mocker {
     const args = this.#args
     switch (args.mode) {
       case MODE.READ: {
-        await this.#handleConnectionWithReadMode(request, response, connectionId)
+        await this.#handleConnectionWithReadMode(
+          request,
+          response,
+          connectionId,
+        )
         return
       }
       case MODE.READ_WRITE: {
-        await this.#handleConnectionWithReadWriteMode(request, response, connectionId)
+        await this.#handleConnectionWithReadWriteMode(
+          request,
+          response,
+          connectionId,
+        )
         return
       }
       case MODE.READ_PASS: {
-        await this.#handleConnectionWithReadPassMode(request, response, connectionId)
+        await this.#handleConnectionWithReadPassMode(
+          request,
+          response,
+          connectionId,
+        )
         return
       }
       case MODE.WRITE:
@@ -392,7 +410,11 @@ class Mocker {
         return
       }
       case MODE.PASS_READ: {
-        await this.#handleConnectionWithPassReadMode(request, response, connectionId)
+        await this.#handleConnectionWithPassReadMode(
+          request,
+          response,
+          connectionId,
+        )
         return
       }
       default: {
@@ -635,7 +657,10 @@ class Mocker {
         response.setHeader(key, value)
       }
 
-      this.#overwriteResponseHeaders(response, /** @type {Headers} */ (request.headers))
+      this.#overwriteResponseHeaders(
+        response,
+        /** @type {Headers} */ (request.headers),
+      )
 
       await pipeline(
         mockedResponse,
@@ -689,13 +714,20 @@ class Mocker {
     const originToProxyResponseRewindable = rewindable(originToProxyResponse)
 
     const originToProxyResponseStatusCode =
-      originToProxyResponse?.statusCode ?? HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR
-    if (args.mode === MODE.PASS_READ && originToProxyResponseStatusCode >= 500) {
+      originToProxyResponse?.statusCode ??
+      HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR
+    if (
+      args.mode === MODE.PASS_READ &&
+      originToProxyResponseStatusCode >= 500
+    ) {
       throw new OriginResponseError(`${originToProxyResponseStatusCode}`)
     }
 
     copyResponseAttrs(originToProxyResponse, proxyToClientResponse)
-    this.#overwriteResponseHeaders(proxyToClientResponse, /** @type {Headers} */ (requestHeaders))
+    this.#overwriteResponseHeaders(
+      proxyToClientResponse,
+      /** @type {Headers} */ (requestHeaders),
+    )
 
     await this.#writeMockIfOk(
       clientToProxyRequest,
@@ -819,7 +851,9 @@ class Mocker {
       })
       logger.success(`${dim(progressStr)} ${bold(mockBasename)}`)
     } else {
-      logger.warn(`${dim(progressStr)} ${bold(mockBasename)} request to origin errored. mock was not modified`)
+      logger.warn(
+        `${dim(progressStr)} ${bold(mockBasename)} request to origin errored. mock was not modified`,
+      )
     }
   }
 

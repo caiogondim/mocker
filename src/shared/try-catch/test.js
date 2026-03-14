@@ -11,7 +11,9 @@ describe('tryCatch', () => {
 
   it('returns error when function throws', () => {
     const error = new TypeError('bad input')
-    const result = tryCatch(() => { throw error })
+    const result = tryCatch(() => {
+      throw error
+    })
 
     expect(result.ok).toBe(false)
     if (!result.ok) expect(result.error).toBe(error)
@@ -19,7 +21,9 @@ describe('tryCatch', () => {
 
   it('returns error for any Error subclass', () => {
     const error = new RangeError('out of range')
-    const result = tryCatch(() => { throw error })
+    const result = tryCatch(() => {
+      throw error
+    })
 
     expect(result.ok).toBe(false)
     if (!result.ok) expect(result.error).toBe(error)
@@ -36,7 +40,9 @@ describe('tryCatchAsync', () => {
 
   it('returns error when async function rejects', async () => {
     const error = new TypeError('async bad input')
-    const result = await tryCatchAsync(async () => { throw error })
+    const result = await tryCatchAsync(async () => {
+      throw error
+    })
 
     expect(result.ok).toBe(false)
     if (!result.ok) expect(result.error).toBe(error)
@@ -44,7 +50,9 @@ describe('tryCatchAsync', () => {
 
   it('returns error for any Error subclass', async () => {
     const error = new RangeError('out of range')
-    const result = await tryCatchAsync(async () => { throw error })
+    const result = await tryCatchAsync(async () => {
+      throw error
+    })
 
     expect(result.ok).toBe(false)
     if (!result.ok) expect(result.error).toBe(error)

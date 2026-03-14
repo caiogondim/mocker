@@ -1,15 +1,17 @@
 /** @typedef {import('../types.js').HttpMethod} HttpMethod */
 /** @template T @template {Error} [E=Error] @typedef {import('../types.js').Result<T, E>} Result */
 
-const HTTP_METHOD = /** @satisfies {Record<string, HttpMethod>} */ (/** @type {const} */ ({
-  GET: 'GET',
-  POST: 'POST',
-  PUT: 'PUT',
-  DELETE: 'DELETE',
-  PATCH: 'PATCH',
-  HEAD: 'HEAD',
-  OPTIONS: 'OPTIONS',
-}))
+const HTTP_METHOD = /** @satisfies {Record<string, HttpMethod>} */ (
+  /** @type {const} */ ({
+    GET: 'GET',
+    POST: 'POST',
+    PUT: 'PUT',
+    DELETE: 'DELETE',
+    PATCH: 'PATCH',
+    HEAD: 'HEAD',
+    OPTIONS: 'OPTIONS',
+  })
+)
 
 /** @type {ReadonlySet<string>} */
 const VALID_METHODS = new Set(Object.values(HTTP_METHOD))

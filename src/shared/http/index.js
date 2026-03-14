@@ -86,7 +86,10 @@ function isHeaders(x) {
  */
 function parseHeaders(x) {
   if (!isHeaders(x)) {
-    return { ok: false, error: new TypeError('Expected a valid Headers object') }
+    return {
+      ok: false,
+      error: new TypeError('Expected a valid Headers object'),
+    }
   }
   return { ok: true, value: x }
 }

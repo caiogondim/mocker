@@ -60,7 +60,10 @@ function table(...data) {
 
   for (const dataLine of data) {
     for (const [i, datum] of dataLine.entries()) {
-      const datumWithoutFormatingCode = datum.replace(ANSI_ESCAPE_CODE_REGEX, '')
+      const datumWithoutFormatingCode = datum.replace(
+        ANSI_ESCAPE_CODE_REGEX,
+        '',
+      )
       maxWidths[i] = Math.max(
         maxWidths[i] || 0,
         datumWithoutFormatingCode.length,
@@ -71,7 +74,10 @@ function table(...data) {
   for (const dataLine of data) {
     const lineEntries = []
     for (const [i, datum] of dataLine.entries()) {
-      const datumWithoutFormatingCode = datum.replace(ANSI_ESCAPE_CODE_REGEX, '')
+      const datumWithoutFormatingCode = datum.replace(
+        ANSI_ESCAPE_CODE_REGEX,
+        '',
+      )
       const endPadding = datumWithoutFormatingCode
         .padEnd(maxWidths[i], ' ')
         .replace(datumWithoutFormatingCode, '')

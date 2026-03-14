@@ -18,7 +18,9 @@ describe('args.overwriteResponseHeaders', () => {
     })
     await mocker.listen()
 
-    const parsed1 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/?a=34&b=35&operation=sum`)
+    const parsed1 = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/?a=34&b=35&operation=sum`,
+    )
     if (!parsed1.ok) throw parsed1.error
     const [request1, response1Promise] = await createRequest({
       url: parsed1.value,
@@ -45,7 +47,9 @@ describe('args.overwriteResponseHeaders', () => {
     await mocker.listen()
 
     // Fires a request to mocker.
-    const parsed2 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/?a=34&b=35&operation=sum`)
+    const parsed2 = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/?a=34&b=35&operation=sum`,
+    )
     if (!parsed2.ok) throw parsed2.error
     const [request1, response1Promise] = await createRequest({
       url: parsed2.value,
@@ -75,7 +79,9 @@ describe('args.overwriteResponseHeaders', () => {
     // Normal flow: client <-> proxy <-> origin
     //
 
-    const parsed3 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/?a=34&b=35&operation=sum`)
+    const parsed3 = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/?a=34&b=35&operation=sum`,
+    )
     if (!parsed3.ok) throw parsed3.error
     const [request1, response1Promise] = await createRequest({
       url: parsed3.value,
@@ -91,7 +97,9 @@ describe('args.overwriteResponseHeaders', () => {
     // Mocked response: client <-> proxy
     //
 
-    const parsed4 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/?a=34&b=35&operation=sum`)
+    const parsed4 = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/?a=34&b=35&operation=sum`,
+    )
     if (!parsed4.ok) throw parsed4.error
     const [request2, response2Promise] = await createRequest({
       url: parsed4.value,

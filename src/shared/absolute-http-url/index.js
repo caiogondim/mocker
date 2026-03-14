@@ -10,7 +10,9 @@ function parse(url) {
   if (!isHttpUrl(url)) {
     return {
       ok: false,
-      error: new TypeError(`Expected an absolute HTTP or HTTPS URL, got: "${url}"`),
+      error: new TypeError(
+        `Expected an absolute HTTP or HTTPS URL, got: "${url}"`,
+      ),
     }
   }
 
