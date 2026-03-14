@@ -25,7 +25,7 @@ Path to read/write mocked responses.
 - Valid values: A subset of `url`, `method`, `headers`, `body`
 - e.g.: `--mockKeys url,method`, `--mockKeys url,method,body`
 
-It's also possible to select a slice of the body request, if it's formmatted as
+It's also possible to select a slice of the request body, if it's formatted as
 JSON, using a dot notation: `--mockKeys url,method,body.prop1.prop2`
 
 `--port`
@@ -50,7 +50,7 @@ secrets before updating mocks with `--update startup`.
 - Required: `false`
 - Default: `0`
 
-Max number of requests to origin while response is not 200. Be careful about
+Max number of requests to origin while the response is not 200. Be careful about
 enabling retries for idempotent endpoints (HTTP POST, HTTP PATCH, ...).
 
 `--delay`
@@ -58,7 +58,7 @@ enabling retries for idempotent endpoints (HTTP POST, HTTP PATCH, ...).
 - Required: `false`
 - Default: `0`
 
-Adds a synthetic delay to each request. Value in miliseconds.
+Adds a synthetic delay to each request. Value in milliseconds.
 
 `--throttle`
 
@@ -89,7 +89,7 @@ Adds a synthetic throttling to each request. Value in bytes/s.
   - `read-write`: if a mocked response exists for the request, use it, otherwise
     get a response from origin, save it and send it to the user agent
   - `read-pass`: if a mocked response exists for the request, use it, otherwise
-    returns from origin
+    get a response from origin
   - `pass-read`: if origin is available and returns a not-500, use it, otherwise
     tries to use a mocked response
 

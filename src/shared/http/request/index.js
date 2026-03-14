@@ -2,6 +2,7 @@
 /** @typedef {import('../../types.js').AbsoluteHttpUrl} AbsoluteHttpUrl */
 /** @typedef {import('../../types.js').HttpMethod} HttpMethod */
 /** @typedef {import('../types.js').Headers} Headers */
+/** @template T @template {Error} [E=Error] @typedef {import('../../types.js').Result<T, E>} Result */
 
 import { HTTP_METHOD } from '../../http-method/index.js'
 import { HTTP_STATUS_CODE } from '../../http-status-code/index.js'
@@ -10,8 +11,6 @@ import http from 'node:http'
 import https from 'node:https'
 import createBackoff from '../../backoff/index.js'
 import retry from '../../function-call/retry/index.js'
-
-/** @template T @template {Error} [E=Error] @typedef {import('../../types.js').Result<T, E>} Result */
 
 /**
  * @param {string} protocol
@@ -131,19 +130,20 @@ async function createRequestWithRetry({
     }
   }
 
-  let numOfTries = 0
+  let connectRetries = 0
   const retryResult = await retry(
     () => createRequest({ url, headers, method }),
     {
       retries,
       backoff,
-      onRetry: () => (numOfTries += 1),
+      onRetry: () => (connectRetries += 1),
     },
   )
   if (!retryResult.ok) {
     return { ok: false, error: retryResult.error }
   }
   const [request, responsePromise] = retryResult.value
+  const responseAttemptLimit = Math.max(1, retries - connectRetries)
 
   //
   // Intercept all `request.write` calls for replay
@@ -195,49 +195,60 @@ async function createRequestWithRetry({
   // Retry loop
   //
 
+  let responseAttempts = 0
   async function loop() {
-    if (numOfTries === 0) {
-      numOfTries += 1
+    responseAttempts += 1
+    const isFirstAttempt = responseAttempts === 1
+    const isLastAttempt = responseAttempts >= responseAttemptLimit
 
-      const response = await responsePromise
-      if (/** @type {number} */ (response.statusCode) < HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR) {
-        resolveResponse(response)
-        return
-      }
-    } else {
-      numOfTries += 1
+    try {
+      if (isFirstAttempt) {
+        const response = await responsePromise
+        if (
+          /** @type {number} */ (response.statusCode) <
+          HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR
+        ) {
+          resolveResponse(response)
+          return
+        }
 
-      const [request_, responsePromise_] = await createRequest({
-        url,
-        headers,
-        method,
-      })
-
-      if (numOfTries >= retries) {
-        request_.on('error', rejectResponse)
+        if (isLastAttempt) {
+          resolveResponse(response)
+          return
+        }
       } else {
-        request_.on('error', () => {
-          setTimeout(loop, 0).unref()
+        const [request_, responsePromise_] = await createRequest({
+          url,
+          headers,
+          method,
         })
+
+        for (const requestWriteCall of requestWriteCalls) {
+          request_.write(...requestWriteCall)
+        }
+        request_.end(...requestEndCall)
+
+        const response = await responsePromise_
+        if (
+          /** @type {number} */ (response.statusCode) <
+          HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR
+        ) {
+          resolveResponse(response)
+          return
+        }
+
+        if (isLastAttempt) {
+          resolveResponse(response)
+          return
+        }
       }
-
-      for (const requestWriteCall of requestWriteCalls) {
-        request_.write(...requestWriteCall)
-      }
-
-      request_.end(...requestEndCall)
-      const response = await responsePromise_
-
-      if (/** @type {number} */ (response.statusCode) < HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR) {
-        resolveResponse(response)
-        return
-      }
-
-      if (numOfTries >= retries) {
-        resolveResponse(response)
+    } catch (error) {
+      if (isLastAttempt) {
+        rejectResponse(error)
         return
       }
     }
+
     await backoff()
     setTimeout(loop, 0).unref()
   }

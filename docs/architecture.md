@@ -61,17 +61,17 @@ used as a mocked response for future requests.
 Mocker runs as a single process. It responds to termination signals (SIGHUP,
 SIGINT, SIGTERM) and performs graceful shutdown.
 
-## Automatic retries for improved resilience on network
+## Automatic retries for improved network resilience
 
-It's possible to start mocker with `--retry N` for it to work as a network
-resiliency layer. Specially useful in conjunction with `--mode pass`.
+It's possible to start mocker with `--retries N` for it to work as a network
+resilience layer. Especially useful in conjunction with `--mode pass`.
 
 <img src="./img/architecture/automatic-retry.png" />
 
-## Secrets hidding
+## Secrets hiding
 
-It's possible to redact tokens and secrets from the request and response headers
-before saving them to the response mocks or logging them on screen using the
+It's possible to redact tokens and secrets from request and response headers
+before saving them to mock files or logging them on screen using the
 param `--redactedHeaders`. The redacted headers will be replaced by
 `'[REDACTED]'`;
 
@@ -92,20 +92,18 @@ Library entry point.
 
 ### `src/mock-manager`
 
-`MockManager` is responsible to...manage the mocks we have saved on disk. It
-implements a subset of the
-[Map](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map#Instance_methods)
-API.
+`MockManager` is responsible for managing mocks saved on disk.
+It implements the following API:
 
-- `has()`
-- `set`
 - `get`
-- `delete`
+- `set`
 - `clear`
+- `getAll`
+- `size`
 
 ### `src/origin`
 
-Logic related with fetching responses from origin.
+Logic related to fetching responses from origin.
 
 ### `src/args`
 
