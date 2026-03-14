@@ -873,6 +873,8 @@ describe('headers (RFC 9110 §5, §7)', () => {
     request.end()
     const response = await responsePromise
     expect(response.headers['content-encoding']).toBe('gzip')
+    // drain response body so the connection closes cleanly before server disposal
+    await getBody(response)
   })
 
   /** @see RFC 9110 §12.5.3 — Accept-Encoding forwarded to origin */
