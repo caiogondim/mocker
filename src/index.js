@@ -433,21 +433,25 @@ class Mocker {
     }
     const requestRewindable = requestRewindableResult.value
 
-    if (args.cors && request.method === HTTP_METHOD.OPTIONS) {
-      this.#handleCors(requestRewindable, response, connectionId)
-      return
-    }
-
-    const result = await this.#dispatchByMode(requestRewindable, response, connectionId)
-    if (!result.ok) {
-      logger.error(`${dim(connectionId)} ${result.error}`)
-
-      if (!response.headersSent) {
-        response.writeHead(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)
+    try {
+      if (args.cors && request.method === HTTP_METHOD.OPTIONS) {
+        this.#handleCors(requestRewindable, response, connectionId)
+        return
       }
-      response.end()
 
-      logger.info(`${dim(connectionId)} 👈 ${formatStatusCode(500)}`)
+      const result = await this.#dispatchByMode(requestRewindable, response, connectionId)
+      if (!result.ok) {
+        logger.error(`${dim(connectionId)} ${result.error}`)
+
+        if (!response.headersSent) {
+          response.writeHead(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)
+        }
+        response.end()
+
+        logger.info(`${dim(connectionId)} 👈 ${formatStatusCode(500)}`)
+      }
+    } finally {
+      requestRewindable.release()
     }
   }
 
@@ -638,40 +642,44 @@ class Mocker {
     }
     const originToProxyResponseRewindable = originToProxyResponseRewindableResult.value
 
-    const originToProxyResponseStatusCode =
-      originToProxyResponse?.statusCode ??
-      HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR
-    if (
-      args.mode === MODE.PASS_READ &&
-      originToProxyResponseStatusCode >= 500
-    ) {
-      throw new OriginResponseError(`${originToProxyResponseStatusCode}`)
+    try {
+      const originToProxyResponseStatusCode =
+        originToProxyResponse?.statusCode ??
+        HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR
+      if (
+        args.mode === MODE.PASS_READ &&
+        originToProxyResponseStatusCode >= 500
+      ) {
+        throw new OriginResponseError(`${originToProxyResponseStatusCode}`)
+      }
+
+      copyResponseAttrs(originToProxyResponse, proxyToClientResponse)
+      this.#overwriteResponseHeaders(
+        proxyToClientResponse,
+        /** @type {Headers} */ (requestHeaders),
+      )
+
+      await this.#writeMockIfOk(
+        clientToProxyRequest,
+        originToProxyResponseRewindable,
+        connectionId,
+      )
+
+      logger.info(
+        `${dim(connectionId)} 👈 ${formatStatusCode(
+          originToProxyResponse.statusCode,
+        )} serving from origin`,
+      )
+
+      await pipeline(
+        originToProxyResponseRewindable.rewind(),
+        delay({ ms: args.delay }),
+        throttle({ bps: args.throttle }),
+        proxyToClientResponse,
+      )
+    } finally {
+      originToProxyResponseRewindable.release()
     }
-
-    copyResponseAttrs(originToProxyResponse, proxyToClientResponse)
-    this.#overwriteResponseHeaders(
-      proxyToClientResponse,
-      /** @type {Headers} */ (requestHeaders),
-    )
-
-    await this.#writeMockIfOk(
-      clientToProxyRequest,
-      originToProxyResponseRewindable,
-      connectionId,
-    )
-
-    logger.info(
-      `${dim(connectionId)} 👈 ${formatStatusCode(
-        originToProxyResponse.statusCode,
-      )} serving from origin`,
-    )
-
-    await pipeline(
-      originToProxyResponseRewindable.rewind(),
-      delay({ ms: args.delay }),
-      throttle({ bps: args.throttle }),
-      proxyToClientResponse,
-    )
   }
 
   /**
@@ -770,26 +778,30 @@ class Mocker {
     ])
     const originToProxyResponse = originToProxyResponseResult
 
-    if (
-      originToProxyResponse.statusCode &&
-      originToProxyResponse.statusCode >= 200 &&
-      originToProxyResponse.statusCode < 300
-    ) {
-      const setResult = await this.#mockManager.set({
-        request: mockedRequest,
-        response: originToProxyResponse,
-      })
-      if (setResult.ok) {
-        logger.success(`${dim(progressStr)} ${bold(mockBasename)}`)
+    try {
+      if (
+        originToProxyResponse.statusCode &&
+        originToProxyResponse.statusCode >= 200 &&
+        originToProxyResponse.statusCode < 300
+      ) {
+        const setResult = await this.#mockManager.set({
+          request: mockedRequest,
+          response: originToProxyResponse,
+        })
+        if (setResult.ok) {
+          logger.success(`${dim(progressStr)} ${bold(mockBasename)}`)
+        } else {
+          logger.warn(
+            `${dim(progressStr)} ${bold(mockBasename)} error while saving mock. mock was not modified`,
+          )
+        }
       } else {
         logger.warn(
-          `${dim(progressStr)} ${bold(mockBasename)} error while saving mock. mock was not modified`,
+          `${dim(progressStr)} ${bold(mockBasename)} request to origin errored. mock was not modified`,
         )
       }
-    } else {
-      logger.warn(
-        `${dim(progressStr)} ${bold(mockBasename)} request to origin errored. mock was not modified`,
-      )
+    } finally {
+      originToProxyResponse.release()
     }
   }
 
@@ -817,6 +829,11 @@ class Mocker {
         await this.#updateMock(item, progress())
       } catch (error_) {
         logUpdateError(error_, mockBasename, progress())
+      } finally {
+        if (item.ok) {
+          item.value.mockedRequest.release()
+          item.value.mockedResponse.release()
+        }
       }
 
       i += 1

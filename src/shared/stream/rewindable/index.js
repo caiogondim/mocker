@@ -52,6 +52,7 @@ function rewindable(stream) {
   stream.pause()
 
   let isStreamEnded = false
+  let isReleased = false
 
   stream.once('end', () => {
     isStreamEnded = true
@@ -60,7 +61,21 @@ function rewindable(stream) {
     stream.removeListener('data', onData)
   })
 
+  function release() {
+    if (isReleased) {
+      return
+    }
+
+    isReleased = true
+    chunks.length = 0
+    stream.removeListener('data', onData)
+  }
+
   function rewind() {
+    if (isReleased) {
+      throw new Error('Rewindable stream was already released')
+    }
+
     let lastConsumedIndex = -1
 
     // Put the stream into flowing mode in case it wasn't already.
@@ -68,6 +83,10 @@ function rewindable(stream) {
 
     async function* generator() {
       for (;;) {
+        if (isReleased) {
+          throw new Error('Rewindable stream was already released')
+        }
+
         const allChunksWereConsumed = lastConsumedIndex === chunks.length - 1
 
         if (allChunksWereConsumed && isStreamEnded) {
@@ -92,9 +111,28 @@ function rewindable(stream) {
     return Readable.from(generator())
   }
 
+  async function asyncDispose() {
+    release()
+  }
+
+  function dispose() {
+    release()
+  }
+
   // Set `stream` as prototype of a newly created object so we extend without
   // mutating.
-  return { ok: true, value: Object.setPrototypeOf({ rewind }, stream) }
+  return {
+    ok: true,
+    value: Object.setPrototypeOf(
+      {
+        rewind,
+        release,
+        [Symbol.dispose]: dispose,
+        [Symbol.asyncDispose]: asyncDispose,
+      },
+      stream,
+    ),
+  }
 }
 
 export default rewindable

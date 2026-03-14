@@ -136,6 +136,53 @@ describe('rewindable', () => {
     expect(rewindableStream.rewind().constructor).toEqual(Readable)
   })
 
+  it('throws when rewind is called after release', async () => {
+    const stream = new PassThrough()
+    const result = rewindable(stream)
+    if (!result.ok) throw result.error
+    const rewindableStream = result.value
+
+    stream.end('123')
+    expect(`${await values(rewindableStream.rewind())}`).toBe('123')
+
+    rewindableStream.release()
+    expect(() => rewindableStream.rewind()).toThrow(
+      'Rewindable stream was already released',
+    )
+  })
+
+  it('supports Symbol.asyncDispose for await using', async () => {
+    const stream = new PassThrough()
+    const result = rewindable(stream)
+    if (!result.ok) throw result.error
+
+    const rewindableStream = result.value
+    stream.end('123')
+    expect(`${await values(rewindableStream.rewind())}`).toBe('123')
+
+    await rewindableStream[Symbol.asyncDispose]()
+
+    expect(() => rewindableStream.rewind()).toThrow(
+      'Rewindable stream was already released',
+    )
+  })
+
+  it('supports Symbol.dispose for using', async () => {
+    const stream = new PassThrough()
+    const result = rewindable(stream)
+    if (!result.ok) throw result.error
+
+    const rewindableStream = result.value
+    stream.end('123')
+    expect(`${await values(rewindableStream.rewind())}`).toBe('123')
+
+    rewindableStream[Symbol.dispose]()
+
+    expect(() => rewindableStream.rewind()).toThrow(
+      'Rewindable stream was already released',
+    )
+  })
+
   // # Regression test
   //
   it('works if stream ends without a value', async () => {
