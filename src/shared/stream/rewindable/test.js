@@ -183,6 +183,47 @@ describe('rewindable', () => {
     )
   })
 
+  it('unblocks pending rewind consumer when released', async () => {
+    const stream = new PassThrough()
+    const result = rewindable(stream)
+    if (!result.ok) throw result.error
+    const rewindableStream = result.value
+    const rewound = rewindableStream.rewind()
+    const iterator = rewound[Symbol.asyncIterator]()
+
+    stream.write('1')
+    const first = await iterator.next()
+    expect(`${first.value}`).toBe('1')
+
+    const pendingNext = iterator.next()
+    await sleep(0)
+    rewindableStream.release()
+
+    await expect(pendingNext).rejects.toThrow(
+      'Rewindable stream was already released',
+    )
+  })
+
+  it('finishes rewound stream when source closes without end', async () => {
+    const stream = new PassThrough()
+    const result = rewindable(stream)
+    if (!result.ok) throw result.error
+    const rewindableStream = result.value
+    const rewound = rewindableStream.rewind()
+    const iterator = rewound[Symbol.asyncIterator]()
+
+    stream.write('1')
+    const first = await iterator.next()
+    expect(`${first.value}`).toBe('1')
+
+    const pendingNext = iterator.next()
+    await sleep(0)
+    stream.destroy()
+
+    const next = await pendingNext
+    expect(next.done).toBe(true)
+  })
+
   // # Regression test
   //
   it('works if stream ends without a value', async () => {
