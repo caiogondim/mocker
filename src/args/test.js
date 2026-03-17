@@ -134,6 +134,11 @@ describe('--throttle', () => {
     const argv = ['', '', ...getRequiredArgs(), '--throttle', 'lorem-ipsum']
     await expect(parseArgv(argv)).rejects.toThrow(/invalid --throttle/)
   })
+
+  it('throws an error for zero', async () => {
+    const argv = ['', '', ...getRequiredArgs(), '--throttle', '0']
+    await expect(parseArgv(argv)).rejects.toThrow(/invalid --throttle/)
+  })
 })
 
 describe('--mode', () => {

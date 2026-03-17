@@ -3,12 +3,25 @@
 
 import { Readable } from 'node:stream'
 
+const DEFAULT_MAX_BUFFER_BYTES = 64 * 1024 * 1024 // 64MB
+
+/**
+ * @param {number} maxBufferBytes
+ * @returns {Error}
+ */
+function createBufferLimitError(maxBufferBytes) {
+  return new Error(
+    `Rewindable stream exceeded max buffer size of ${maxBufferBytes} bytes.`,
+  )
+}
+
 /**
  * @param {Readable} stream
  * @param {AbortSignal} signal
+ * @param {() => Error} getReleaseError
  * @returns {Promise<undefined>}
  */
-function waitForNewChunkOrEnd(stream, signal) {
+function waitForNewChunkOrEnd(stream, signal, getReleaseError) {
   return new Promise((resolve, reject) => {
     function onDataOrEnd() {
       cleanup()
@@ -23,7 +36,7 @@ function waitForNewChunkOrEnd(stream, signal) {
 
     function onAbort() {
       cleanup()
-      reject(new Error('Rewindable stream was already released'))
+      reject(getReleaseError())
     }
 
     function cleanup() {
@@ -55,11 +68,20 @@ function waitForNewChunkOrEnd(stream, signal) {
 /**
  * @template {Readable} T
  * @param {T} stream
+ * @param {{ maxBufferBytes?: number }} [options]
  * @returns {Result<T & Rewindable, Error>}
  */
-function rewindable(stream) {
+function rewindable(stream, options = {}) {
+  const { maxBufferBytes = DEFAULT_MAX_BUFFER_BYTES } = options
+
   if (!stream.readable) {
     return { ok: false, error: new Error('Stream is not readable') }
+  }
+  if (!Number.isInteger(maxBufferBytes) || maxBufferBytes <= 0) {
+    return {
+      ok: false,
+      error: new TypeError('maxBufferBytes must be a positive integer'),
+    }
   }
 
   // Saves all generated values by the stream for future playback, but making
@@ -67,9 +89,18 @@ function rewindable(stream) {
 
   /** @type {Buffer[]} */
   const chunks = []
+  let bufferedBytes = 0
+  let releaseError = new Error('Rewindable stream was already released')
 
   /** @param {Buffer} chunk */
   function onData(chunk) {
+    bufferedBytes += chunk.byteLength
+    if (bufferedBytes > maxBufferBytes) {
+      const error = createBufferLimitError(maxBufferBytes)
+      release(error)
+      stream.destroy()
+      return
+    }
     chunks.push(chunk)
   }
 
@@ -92,20 +123,27 @@ function rewindable(stream) {
   stream.once('end', onStreamFinished)
   stream.once('close', onStreamFinished)
 
-  function release() {
+  /**
+   * @param {Error} [reason]
+   */
+  function release(reason) {
     if (isReleased) {
       return
     }
 
     isReleased = true
+    if (reason) {
+      releaseError = reason
+    }
     chunks.length = 0
+    bufferedBytes = 0
     releaseController.abort()
     stream.removeListener('data', onData)
   }
 
   function rewind() {
     if (isReleased) {
-      throw new Error('Rewindable stream was already released')
+      throw releaseError
     }
 
     let lastConsumedIndex = -1
@@ -116,7 +154,7 @@ function rewindable(stream) {
     async function* generator() {
       for (;;) {
         if (isReleased) {
-          throw new Error('Rewindable stream was already released')
+          throw releaseError
         }
 
         const allChunksWereConsumed = lastConsumedIndex === chunks.length - 1
@@ -127,7 +165,11 @@ function rewindable(stream) {
 
         // In case all chunks from buffer was consumed, wait for a new chunk.
         if (allChunksWereConsumed && !isStreamEnded) {
-          await waitForNewChunkOrEnd(stream, releaseController.signal)
+          await waitForNewChunkOrEnd(
+            stream,
+            releaseController.signal,
+            () => releaseError,
+          )
           continue
         }
 

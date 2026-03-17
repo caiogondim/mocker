@@ -10,6 +10,8 @@
 /** @typedef {import('../shared/http/types.js').Headers} Headers */
 /** @typedef {import('../shared/stream/rewindable/types.js').Rewindable} Rewindable */
 /** @typedef {import('../shared/types.js').Json} Json */
+/** @typedef {'br' | 'deflate' | 'gzip'} ContentEncodingToken */
+/** @typedef {(input: Buffer) => Promise<Buffer>} Decompressor */
 
 import path from 'node:path'
 import nativeFs from 'node:fs'
@@ -46,6 +48,44 @@ const logger = createLogger()
 
 const RESPONSE_FILE_REGEX = /\.json$/
 const MAX_FILENAME_LENGTH = 80
+const BODY_ENCODING_BASE64 = 'base64'
+
+/** @type {Record<ContentEncodingToken, Decompressor>} */
+const decompressorsByEncoding = {
+  br: promisify(zlib.brotliDecompress),
+  deflate: promisify(zlib.inflate),
+  gzip: promisify(zlib.gunzip),
+}
+
+/**
+ * @param {string} value
+ * @returns {value is ContentEncodingToken}
+ */
+function isSupportedContentEncoding(value) {
+  return Object.prototype.hasOwnProperty.call(decompressorsByEncoding, value)
+}
+
+/**
+ * @param {string} contentEncoding
+ * @returns {ContentEncodingToken[]}
+ */
+function parseContentEncodings(contentEncoding) {
+  /** @type {ContentEncodingToken[]} */
+  const output = []
+
+  for (const rawToken of `${contentEncoding}`.split(',')) {
+    const token = rawToken.trim().toLowerCase()
+    if (token === '' || token === 'identity') {
+      continue
+    }
+    if (!isSupportedContentEncoding(token)) {
+      continue
+    }
+    output.push(token)
+  }
+
+  return output
+}
 
 /**
  * @param {string} value
@@ -69,21 +109,21 @@ function shortHash(input) {
 
 /**
  * @param {unknown} body
- * @returns {string}
+ * @returns {Result<string>}
  */
 function getGraphQLFileName(body) {
   if (body === null || typeof body !== 'object' || Array.isArray(body)) {
-    return ''
+    return { ok: false, error: new TypeError('body is not a plain object') }
   }
 
   const { operationName, query } = /** @type {Record<string, unknown>} */ (body)
 
   if (typeof operationName !== 'string' || operationName === '') {
-    return ''
+    return { ok: false, error: new TypeError('missing operationName') }
   }
 
   if (typeof query !== 'string') {
-    return ''
+    return { ok: false, error: new TypeError('missing query') }
   }
 
   // Extract query type (query/mutation/subscription) from the query string
@@ -93,10 +133,10 @@ function getGraphQLFileName(body) {
   const safeName = toSafeSlug(operationName.replace(/([a-z])([A-Z])/g, '$1-$2'))
 
   if (safeName === '') {
-    return `gql-${queryType}-operation`
+    return { ok: true, value: `gql-${queryType}-operation` }
   }
 
-  return `gql-${queryType}-${safeName}`
+  return { ok: true, value: `gql-${queryType}-${safeName}` }
 }
 
 /**
@@ -138,27 +178,14 @@ async function uncompressBody(buffer, algorithm) {
     return buffer
   }
 
-  /**
-   * @param {Buffer} x
-   * @returns {Promise<Buffer>}
-   */
-  let uncompressLib = async (x) => x
+  const encodings = parseContentEncodings(algorithm)
 
-  switch (algorithm) {
-    case 'br':
-      uncompressLib = promisify(zlib.brotliDecompress)
-      break
-    case 'deflate':
-      uncompressLib = promisify(zlib.inflate)
-      break
-    case 'gzip':
-      uncompressLib = promisify(zlib.gunzip)
-      break
-    default:
-      break
+  let output = buffer
+  for (let i = encodings.length - 1; i >= 0; i -= 1) {
+    output = await decompressorsByEncoding[encodings[i]](output)
   }
 
-  return uncompressLib(buffer)
+  return output
 }
 
 /**
@@ -168,26 +195,67 @@ async function uncompressBody(buffer, algorithm) {
  *   | HttpServerResponse
  *   | MockedResponse} request
  * @param {ConnectionId} connectionId
- * @returns {string | Json}
+ * @returns {string | Json | { encoding: 'base64'; data: string }}
  */
 function parseBody(bodyBuffer, request, connectionId) {
-  let body = bodyBuffer.toString()
   const headers = getHeaders(request)
   const headerContentType = /** @type {string} */ (
     headers?.['content-type'] ?? ''
   )
-  if (headerContentType.includes('application/json')) {
-    const parseResult = tryCatch(() => JSON.parse(body))
-    if (parseResult.ok) {
-      body = parseResult.value
-    } else {
-      logger.warn(
-        `${dim(connectionId)} error trying to parse response body. serving as is.`,
-      )
-    }
+
+  if (isTextualContentType(headerContentType)) {
+    return bodyBuffer.toString()
   }
 
-  return body
+  if (headerContentType.includes('application/json')) {
+    const bodyString = bodyBuffer.toString()
+    const parseResult = tryCatch(() => JSON.parse(bodyString))
+    if (parseResult.ok) {
+      return /** @type {Json} */ (parseResult.value)
+    }
+    logger.warn(
+      `${dim(connectionId)} error trying to parse response body. serving as is.`,
+    )
+    return bodyString
+  }
+
+  if (isUtf8TextBody(bodyBuffer)) {
+    return bodyBuffer.toString()
+  }
+
+  return {
+    encoding: BODY_ENCODING_BASE64,
+    data: bodyBuffer.toString('base64'),
+  }
+}
+
+/**
+ * @param {string} contentType
+ * @returns {boolean}
+ */
+function isTextualContentType(contentType) {
+  return (
+    contentType.startsWith('text/') ||
+    contentType.includes('application/xml') ||
+    contentType.includes('application/javascript') ||
+    contentType.includes('application/x-www-form-urlencoded') ||
+    contentType.includes('application/graphql')
+  )
+}
+
+/**
+ * @param {Buffer} bodyBuffer
+ * @returns {boolean}
+ */
+function isUtf8TextBody(bodyBuffer) {
+  if (bodyBuffer.length === 0) {
+    return true
+  }
+  const text = bodyBuffer.toString('utf8')
+  if (text.includes('\uFFFD')) {
+    return false
+  }
+  return Buffer.from(text, 'utf8').equals(bodyBuffer)
 }
 
 /**
@@ -237,13 +305,53 @@ function sanitizeResponseHeaders(headers, secrets) {
 function buildLabel(body, request, mockKeys) {
   for (const k of mockKeys) {
     if (k === 'body' || k.startsWith('body.')) {
-      return (
-        getGraphQLFileName(body) ||
-        getHttpFileName(request.url, request.method, mockKeys)
-      )
+      const gqlResult = getGraphQLFileName(body)
+      return gqlResult.ok
+        ? gqlResult.value
+        : getHttpFileName(request.url, request.method, mockKeys)
     }
   }
   return getHttpFileName(request.url, request.method, mockKeys)
+}
+
+/**
+ * @param {string} dotPath
+ * @param {unknown} body
+ * @returns {unknown}
+ */
+function resolveBodyPath(dotPath, body) {
+  const props = dotPath.split('.').slice(1)
+  return props.reduce(
+    (/** @type {unknown} */ obj, key) =>
+      obj !== null && typeof obj === 'object'
+        ? /** @type {Record<string, unknown>} */ (obj)[key]
+        : undefined,
+    /** @type {unknown} */ (body),
+  )
+}
+
+/**
+ * @param {HttpIncomingMessage | MockedRequest} request
+ * @param {Buffer} reqBody
+ * @param {unknown} body
+ * @param {Args['mockKeys']} mockKeys
+ * @returns {string}
+ */
+function buildMockKeyFingerprint(request, reqBody, body, mockKeys) {
+  const parts = []
+  for (const mockKey of mockKeys) {
+    if (mockKey === 'method' || mockKey === 'headers' || mockKey === 'url') {
+      parts.push(JSON.stringify(request[mockKey]))
+    } else if (mockKey === 'body') {
+      parts.push(String(reqBody))
+    } else if (mockKey.startsWith('body.') && typeof body === 'object') {
+      const bodyVal = resolveBodyPath(mockKey, body)
+      if (bodyVal !== undefined) {
+        parts.push(JSON.stringify(bodyVal))
+      }
+    }
+  }
+  return parts.join(' ')
 }
 
 /**
@@ -257,52 +365,94 @@ async function requestToMockPath(request, connectionId, mocksDir, mockKeys) {
   const reqBody = await getBody(request.rewind())
   const body = parseBody(reqBody, request, connectionId)
 
-  let fileName = ''
-  for (const mockKey of mockKeys) {
-    if (mockKey === 'method' || mockKey === 'headers' || mockKey === 'url') {
-      fileName = `${fileName} ${JSON.stringify(request[mockKey])}`
-    } else if (mockKey === 'body') {
-      fileName = `${fileName} ${reqBody}`
-    } else if (mockKey.startsWith('body.') && typeof body === 'object') {
-      const props = mockKey.split('.').slice(1)
-      const bodyVal = props.reduce(
-        (/** @type {unknown} */ obj, key) =>
-          obj !== null && typeof obj === 'object'
-            ? /** @type {Record<string, unknown>} */ (obj)[key]
-            : undefined,
-        /** @type {unknown} */ (body),
-      )
+  const fingerprint = buildMockKeyFingerprint(request, reqBody, body, mockKeys)
 
-      if (bodyVal === undefined) {
-        continue
-      }
-
-      fileName = `${fileName} ${JSON.stringify(bodyVal)}`
-    }
-  }
-
-  fileName = fileName.trim()
-
-  const hash = shortHash(fileName)
+  const hash = shortHash(fingerprint)
   const label = buildLabel(body, request, mockKeys)
   // Total: {hash}-{label}.json = 12 + 1 + label + 5 = 80 → label max = 62
   const maxLabelLength = MAX_FILENAME_LENGTH - hash.length - 1 - '.json'.length
   const truncatedLabel = label.slice(0, maxLabelLength)
-  fileName = `${hash}-${truncatedLabel}.json`
+  const fileName = `${hash}-${truncatedLabel}.json`
 
-  const filePath = path.join(mocksDir, fileName)
-  return filePath
+  return path.join(mocksDir, fileName)
 }
 
 /**
  * @param {{ headers?: Record<string, unknown>; body: unknown }} part
- * @returns {string}
+ * @returns {string | Buffer}
  */
 function serializeBody(part) {
+  if (
+    part.body &&
+    typeof part.body === 'object' &&
+    !Array.isArray(part.body) &&
+    Reflect.get(part.body, 'encoding') === BODY_ENCODING_BASE64 &&
+    typeof Reflect.get(part.body, 'data') === 'string'
+  ) {
+    return Buffer.from(
+      /** @type {string} */ (Reflect.get(part.body, 'data')),
+      BODY_ENCODING_BASE64,
+    )
+  }
+
   const contentType = `${part.headers?.['content-type'] ?? ''}`
   return contentType.includes('application/json')
     ? JSON.stringify(part.body)
     : /** @type {string} */ (part.body)
+}
+
+/**
+ * @param {unknown} value
+ * @returns {value is Record<string, unknown>}
+ */
+function isRecord(value) {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+}
+
+/**
+ * @param {unknown} fileJson
+ * @returns {Result<MockFile>}
+ */
+function validateMockFileShape(fileJson) {
+  if (!isRecord(fileJson)) {
+    return { ok: false, error: new TypeError('Mock file is not an object') }
+  }
+
+  const request = Reflect.get(fileJson, 'request')
+  const response = Reflect.get(fileJson, 'response')
+  if (!isRecord(request) || !isRecord(response)) {
+    return {
+      ok: false,
+      error: new TypeError('Mock file must include request and response objects'),
+    }
+  }
+
+  const requestHeaders = Reflect.get(request, 'headers')
+  const responseHeaders = Reflect.get(response, 'headers')
+  if (!isRecord(requestHeaders) || !isRecord(responseHeaders)) {
+    return {
+      ok: false,
+      error: new TypeError('Mock file headers must be objects'),
+    }
+  }
+
+  const requestMethod = Reflect.get(request, 'method')
+  const requestUrl = Reflect.get(request, 'url')
+  const responseStatusCode = Reflect.get(response, 'statusCode')
+  if (typeof requestMethod !== 'string' || typeof requestUrl !== 'string') {
+    return {
+      ok: false,
+      error: new TypeError('Mock file request.method and request.url must be strings'),
+    }
+  }
+  if (typeof responseStatusCode !== 'number') {
+    return {
+      ok: false,
+      error: new TypeError('Mock file response.statusCode must be a number'),
+    }
+  }
+
+  return { ok: true, value: /** @type {MockFile} */ (fileJson) }
 }
 
 /**
@@ -372,7 +522,7 @@ function createMockManager({
 
   /**
    * @param {string} filePath
-   * @returns {Promise<Result<unknown>>}
+   * @returns {Promise<Result<MockFile>>}
    */
   async function readMockFile(filePath) {
     const readResult = await tryCatchAsync(() => fsPromises.readFile(filePath))
@@ -382,18 +532,7 @@ function createMockManager({
       JSON.parse(readResult.value.toString('utf8')),
     )
     if (!parseResult.ok) return parseResult
-
-    const fileJson = parseResult.value
-
-    if (
-      (fileJson.response.headers?.['content-type'] ?? '').includes(
-        'application/json',
-      )
-    ) {
-      fileJson.response.body = JSON.stringify(fileJson.response.body)
-    }
-
-    return { ok: true, value: fileJson }
+    return validateMockFileShape(parseResult.value)
   }
 
   /**
@@ -417,7 +556,7 @@ function createMockManager({
     if (!fileResult.ok)
       return { ok: false, error: new MockGetError(filePath, fileResult.error) }
 
-    const fileJson = /** @type {MockFile} */ (fileResult.value)
+    const fileJson = fileResult.value
 
     const statusCodeResult = parseHttpStatusCode(fileJson.response.statusCode)
     if (!statusCodeResult.ok)
@@ -442,7 +581,7 @@ function createMockManager({
       url: fileJson.request.url || request.url || '',
       connectionId,
     })
-    mockedResponse.end(fileJson.response.body)
+    mockedResponse.end(serializeBody(fileJson.response))
 
     return {
       ok: true,
@@ -534,7 +673,16 @@ function createMockManager({
     const files = /** @type {string[]} */ (await fsPromises.readdir(mocksDir))
     for (const file of files) {
       if (RESPONSE_FILE_REGEX.test(file)) {
-        await fsPromises.unlink(path.join(mocksDir, file))
+        try {
+          await fsPromises.unlink(path.join(mocksDir, file))
+        } catch (error) {
+          if (
+            !(error instanceof Error) ||
+            Reflect.get(error, 'code') !== 'ENOENT'
+          ) {
+            throw error
+          }
+        }
       }
     }
   }
@@ -577,7 +725,15 @@ function createMockManager({
         continue
       }
 
-      const fileJson = parseResult.value
+      const shapeResult = validateMockFileShape(parseResult.value)
+      if (!shapeResult.ok) {
+        yield {
+          ok: false,
+          error: new MockFileError(shapeResult.error, filePath),
+        }
+        continue
+      }
+      const fileJson = shapeResult.value
 
       const statusCodeResult = parseHttpStatusCode(fileJson.response.statusCode)
       if (!statusCodeResult.ok) {

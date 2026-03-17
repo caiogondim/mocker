@@ -31,9 +31,9 @@ import { createRequest, getBody } from '../shared/http/index.js'
 import { parse as parseAbsoluteHttpUrl } from '../shared/absolute-http-url/index.js'
 import { HTTP_METHOD } from '../shared/http-method/index.js'
 
-// ---------------------------------------------------------------------------
+//-
 // Helper servers
-// ---------------------------------------------------------------------------
+//-
 
 function createEchoServer() {
   return createServer(async (req, res) => {
@@ -129,9 +129,9 @@ function createEmptyBodyServer() {
   })
 }
 
-// ---------------------------------------------------------------------------
+//-
 // 1. Request Forwarding Integrity
-// ---------------------------------------------------------------------------
+//-
 
 describe('request forwarding integrity', () => {
   /**
@@ -322,9 +322,9 @@ describe('request forwarding integrity', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
+//-
 // 2. Response Forwarding Integrity
-// ---------------------------------------------------------------------------
+//-
 
 describe('response forwarding integrity', () => {
   /** @see RFC 9110 §15 — Status Codes */
@@ -490,9 +490,9 @@ describe('response forwarding integrity', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
+//-
 // 3. Hop-by-Hop Header Handling (RFC 9110 §7.6.1)
-// ---------------------------------------------------------------------------
+//-
 
 describe('hop-by-hop header handling', () => {
   /**
@@ -548,9 +548,9 @@ describe('hop-by-hop header handling', () => {
   )
 })
 
-// ---------------------------------------------------------------------------
+//-
 // 4. Proxy Headers (RFC 7239)
-// ---------------------------------------------------------------------------
+//-
 
 describe('proxy headers (RFC 7239)', () => {
   /** @see RFC 7239 — Forwarded */
@@ -666,9 +666,9 @@ describe('proxy headers (RFC 7239)', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
+//-
 // 5. Proxy-Specific Response Headers
-// ---------------------------------------------------------------------------
+//-
 
 describe('proxy-specific response headers', () => {
   it('sets x-powered-by: mocker on all responses', async () => {
@@ -775,9 +775,9 @@ describe('proxy-specific response headers', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
+//-
 // 6. Body Integrity Through Proxy
-// ---------------------------------------------------------------------------
+//-
 
 describe('body integrity through proxy', () => {
   it('forwards small JSON body (<1KB)', async () => {
@@ -913,9 +913,9 @@ describe('body integrity through proxy', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
+//-
 // 7. Content-Encoding Pass-Through
-// ---------------------------------------------------------------------------
+//-
 
 describe('content-encoding pass-through', () => {
   /** @see RFC 9110 §8.4.1 — Content-Encoding */
@@ -1005,9 +1005,9 @@ describe('content-encoding pass-through', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
+//-
 // 8. Error Handling as Proxy
-// ---------------------------------------------------------------------------
+//-
 
 describe('error handling as proxy', () => {
   /** @see RFC 9110 §15.5 — Client Error 4xx */
@@ -1125,9 +1125,9 @@ describe('error handling as proxy', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
+//-
 // 9. Connection Management
-// ---------------------------------------------------------------------------
+//-
 
 describe('connection management', () => {
   it('handles keep-alive between client and proxy', async () => {
@@ -1210,9 +1210,9 @@ describe('connection management', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
+//-
 // 10. URL Rewriting
-// ---------------------------------------------------------------------------
+//-
 
 describe('URL rewriting', () => {
   /** @see RFC 9110 §7.1 — Path forwarding */
@@ -1330,9 +1330,9 @@ describe('URL rewriting', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
+//-
 // 11. Concurrent Requests
-// ---------------------------------------------------------------------------
+//-
 
 describe('concurrent requests', () => {
   it('handles multiple simultaneous requests', async () => {
@@ -1425,9 +1425,9 @@ describe('concurrent requests', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
+//-
 // 12. Edge Cases
-// ---------------------------------------------------------------------------
+//-
 
 describe('edge cases', () => {
   it('handles very long URL (near 8KB)', async () => {

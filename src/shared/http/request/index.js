@@ -13,11 +13,22 @@ import createBackoff from '../../backoff/index.js'
 import retry from '../../function-call/retry/index.js'
 
 const MAX_RETRY_REPLAY_BUFFER_BYTES = 1024 * 1024 * 1024 // 1GB
+const CONNECT_TIMEOUT_MS = 10_000
+const RESPONSE_TIMEOUT_MS = 30_000
 
 function createReplayBufferSizeError() {
   return new RangeError(
     `Request body exceeds replay limit of ${MAX_RETRY_REPLAY_BUFFER_BYTES} bytes.`,
   )
+}
+
+/**
+ * @param {'connect' | 'response'} stage
+ * @param {number} timeoutMs
+ * @returns {Error}
+ */
+function createRequestTimeoutError(stage, timeoutMs) {
+  return new Error(`Request ${stage} timeout after ${timeoutMs}ms.`)
 }
 
 /**
@@ -95,14 +106,44 @@ function prepareRequestParams(urlObj, method, headers) {
  */
 function waitForRequestSocketConnection(request) {
   return new Promise((resolve, reject) => {
-    request.on('error', reject)
-    request.on('socket', (/** @type {import('node:net').Socket} */ socket) => {
+    /** @type {ReturnType<typeof setTimeout> | undefined} */
+    let timeoutId
+
+    function cleanup() {
+      request.removeListener('error', onError)
+      request.removeListener('socket', onSocket)
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+        timeoutId = undefined
+      }
+    }
+
+    /** @param {Error} error */
+    function onError(error) {
+      cleanup()
+      reject(error)
+    }
+
+    /** @param {import('node:net').Socket} socket */
+    function onSocket(socket) {
       if (socket.readyState === 'open') {
+        cleanup()
         resolve(undefined)
       } else {
-        socket.on('connect', resolve)
+        socket.once('connect', () => {
+          cleanup()
+          resolve(undefined)
+        })
       }
-    })
+    }
+
+    timeoutId = setTimeout(() => {
+      request.destroy(createRequestTimeoutError('connect', CONNECT_TIMEOUT_MS))
+    }, CONNECT_TIMEOUT_MS)
+    timeoutId.unref()
+
+    request.on('error', onError)
+    request.on('socket', onSocket)
   })
 }
 
@@ -112,6 +153,9 @@ function waitForRequestSocketConnection(request) {
  */
 function createResponsePromise(request) {
   return new Promise((resolve, reject) => {
+    request.setTimeout(RESPONSE_TIMEOUT_MS, () => {
+      request.destroy(createRequestTimeoutError('response', RESPONSE_TIMEOUT_MS))
+    })
     request.on('response', (/** @type {http.IncomingMessage} */ response) => {
       resolve(response)
     })
@@ -155,6 +199,10 @@ function isSuccessfulStatusCode(statusCode) {
 }
 
 /**
+ * Intercepts write/end calls on a request to record them for replay during
+ * retries. Uses Proxy to transparently wrap the original methods, preserving
+ * correct `this` binding and argument forwarding.
+ *
  * @param {http.ClientRequest} request
  * @returns {{
  *   getWriteCalls: () => Parameters<RequestWrite>[]
@@ -182,21 +230,16 @@ function attachReplayRecorder(request) {
   }
 
   request.write = new Proxy(request.write, {
-    /**
-     * @param {RequestWrite} target
-     * @param {request} thisArg
-     * @param {Parameters<RequestWrite>} args
-     */
     apply(target, thisArg, args) {
-      const [chunk, encoding] = args
+      const [chunk, encoding] = /** @type {Parameters<RequestWrite>} */ (args)
       reserveReplayBufferBytes(
         getChunkByteLength(
           chunk,
           /** @type {BufferEncoding | undefined} */ (encoding),
         ),
       )
-      requestWriteCalls.push(args)
-      return target.apply(thisArg, args)
+      requestWriteCalls.push(/** @type {Parameters<RequestWrite>} */ (args))
+      return target.apply(thisArg, /** @type {Parameters<RequestWrite>} */ (args))
     },
   })
 
@@ -220,6 +263,30 @@ function attachReplayRecorder(request) {
     getWriteCalls: () => requestWriteCalls,
     getEndCall: () => requestEndCall,
   }
+}
+
+/**
+ * @param {http.IncomingMessage} response
+ * @returns {Promise<void>}
+ */
+function drainResponse(response) {
+  return new Promise((resolve) => {
+    function cleanup() {
+      response.removeListener('end', onDone)
+      response.removeListener('close', onDone)
+      response.removeListener('error', onDone)
+    }
+
+    function onDone() {
+      cleanup()
+      resolve()
+    }
+
+    response.once('end', onDone)
+    response.once('close', onDone)
+    response.once('error', onDone)
+    response.resume()
+  })
 }
 
 /**
@@ -247,20 +314,18 @@ async function createRequestWithRetry({
     }
   }
 
-  let connectRetries = 0
   const retryResult = await retry(
     () => createRequest({ url, headers, method }),
     {
       retries,
       backoff,
-      onRetry: () => (connectRetries += 1),
     },
   )
   if (!retryResult.ok) {
     return { ok: false, error: retryResult.error }
   }
   const [request, responsePromise] = retryResult.value
-  const responseAttemptLimit = Math.max(1, retries - connectRetries)
+  const responseAttemptLimit = Math.max(1, retries)
   const replayRecorder = attachReplayRecorder(request)
 
   //
@@ -293,22 +358,24 @@ async function createRequestWithRetry({
         if (isFirstAttempt) {
           response = await responsePromise
         } else {
-          const [request_, responsePromise_] = await createRequest({
+          const [retryRequest, retryResponsePromise] = await createRequest({
             url,
             headers,
             method,
           })
           for (const requestWriteCall of replayRecorder.getWriteCalls()) {
-            request_.write(...requestWriteCall)
+            retryRequest.write(...requestWriteCall)
           }
-          request_.end(...replayRecorder.getEndCall())
-          response = await responsePromise_
+          retryRequest.end(...replayRecorder.getEndCall())
+          response = await retryResponsePromise
         }
 
         if (isSuccessfulStatusCode(response.statusCode) || isLastAttempt) {
           resolveResponse(response)
           return
         }
+
+        await drainResponse(response)
       } catch (error) {
         if (isLastAttempt) {
           rejectResponse(error)

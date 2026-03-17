@@ -4,6 +4,7 @@
 /** @typedef {import('./types.js').AbsoluteDirPath} AbsoluteDirPath */
 /** @typedef {import('./types.js').NonNegativeInteger} NonNegativeInteger */
 /** @typedef {import('./types.js').HttpPort} HttpPort */
+/** @typedef {import('./types.js').Milliseconds} Milliseconds */
 /** @typedef {import('./types.js').ThrottleValue} ThrottleValue */
 /** @typedef {import('../shared/http/types.js').Headers} Headers */
 /** @typedef {Map<string, string>} ArgvMap */
@@ -20,6 +21,7 @@ import { tryCatch } from '../shared/try-catch/index.js'
 import { parseHeaders } from '../shared/http/index.js'
 import { parse as parseHttpUrl } from '../shared/http-url/index.js'
 import { parse as parseNonNegativeInteger } from '../shared/non-negative-integer/index.js'
+import { parse as parseMilliseconds } from '../shared/milliseconds/index.js'
 import { parse as parseThrottleValue } from '../shared/throttle-value/index.js'
 import { parse as parseAbsoluteDirPath } from '../shared/absolute-dir-path/index.js'
 import { parse as parseHttpPort } from '../shared/http-port/index.js'
@@ -71,10 +73,14 @@ const PROXY_DEFAULT = /** @type {HttpUrl} */ ('')
  */
 function getDefaultOverwriteRequestHeaders(argvMap) {
   const argvOrigin = argvMap.get('origin') || ''
-  const { host } = new URL(argvOrigin)
+  const result = tryCatch(() => new URL(argvOrigin))
+
+  if (!result.ok) {
+    return /** @type {Headers} */ ({})
+  }
 
   return {
-    host,
+    host: result.value.host,
   }
 }
 
@@ -386,16 +392,16 @@ function getOrigin(argvMap) {
 
 /**
  * @param {ArgvMap} argvMap
- * @returns {NonNegativeInteger}
+ * @returns {Milliseconds}
  */
 function getDelay(argvMap) {
   const argvDelay = argvMap.get('delay') ?? String(DELAY_DEFAULT)
-  const result = parseNonNegativeInteger(argvDelay)
+  const result = parseMilliseconds(argvDelay)
 
   if (!result.ok) {
     throw prettifyError({
       error: new TypeError(`invalid --delay`),
-      expected: `positive integer`,
+      expected: `non-negative integer in milliseconds (max 3600000)`,
       received: stringify(argvDelay),
     })
   }

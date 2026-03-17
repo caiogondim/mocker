@@ -275,30 +275,27 @@ describe('createRequest', () => {
 
   // Regression test
   it('survives a network error on a mid-loop retry attempt', async () => {
-    // Server behaviour per connection:
-    //   connection 1: returns 500  → loop retries
-    //   connection 2: destroys socket immediately (mid-loop network error)
-    //   connection 3: returns 200  → resolves
-    let connectionCount = 0
+    // Server behaviour per request:
+    //   request 1: returns 500  → loop retries
+    //   request 2: destroys socket (mid-loop network error)
+    //   request 3: returns 200  → resolves
+    let requestCount = 0
 
     const { createServer: createHttpServer } = await import('node:http')
 
     const httpServer = createHttpServer((req, res) => {
-      if (connectionCount === 3) {
+      requestCount += 1
+      if (requestCount === 2) {
+        req.socket.destroy()
+        return
+      }
+
+      if (requestCount === 3) {
         res.writeHead(200)
         req.pipe(res)
       } else {
         res.writeHead(500)
         res.end()
-      }
-    })
-
-    httpServer.on('connection', (socket) => {
-      connectionCount += 1
-      if (connectionCount === 2) {
-        // Destroy after TCP accept but before HTTP response — triggers
-        // 'error' on the in-flight ClientRequest inside the retry loop
-        socket.destroy()
       }
     })
 

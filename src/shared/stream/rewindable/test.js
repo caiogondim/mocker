@@ -224,6 +224,21 @@ describe('rewindable', () => {
     expect(next.done).toBe(true)
   })
 
+  it('fails fast when buffered stream data exceeds maxBufferBytes', async () => {
+    const stream = new PassThrough()
+    const result = rewindable(stream, { maxBufferBytes: 2 })
+    if (!result.ok) throw result.error
+    const rewindableStream = result.value
+    const rewound = rewindableStream.rewind()
+
+    stream.write('ab')
+    stream.write('c')
+
+    await expect(values(rewound)).rejects.toThrow(
+      'Rewindable stream exceeded max buffer size',
+    )
+  })
+
   // # Regression test
   //
   it('works if stream ends without a value', async () => {

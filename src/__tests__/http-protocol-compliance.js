@@ -62,9 +62,9 @@ function createStatusCodeServer() {
   })
 }
 
-// ---------------------------------------------------------------------------
+//-
 // 1. HTTP Methods (RFC 9110 §9)
-// ---------------------------------------------------------------------------
+//-
 
 describe('HTTP methods (RFC 9110 §9)', () => {
   /** @see RFC 9110 §9.1 — Overview of HTTP methods */
@@ -181,9 +181,9 @@ describe('HTTP methods (RFC 9110 §9)', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
+//-
 // 2. Status Code Relaying (RFC 9110 §15)
-// ---------------------------------------------------------------------------
+//-
 
 describe('status code relaying (RFC 9110 §15)', () => {
   /** @see RFC 9110 §15.3 — 2xx Successful */
@@ -324,9 +324,9 @@ describe('status code relaying (RFC 9110 §15)', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
+//-
 // 3. Content-Length and Body Framing (RFC 9112 §6)
-// ---------------------------------------------------------------------------
+//-
 
 describe('Content-Length and body framing (RFC 9112 §6)', () => {
   /** @see RFC 9112 §6.3 — Content-Length */
@@ -550,9 +550,9 @@ describe('Content-Length and body framing (RFC 9112 §6)', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
+//-
 // 4. Transfer-Encoding: Chunked (RFC 9112 §7)
-// ---------------------------------------------------------------------------
+//-
 
 describe('Transfer-Encoding: chunked (RFC 9112 §7)', () => {
   /** @see RFC 9112 §7.1 — Chunked transfer coding */
@@ -630,9 +630,9 @@ describe('Transfer-Encoding: chunked (RFC 9112 §7)', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
+//-
 // 5. Connection Management (RFC 9112 §9)
-// ---------------------------------------------------------------------------
+//-
 
 describe('connection management (RFC 9112 §9)', () => {
   /** @see RFC 9112 §9.3 — Persistent connections in HTTP/1.1 */
@@ -741,9 +741,9 @@ describe('connection management (RFC 9112 §9)', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
+//-
 // 6. Headers (RFC 9110 §5, §7)
-// ---------------------------------------------------------------------------
+//-
 
 describe('headers (RFC 9110 §5, §7)', () => {
   /** @see RFC 9110 §5.1 — Header field names are case-insensitive */
@@ -960,9 +960,9 @@ describe('headers (RFC 9110 §5, §7)', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
+//-
 // 7. Request Target and URL Handling (RFC 9112 §3.2)
-// ---------------------------------------------------------------------------
+//-
 
 describe('request target and URL handling (RFC 9112 §3.2)', () => {
   /** @see RFC 9112 §3.2 — Path segments */
@@ -1126,9 +1126,9 @@ describe('request target and URL handling (RFC 9112 §3.2)', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
+//-
 // 8. Response Body Integrity
-// ---------------------------------------------------------------------------
+//-
 
 describe('response body integrity', () => {
   /** @see RFC 9110 §8.6 — JSON body roundtrip */
@@ -1269,9 +1269,9 @@ describe('response body integrity', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
+//-
 // 9. Error Conditions
-// ---------------------------------------------------------------------------
+//-
 
 describe('error conditions', () => {
   // Note: ECONNREFUSED is not in mocker's nonFatalErrors list, so when the

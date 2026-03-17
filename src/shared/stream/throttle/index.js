@@ -8,8 +8,8 @@ class TokenBucket {
   #fillFrequency
   /** @type {number} */
   #tokens = 0
-  /** @type {function(unknown=): void} */
-  #refillResolve = () => {}
+  /** @type {Array<function(unknown=): void>} */
+  #refillResolvers = []
   /** @type {boolean} */
   #hasPendingRefill = false
 
@@ -57,14 +57,17 @@ class TokenBucket {
     }
 
     return new Promise((resolve) => {
-      this.#refillResolve = resolve
+      this.#refillResolvers.push(resolve)
     })
   }
 
   #fill() {
     this.#tokens = this.#capacity
     this.#hasPendingRefill = false
-    this.#refillResolve()
+    for (const resolve of this.#refillResolvers) {
+      resolve()
+    }
+    this.#refillResolvers = []
   }
 }
 
@@ -78,12 +81,16 @@ function throttle({ bps }) {
     return new PassThrough()
   }
 
+  if (!Number.isInteger(bps) || bps <= 0) {
+    throw new TypeError('bps must be a positive integer or Infinity')
+  }
+
   const tokenBucket = new TokenBucket({ capacity: bps, fillFrequency: 1 })
   const stream = new Transform({
     async transform(data, encoding, callback) {
       try {
         for (let chunkStart = 0; chunkStart < data.length; chunkStart += bps) {
-          const chunkEnd = Math.min(data.length, chunkStart + bps + 1)
+          const chunkEnd = Math.min(data.length, chunkStart + bps)
           const chunkSize = chunkEnd - chunkStart
           const takeResult = tokenBucket.take(chunkSize)
           if (!takeResult.ok) {

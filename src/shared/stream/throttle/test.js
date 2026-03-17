@@ -1,6 +1,7 @@
 import { describe, it, expect } from '@jest/globals'
 import { Readable, Transform, PassThrough } from 'node:stream'
 import pipeline from '../pipeline/index.js'
+import values from '../values/index.js'
 import throttle from './index.js'
 
 describe('throttle', () => {
@@ -40,5 +41,19 @@ describe('throttle', () => {
     const stream = throttle({ bps: Infinity })
 
     expect(stream.constructor).toEqual(PassThrough)
+  })
+
+  it('preserves byte sequence without overlaps for low bps', async () => {
+    const input = Buffer.from('abcdef')
+    const output = await values(
+      Readable.from([input]).pipe(throttle({ bps: 2 })),
+    )
+    expect(Buffer.concat(output)).toEqual(input)
+  })
+
+  it('throws for bps equal to zero', () => {
+    expect(() => throttle({ bps: 0 })).toThrow(
+      'bps must be a positive integer or Infinity',
+    )
   })
 })

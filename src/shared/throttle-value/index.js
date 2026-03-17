@@ -11,11 +11,11 @@ function parse(input) {
 
   const value = Number.parseInt(input, 10)
 
-  if (!Number.isInteger(value) || value < 0 || String(value) !== input) {
+  if (!Number.isInteger(value) || value <= 0 || String(value) !== input) {
     return {
       ok: false,
       error: new TypeError(
-        `Expected a non-negative integer or "Infinity", got: "${input}"`,
+        `Expected a positive integer or "Infinity", got: "${input}"`,
       ),
     }
   }

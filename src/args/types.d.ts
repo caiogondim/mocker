@@ -17,7 +17,7 @@ export type MockKey = 'url' | 'method' | 'headers' | 'body' | `body.${string}`;
 export type Args = Readonly<{
   port: HttpPort;
   origin: HttpUrl;
-  delay: NonNegativeInteger;
+  delay: Milliseconds;
   throttle: ThrottleValue;
   mode: 'read' | 'write' | 'read-write' | 'pass' | 'pass-read' | 'read-pass';
   update: 'off' | 'startup' | 'only';

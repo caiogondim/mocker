@@ -334,11 +334,6 @@ class Mocker {
   }
 
   /**
-   * @param {http.IncomingMessage} request
-   * @param {http.ServerResponse} response
-   * @returns {Promise<void>}
-   */
-  /**
    * @param {http.IncomingMessage & Rewindable} request
    * @param {http.ServerResponse} response
    * @param {ConnectionId} connectionId
@@ -357,18 +352,20 @@ class Mocker {
           return { ok: true, value: undefined }
         }
         case MODE.READ_WRITE: {
-          await this.#handleConnectionWithReadWriteMode(
+          await this.#handleConnectionWithReadOrForwardMode(
             request,
             response,
             connectionId,
+            'warn',
           )
           return { ok: true, value: undefined }
         }
         case MODE.READ_PASS: {
-          await this.#handleConnectionWithReadPassMode(
+          await this.#handleConnectionWithReadOrForwardMode(
             request,
             response,
             connectionId,
+            'info',
           )
           return { ok: true, value: undefined }
         }
@@ -468,9 +465,15 @@ class Mocker {
    * @param {http.IncomingMessage & Rewindable} request
    * @param {http.ServerResponse} response
    * @param {ConnectionId} connectionId
+   * @param {'warn' | 'info'} logLevel
    * @returns {Promise<void>}
    */
-  async #handleConnectionWithReadWriteMode(request, response, connectionId) {
+  async #handleConnectionWithReadOrForwardMode(
+    request,
+    response,
+    connectionId,
+    logLevel,
+  ) {
     const getResult = await this.#mockManager.get({ request, connectionId })
     if (getResult.ok) {
       await this.#serveFromMockResult(
@@ -482,31 +485,7 @@ class Mocker {
       return
     }
     const mockBasename = path.basename(getResult.error.mockPath)
-    logger.warn(
-      `${dim(connectionId)} mocked response "${mockBasename}" was not found`,
-    )
-    await this.#respondFromOrigin(request, response, connectionId)
-  }
-
-  /**
-   * @param {http.IncomingMessage & Rewindable} request
-   * @param {http.ServerResponse} response
-   * @param {ConnectionId} connectionId
-   * @returns {Promise<void>}
-   */
-  async #handleConnectionWithReadPassMode(request, response, connectionId) {
-    const getResult = await this.#mockManager.get({ request, connectionId })
-    if (getResult.ok) {
-      await this.#serveFromMockResult(
-        getResult.value,
-        request,
-        response,
-        connectionId,
-      )
-      return
-    }
-    const mockBasename = path.basename(getResult.error.mockPath)
-    logger.info(
+    logger[logLevel](
       `${dim(connectionId)} mocked response "${mockBasename}" was not found`,
     )
     await this.#respondFromOrigin(request, response, connectionId)
@@ -858,7 +837,7 @@ class Mocker {
   async #updateMocks() {
     const mockManager = this.#mockManager
     const total = await mockManager.size()
-    let i = 1
+    let completedCount = 1
 
     if (total === 0) {
       logger.warn('no mocks in the responses folder, skipping mocks update')
@@ -868,7 +847,7 @@ class Mocker {
     logger.info(`updating ${bold(total)} mocks...`)
 
     function progress() {
-      return `[${`${i}`.padStart(`${total}`.length, '0')}/${total}]`
+      return `[${`${completedCount}`.padStart(`${total}`.length, '0')}/${total}]`
     }
 
     for await (const item of mockManager.getAll()) {
@@ -898,7 +877,7 @@ class Mocker {
         logUpdateError(error_, mockBasename, progress())
       }
 
-      i += 1
+      completedCount += 1
     }
   }
 }

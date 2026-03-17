@@ -33,15 +33,24 @@ async function getBody(req) {
  * @returns {Headers}
  */
 function getHeaders(reqOrRes) {
+  /** @type {Record<string, unknown>} */
+  let raw = {}
+
   if ('headers' in reqOrRes) {
-    return /** @type {Headers} */ (structuredClone(reqOrRes.headers))
+    raw = /** @type {Record<string, unknown>} */ (structuredClone(reqOrRes.headers))
+  } else if ('getHeaders' in reqOrRes && typeof reqOrRes.getHeaders === 'function') {
+    raw = /** @type {Record<string, unknown>} */ (structuredClone(reqOrRes.getHeaders()))
   }
 
-  if ('getHeaders' in reqOrRes && typeof reqOrRes.getHeaders === 'function') {
-    return /** @type {Headers} */ (structuredClone(reqOrRes.getHeaders()))
+  /** @type {Headers} */
+  const headers = {}
+  for (const [key, value] of Object.entries(raw)) {
+    if (value !== undefined) {
+      headers[key] = /** @type {string | string[] | number | null} */ (value)
+    }
   }
 
-  return {}
+  return headers
 }
 
 /**
