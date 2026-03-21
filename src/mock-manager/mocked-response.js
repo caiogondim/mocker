@@ -1,11 +1,10 @@
 /** @typedef {import('../shared/http/types.js').Headers} Headers */
 /** @typedef {import('../shared/types.js').ConnectionId} ConnectionId */
 /** @typedef {import('../shared/types.js').HttpStatusCode} HttpStatusCode */
-/** @typedef {import('node:stream').TransformCallback} TransformCallback */
 
-import { Transform } from 'node:stream'
+import { PassThrough } from 'node:stream'
 
-class MockedResponse extends Transform {
+class MockedResponse extends PassThrough {
   /**
    * @param {Object} options
    * @param {HttpStatusCode} options.statusCode
@@ -32,16 +31,6 @@ class MockedResponse extends Transform {
 
     /** @readonly */
     this.connectionId = connectionId
-  }
-
-  /**
-   * @param {Buffer} chunk
-   * @param {string} encoding
-   * @param {TransformCallback} callback
-   * @returns {void}
-   */
-  _transform(chunk, encoding, callback) {
-    callback(null, chunk)
   }
 }
 

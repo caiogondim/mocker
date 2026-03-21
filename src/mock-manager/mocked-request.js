@@ -1,11 +1,10 @@
 /** @typedef {import('../shared/http/types.js').Headers} Headers */
 /** @typedef {import('../shared/types.js').HttpMethod} HttpMethod */
-/** @typedef {import('node:stream').TransformCallback} TransformCallback */
 
-import { Transform } from 'node:stream'
+import { PassThrough } from 'node:stream'
 import { HTTP_METHOD } from '../shared/http-method/index.js'
 
-class MockedRequest extends Transform {
+class MockedRequest extends PassThrough {
   /**
    * @param {Object} options
    * @param {string} options.url
@@ -23,16 +22,6 @@ class MockedRequest extends Transform {
 
     /** @readonly */
     this.url = url
-  }
-
-  /**
-   * @param {Buffer} chunk
-   * @param {string} encoding
-   * @param {TransformCallback} callback
-   * @returns {void}
-   */
-  _transform(chunk, encoding, callback) {
-    callback(null, chunk)
   }
 }
 

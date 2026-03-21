@@ -7,10 +7,10 @@
   "scripts": {
     "ci": "npm run lint && npm run type-check && npm run test",
     "test:all": "npm run lint && npm run type-check && npm run test",
-    "start": "NODE_OPTIONS='--max-http-header-size=1000000 --unhandled-rejections=strict' ./mocker",
+    "start": "NODE_OPTIONS='--max-http-header-size=1000000' ./mocker",
     "dev:httpbin": "node --watch-path=./src mocker --mocksDir ./responses/httpbin --origin http://httpbin.org --logging verbose --mode read-write",
     "dev:vi": "./scripts/dev-vi",
-    "dev": "NODE_OPTIONS='--max-http-header-size=1000000 --unhandled-rejections=strict' node --watch-path=./src mocker",
+    "dev": "NODE_OPTIONS='--max-http-header-size=1000000' node --watch-path=./src mocker",
     "test": "NODE_OPTIONS='--experimental-vm-modules --disable-warning=ExperimentalWarning' NODE_ENV=test jest",
     "type-check": "tsc --p './tsconfig.json'",
     "fmt": "prettier --print-width 80 --prose-wrap always --write './**/*.{js,md,yml,json}' --ignore-path .gitignore",

@@ -16,6 +16,7 @@
 
 import path from 'node:path'
 import nativeFs from 'node:fs'
+import { isUtf8 } from 'node:buffer'
 import zlib from 'node:zlib'
 import crypto from 'node:crypto'
 import { promisify } from 'node:util'
@@ -339,14 +340,7 @@ function isTextualContentType(contentType) {
  * @returns {boolean}
  */
 function isUtf8TextBody(bodyBuffer) {
-  if (bodyBuffer.length === 0) {
-    return true
-  }
-  const text = bodyBuffer.toString('utf8')
-  if (text.includes('\uFFFD')) {
-    return false
-  }
-  return Buffer.from(text, 'utf8').equals(bodyBuffer)
+  return isUtf8(bodyBuffer)
 }
 
 /**

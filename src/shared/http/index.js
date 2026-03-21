@@ -14,15 +14,14 @@ import {
   unredactHeaders,
   SecretNotFoundError,
 } from './redact-headers/index.js'
-import values from '../stream/values/index.js'
+import { buffer as streamBuffer } from 'node:stream/consumers'
 
 /**
  * @param {Readable} req
  * @returns {Promise<Buffer>}
  */
 async function getBody(req) {
-  const streamValues = await values(req)
-  return Buffer.concat(streamValues)
+  return streamBuffer(req)
 }
 
 /**

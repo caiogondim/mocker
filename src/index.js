@@ -13,7 +13,6 @@
 
 import path from 'node:path'
 import http from 'node:http'
-import { createRequire } from 'node:module'
 import createLogger from './shared/logger/index.js'
 import { bold, dim, green, yellow, red } from './shared/logger/format/index.js'
 import { createMockManager } from './mock-manager/index.js'
@@ -31,7 +30,7 @@ import { MODE } from './args/index.js'
 import { HTTP_METHOD } from './shared/http-method/index.js'
 import { HTTP_STATUS_CODE } from './shared/http-status-code/index.js'
 
-const packageJson = createRequire(import.meta.url)('../package.json')
+import packageJson from '../package.json' with { type: 'json' }
 const logger = createLogger()
 const closingMockerText = '\r  \nclosing mocker 👋'
 const SHUTDOWN_TIMEOUT_MS = 3000

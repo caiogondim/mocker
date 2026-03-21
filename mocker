@@ -30,9 +30,7 @@ import {
   dim,
   stringify,
 } from './src/shared/logger/format/index.js'
-import { createRequire } from 'node:module'
-
-const packageJson = createRequire(import.meta.url)('./package.json')
+import packageJson from './package.json' with { type: 'json' }
 const mockKeysDefaultStr = Array.from(MOCK_KEYS_DEFAULT.values()).join(',')
 
 const logger = createLogger({ forceLog: true })
