@@ -12,6 +12,8 @@
 // - RFC 7239 (Forwarded HTTP Extension)
 //
 
+/** @typedef {import('../shared/http/index.js').Headers} Headers */
+
 import { describe, it, expect } from '@jest/globals'
 import crypto from 'node:crypto'
 import zlib from 'node:zlib'
@@ -269,7 +271,7 @@ describe('request forwarding integrity', () => {
     })
     await mocker.listen()
 
-    const headers = /** @type {import('../shared/http/index.js').Headers} */ (
+    const headers = /** @type {Headers} */ (
       payload.length > 0 ? { 'content-type': contentType } : {}
     )
     const parsed5 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
@@ -496,21 +498,17 @@ describe('response forwarding integrity', () => {
 
 describe('hop-by-hop header handling', () => {
   /**
-   * Documents current mocker behavior for hop-by-hop headers.
-   * RFC 9110 §7.6.1 specifies that intermediaries SHOULD remove these
-   * headers, but mocker may or may not strip them. These tests document
-   * current behavior rather than assert strict compliance.
+   * RFC 9110 §7.6.1: An intermediary MUST NOT forward hop-by-hop headers
+   * to the next inbound/outbound hop.
    *
    * @see RFC 9110 §7.6.1
    */
   it.each([
-    ['connection', 'keep-alive'],
     ['keep-alive', 'timeout=5, max=100'],
-    ['te', 'trailers'],
     ['proxy-authorization', 'Basic dGVzdDp0ZXN0'],
     ['proxy-authenticate', 'Basic realm="test"'],
   ])(
-    'documents behavior for %s hop-by-hop header',
+    'strips %s hop-by-hop header from forwarded request',
     async (headerName, headerValue) => {
       await using origin = createHeaderEchoServer()
       await origin.listen()
@@ -528,6 +526,7 @@ describe('hop-by-hop header handling', () => {
         method: 'GET',
         headers: {
           [headerName]: headerValue,
+          'x-custom': 'should-pass-through',
         },
       })
       if (!requestResult.ok) throw requestResult.error
@@ -536,16 +535,113 @@ describe('hop-by-hop header handling', () => {
       const response = await responsePromise
       const body = JSON.parse(`${await getBody(response)}`)
 
-      // Document whether the hop-by-hop header was forwarded or stripped.
-      // If forwarded, value should match. If stripped, it should be undefined.
-      // Either behavior is acceptable — this test documents the current state.
-      if (body[headerName] !== undefined) {
-        expect(body[headerName]).toBe(headerValue)
-      } else {
-        expect(body[headerName]).toBeUndefined()
-      }
+      // Hop-by-hop header MUST NOT be forwarded to origin
+      expect(body[headerName]).toBeUndefined()
+      // End-to-end headers MUST be forwarded
+      expect(body['x-custom']).toBe('should-pass-through')
     },
   )
+
+  it('strips client connection header value from forwarded request', async () => {
+    await using origin = createHeaderEchoServer()
+    await origin.listen()
+
+    await using mocker = await createMocker({
+      mode: 'pass',
+      origin: `http://localhost:${origin.port}`,
+    })
+    await mocker.listen()
+
+    const parsed = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
+    if (!parsed.ok) throw parsed.error
+    const requestResult = await createRequest({
+      url: parsed.value,
+      method: 'GET',
+      headers: {
+        connection: 'x-custom-hop',
+        'x-custom-hop': 'secret',
+        'x-normal': 'visible',
+      },
+    })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
+    request.end()
+    const response = await responsePromise
+    const body = JSON.parse(`${await getBody(response)}`)
+
+    // The client's Connection-listed header MUST be stripped
+    expect(body['x-custom-hop']).toBeUndefined()
+    // Normal headers pass through
+    expect(body['x-normal']).toBe('visible')
+  })
+
+  it('strips hop-by-hop headers from origin response before sending to client', async () => {
+    await using origin = createServer(async (req, res) => {
+      res.setHeader('proxy-authenticate', 'Basic realm="test"')
+      res.setHeader('proxy-authorization', 'Basic dGVzdDp0ZXN0')
+      res.setHeader('x-custom-response', 'should-pass-through')
+      res.setHeader('content-type', 'text/plain')
+      res.end('ok')
+    })
+    await origin.listen()
+
+    await using mocker = await createMocker({
+      mode: 'pass',
+      origin: `http://localhost:${origin.port}`,
+    })
+    await mocker.listen()
+
+    const parsed = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
+    if (!parsed.ok) throw parsed.error
+    const requestResult = await createRequest({
+      url: parsed.value,
+      method: 'GET',
+    })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
+    request.end()
+    const response = await responsePromise
+    await getBody(response)
+
+    // Hop-by-hop headers from origin MUST NOT be forwarded to client
+    expect(response.headers['proxy-authenticate']).toBeUndefined()
+    expect(response.headers['proxy-authorization']).toBeUndefined()
+    // End-to-end headers MUST be forwarded
+    expect(response.headers['x-custom-response']).toBe('should-pass-through')
+  })
+
+  it('strips headers listed in Connection header value (RFC 9110 §7.6.1)', async () => {
+    await using origin = createHeaderEchoServer()
+    await origin.listen()
+
+    await using mocker = await createMocker({
+      mode: 'pass',
+      origin: `http://localhost:${origin.port}`,
+    })
+    await mocker.listen()
+
+    const parsed = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
+    if (!parsed.ok) throw parsed.error
+    const requestResult = await createRequest({
+      url: parsed.value,
+      method: 'GET',
+      headers: {
+        connection: 'x-secret-token',
+        'x-secret-token': 'my-secret',
+        'x-normal': 'visible',
+      },
+    })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
+    request.end()
+    const response = await responsePromise
+    const body = JSON.parse(`${await getBody(response)}`)
+
+    // Headers named in Connection header value MUST be stripped
+    expect(body['x-secret-token']).toBeUndefined()
+    // Normal headers pass through
+    expect(body['x-normal']).toBe('visible')
+  })
 })
 
 //-
@@ -1002,6 +1098,58 @@ describe('content-encoding pass-through', () => {
     expect(response.headers['content-encoding']).toBeUndefined()
     const body = JSON.parse(`${await getBody(response)}`)
     expect(body.method).toBe('GET')
+  })
+
+  it('preserves content-encoding header for unsupported encodings in mocked responses', async () => {
+    const rawBody = Buffer.from('compressed-with-zstd')
+    await using origin = createServer(async (req, res) => {
+      for await (const _ of req) {
+        // drain
+      }
+      res.writeHead(200, {
+        'content-type': 'application/octet-stream',
+        'content-encoding': 'zstd',
+      })
+      res.end(rawBody)
+    })
+    await origin.listen()
+
+    // First request: write the mock (read-write mode)
+    await using mocker = await createMocker({
+      mode: 'read-write',
+      origin: `http://localhost:${origin.port}`,
+    })
+    await mocker.listen()
+
+    const parsed = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/zstd-test`,
+    )
+    if (!parsed.ok) throw parsed.error
+
+    const requestResult1 = await createRequest({
+      url: parsed.value,
+      method: 'GET',
+    })
+    if (!requestResult1.ok) throw requestResult1.error
+    const [request1, responsePromise1] = requestResult1.value
+    request1.end()
+    const response1 = await responsePromise1
+    await getBody(response1) // consume response
+
+    // Second request: serve from mock (the origin could be down)
+    const requestResult2 = await createRequest({
+      url: parsed.value,
+      method: 'GET',
+    })
+    if (!requestResult2.ok) throw requestResult2.error
+    const [request2, responsePromise2] = requestResult2.value
+    request2.end()
+    const response2 = await responsePromise2
+
+    // The mock should preserve content-encoding since it couldn't decompress
+    expect(response2.headers['content-encoding']).toBe('zstd')
+    const body2 = await getBody(response2)
+    expect(body2).toEqual(rawBody)
   })
 })
 

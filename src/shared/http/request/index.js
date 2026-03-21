@@ -3,6 +3,8 @@
 /** @typedef {import('../../types.js').HttpMethod} HttpMethod */
 /** @typedef {import('../types.js').Headers} Headers */
 /** @template T @template {Error} [E=Error] @typedef {import('../../types.js').Result<T, E>} Result */
+/** @typedef {import('node:net').Socket} NetSocket */
+/** @typedef {import('node:http').RequestOptions} RequestOptions */
 
 import { HTTP_METHOD } from '../../http-method/index.js'
 import { HTTP_STATUS_CODE } from '../../http-status-code/index.js'
@@ -72,6 +74,7 @@ function getNativeRequest(protocol) {
  * @returns {{
  *   method: string
  *   hostname: string
+ *   host: string
  *   port: number
  *   path: string
  *   headers: Headers
@@ -108,10 +111,16 @@ function waitForRequestSocketConnection(request) {
   return new Promise((resolve, reject) => {
     /** @type {ReturnType<typeof setTimeout> | undefined} */
     let timeoutId
+    /** @type {NetSocket | undefined} */
+    let pendingSocket
 
     function cleanup() {
       request.removeListener('error', onError)
       request.removeListener('socket', onSocket)
+      if (pendingSocket) {
+        pendingSocket.removeListener('connect', onSocketConnect)
+        pendingSocket = undefined
+      }
       if (timeoutId) {
         clearTimeout(timeoutId)
         timeoutId = undefined
@@ -124,16 +133,19 @@ function waitForRequestSocketConnection(request) {
       reject(error)
     }
 
-    /** @param {import('node:net').Socket} socket */
+    function onSocketConnect() {
+      cleanup()
+      resolve(undefined)
+    }
+
+    /** @param {NetSocket} socket */
     function onSocket(socket) {
       if (socket.readyState === 'open') {
         cleanup()
         resolve(undefined)
       } else {
-        socket.once('connect', () => {
-          cleanup()
-          resolve(undefined)
-        })
+        pendingSocket = socket
+        socket.once('connect', onSocketConnect)
       }
     }
 
@@ -153,13 +165,26 @@ function waitForRequestSocketConnection(request) {
  */
 function createResponsePromise(request) {
   return new Promise((resolve, reject) => {
-    request.setTimeout(RESPONSE_TIMEOUT_MS, () => {
-      request.destroy(createRequestTimeoutError('response', RESPONSE_TIMEOUT_MS))
-    })
-    request.on('response', (/** @type {http.IncomingMessage} */ response) => {
+    function onResponse(/** @type {http.IncomingMessage} */ response) {
+      cleanup()
       resolve(response)
-    })
-    request.on('error', reject)
+    }
+    function onError(/** @type {Error} */ error) {
+      cleanup()
+      reject(error)
+    }
+    function onTimeout() {
+      request.destroy(createRequestTimeoutError('response', RESPONSE_TIMEOUT_MS))
+    }
+    function cleanup() {
+      request.setTimeout(0)
+      request.removeListener('response', onResponse)
+      request.removeListener('error', onError)
+    }
+
+    request.setTimeout(RESPONSE_TIMEOUT_MS, onTimeout)
+    request.on('response', onResponse)
+    request.on('error', onError)
   })
 }
 
@@ -179,7 +204,7 @@ async function createRequest({ url, headers = {}, method = HTTP_METHOD.GET }) {
   const nativeRequest = nativeRequestResult.value
   const requestParams = prepareRequestParams(urlObj, method, headers)
   const request = nativeRequest(
-    /** @type {import('node:http').RequestOptions} */ (requestParams),
+    /** @type {RequestOptions} */ (requestParams),
   )
   await waitForRequestSocketConnection(request)
   const responsePromise = createResponsePromise(request)
@@ -336,7 +361,9 @@ async function createRequestWithRetry({
     resolve: resolveResponse,
     reject: rejectResponse,
     promise: responseWithRetryPromise,
-  } = Promise.withResolvers()
+  } = /** @type {PromiseWithResolvers<http.IncomingMessage>} */ (
+    Promise.withResolvers()
+  )
 
   //
   // Retry loop
@@ -387,7 +414,7 @@ async function createRequestWithRetry({
     }
   }
   setTimeout(() => {
-    void runResponseRetryLoop()
+    runResponseRetryLoop().catch(rejectResponse)
   }, 0).unref()
 
   return { ok: true, value: [request, responseWithRetryPromise] }

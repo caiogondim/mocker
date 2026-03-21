@@ -1,3 +1,5 @@
+/** @typedef {import('node:net').AddressInfo} AddressInfo */
+
 import { describe, it, expect } from '@jest/globals'
 import path from 'node:path'
 import {
@@ -83,7 +85,7 @@ describe('--port', () => {
     const net = await import('node:net')
     const server = net.default.createServer()
     await new Promise((resolve) => server.listen(0, () => resolve(undefined)))
-    const takenPort = /** @type {import('node:net').AddressInfo} */ (
+    const takenPort = /** @type {AddressInfo} */ (
       server.address()
     ).port
 

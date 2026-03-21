@@ -1,7 +1,7 @@
 /**
- * @template T
- * @param {Function} fn
- * @returns Promise<<ReturnType<T>>>
+ * @template {(...args: never[]) => unknown} T
+ * @param {T} fn
+ * @returns {T}
  */
 function queueCalls(fn) {
   /** @type {Array<[() => unknown, (value: unknown) => void, (error: unknown) => void]>} */
@@ -23,10 +23,7 @@ function queueCalls(fn) {
     setImmediate(loop)
   }
 
-  /**
-   * @param {...unknown} args
-   * @returns {Promise<unknown>}
-   */
+  /** @param {Parameters<T>} args */
   async function decoratedFn(...args) {
     const promise = new Promise((resolve, reject) => {
       queue.push([() => fn(...args), resolve, reject])
@@ -43,7 +40,7 @@ function queueCalls(fn) {
     value: `queueCalls(${fn.name})`,
   })
 
-  return decoratedFn
+  return /** @type {T} */ (/** @type {unknown} */ (decoratedFn))
 }
 
 export default queueCalls

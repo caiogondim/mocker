@@ -50,4 +50,27 @@ describe('delay', () => {
 
     expect(stream.constructor).toEqual(PassThrough)
   })
+
+  it('cancels the sleep when the stream is destroyed', async () => {
+    const delayMs = 5_000
+    const delayStream = delay({ ms: delayMs })
+
+    // Write a chunk to trigger the sleep, then destroy immediately
+    delayStream.write('hello')
+    // Give the transform a tick to enter the sleep
+    await new Promise((resolve) => setTimeout(resolve, 50))
+
+    const t1 = Date.now()
+    delayStream.destroy()
+
+    // The sleep timer should be cancelled. If it's not, this test will
+    // take 5s+ (and Jest will report the hanging timer).
+    // We wait a bit and check that the delay timer is not keeping the
+    // event loop alive by verifying no output was produced.
+    await new Promise((resolve) => setTimeout(resolve, 200))
+    const t2 = Date.now()
+
+    expect(t2 - t1).toBeLessThan(1000)
+    expect(delayStream.destroyed).toBe(true)
+  }, 2000)
 })

@@ -1,5 +1,6 @@
 /** @typedef {import('../shared/http/types.js').Headers} Headers */
 /** @typedef {import('../shared/types.js').HttpMethod} HttpMethod */
+/** @typedef {import('node:stream').TransformCallback} TransformCallback */
 
 import { Transform } from 'node:stream'
 import { HTTP_METHOD } from '../shared/http-method/index.js'
@@ -27,7 +28,7 @@ class MockedRequest extends Transform {
   /**
    * @param {Buffer} chunk
    * @param {string} encoding
-   * @param {Function} callback
+   * @param {TransformCallback} callback
    * @returns {void}
    */
   _transform(chunk, encoding, callback) {

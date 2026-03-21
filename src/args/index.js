@@ -66,7 +66,7 @@ const RETRIES_DEFAULT = 0
 const OVERWRITE_RESPONSE_HEADERS_DEFAULT = {}
 const CORS_DEFAULT = false
 
-const PROXY_DEFAULT = /** @type {HttpUrl} */ ('')
+const PROXY_DEFAULT = ''
 
 /**
  * @param {ArgvMap} argvMap
@@ -312,7 +312,7 @@ function getRetries(argvMap) {
   if (!result.ok) {
     throw prettifyError({
       error: new TypeError(`invalid --retries`),
-      expected: `positive integer`,
+      expected: `non-negative integer`,
       received: stringify(retriesArgv),
     })
   }
@@ -373,10 +373,16 @@ async function getPort(argvMap) {
 
 /**
  * @param {ArgvMap} argvMap
+ * @param {string} mode
  * @returns {HttpUrl}
  */
-function getOrigin(argvMap) {
+function getOrigin(argvMap, mode) {
   const originArgv = argvMap.get('origin') ?? ''
+
+  if (originArgv === '' && mode === MODE.READ) {
+    return /** @type {HttpUrl} */ ('http://localhost')
+  }
+
   const result = parseHttpUrl(originArgv)
 
   if (!result.ok) {
@@ -420,7 +426,7 @@ function getThrottle(argvMap) {
   if (!result.ok) {
     throw prettifyError({
       error: new TypeError(`invalid --throttle`),
-      expected: `positive integer`,
+      expected: `positive integer or Infinity`,
       received: stringify(argvThrottle),
     })
   }
@@ -490,13 +496,13 @@ function getCors(argvMap) {
 
 /**
  * @param {ArgvMap} argvMap
- * @returns {HttpUrl}
+ * @returns {HttpUrl | ''}
  */
 function getProxy(argvMap) {
   const proxy = argvMap.get('proxy') ?? PROXY_DEFAULT
 
   if (proxy === '') {
-    return /** @type {HttpUrl} */ (proxy)
+    return ''
   }
 
   const result = parseHttpUrl(proxy)
@@ -528,7 +534,7 @@ async function parseArgv(argv) {
   const port = await getPort(argvMap)
   const mode = getMode(argvMap)
   const update = getUpdate(argvMap)
-  const origin = getOrigin(argvMap)
+  const origin = getOrigin(argvMap, mode)
   const delay = getDelay(argvMap)
   const throttle = getThrottle(argvMap)
   const mocksDir = await getMocksDir(argvMap)

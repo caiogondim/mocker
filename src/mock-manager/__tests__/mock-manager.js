@@ -1,3 +1,6 @@
+/** @typedef {import('node:stream').Readable} Readable */
+/** @typedef {import('../../shared/stream/rewindable/types.js').Rewindable} Rewindable */
+
 import { describe, it, expect } from '@jest/globals'
 import MockedRequest from '../mocked-request.js'
 import { rewindable as rewindableRaw } from '../../shared/stream/index.js'
@@ -8,8 +11,12 @@ import { createMockedRequest } from './helpers/mocked-request.js'
 import { MockFileError } from '../mock-file-error.js'
 import { MockGetError } from '../index.js'
 
-/** @template T @param {any} stream @returns {T} */
-function rewindable(/** @type {any} */ stream) {
+/**
+ * @template {Readable} T
+ * @param {T} stream
+ * @returns {T & Rewindable}
+ */
+function rewindable(stream) {
   const result = rewindableRaw(stream)
   if (!result.ok) throw result.error
   return result.value
@@ -722,4 +729,203 @@ describe('mockManager.getAll', () => {
       }
     }
   })
+})
+
+describe('mockManager.set parses +json suffix MIME types as JSON', () => {
+  it.each([
+    'application/ld+json',
+    'application/vnd.api+json',
+    'application/hal+json',
+    'application/geo+json',
+  ])(
+    'stores %s response body as structured JSON object, not string',
+    async (contentType) => {
+      const { createMemFs } = await import('./helpers/mock-manager.js')
+      const { mocksDir, fs } = await createMemFs()
+      const { createMockManager: factory } = await import('../index.js')
+      const mockManager = factory({ mocksDir, fs })
+
+      const jsonPayload = JSON.stringify({ key: 'value', nested: { a: 1 } })
+
+      const request = rewindable(
+        createMockedRequest({ url: `http://example.com/${contentType}` }),
+      )
+      request.end()
+
+      const response = rewindable(
+        createMockedResponse({
+          headers: { 'content-type': contentType },
+        }),
+      )
+      response.end(jsonPayload)
+
+      const setResult = await mockManager.set({ request, response })
+      expect(setResult.ok).toBe(true)
+      if (!setResult.ok) return
+
+      // Read the mock file from disk and check the body is stored as
+      // a parsed JSON object, not as a JSON string
+      const mockFileContent = await fs.promises.readFile(
+        setResult.value.mockPath,
+      )
+      const mockFile = JSON.parse(mockFileContent.toString())
+      expect(typeof mockFile.response.body).toBe('object')
+      expect(mockFile.response.body).toEqual({ key: 'value', nested: { a: 1 } })
+    },
+  )
+
+  it.each([
+    'application/xhtml+xml',
+    'application/soap+xml',
+    'application/atom+xml',
+    'application/rss+xml',
+    'image/svg+xml',
+  ])(
+    'stores %s response body as text (not base64)',
+    async (contentType) => {
+      const { createMemFs } = await import('./helpers/mock-manager.js')
+      const { mocksDir, fs } = await createMemFs()
+      const { createMockManager: factory } = await import('../index.js')
+      const mockManager = factory({ mocksDir, fs })
+
+      const xmlPayload =
+        '<?xml version="1.0" encoding="UTF-8"?><root><item>héllo wörld</item></root>'
+
+      const request = rewindable(
+        createMockedRequest({ url: `http://example.com/xml-${contentType}` }),
+      )
+      request.end()
+
+      const response = rewindable(
+        createMockedResponse({
+          headers: { 'content-type': contentType },
+        }),
+      )
+      response.end(xmlPayload)
+
+      const setResult = await mockManager.set({ request, response })
+      expect(setResult.ok).toBe(true)
+      if (!setResult.ok) return
+
+      const mockFileContent = await fs.promises.readFile(
+        setResult.value.mockPath,
+      )
+      const mockFile = JSON.parse(mockFileContent.toString())
+      expect(typeof mockFile.response.body).toBe('string')
+      expect(mockFile.response.body).toBe(
+        '<?xml version="1.0" encoding="UTF-8"?><root><item>héllo wörld</item></root>',
+      )
+    },
+  )
+
+  it.each([
+    ['iso-8859-1', 'latin1'],
+    ['us-ascii', 'ascii'],
+    ['windows-1252', 'latin1'],
+  ])(
+    'stores text body with charset=%s as text (not base64)',
+    async (charset, _nodeEquivalent) => {
+      const { createMemFs } = await import('./helpers/mock-manager.js')
+      const { mocksDir, fs } = await createMemFs()
+      const { createMockManager: factory } = await import('../index.js')
+      const mockManager = factory({ mocksDir, fs })
+
+      const textPayload = 'Hello World'
+      const contentType = `text/html; charset=${charset}`
+
+      const request = rewindable(
+        createMockedRequest({ url: `http://example.com/charset-${charset}` }),
+      )
+      request.end()
+
+      const response = rewindable(
+        createMockedResponse({
+          headers: { 'content-type': contentType },
+        }),
+      )
+      response.end(textPayload)
+
+      const setResult = await mockManager.set({ request, response })
+      expect(setResult.ok).toBe(true)
+      if (!setResult.ok) return
+
+      // Check the mock file stores the body as a plain string, not base64
+      const mockFileContent = await fs.promises.readFile(
+        setResult.value.mockPath,
+      )
+      const mockFile = JSON.parse(mockFileContent.toString())
+      expect(typeof mockFile.response.body).toBe('string')
+      expect(mockFile.response.body).toBe('Hello World')
+    },
+  )
+
+  it('handles JSON body with UTF-8 BOM correctly', async () => {
+    const { createMemFs } = await import('./helpers/mock-manager.js')
+    const { mocksDir, fs } = await createMemFs()
+    const { createMockManager: factory } = await import('../index.js')
+    const mockManager = factory({ mocksDir, fs })
+
+    const bom = '\uFEFF'
+    const jsonPayload = bom + JSON.stringify({ key: 'value' })
+
+    const request = rewindable(
+      createMockedRequest({ url: 'http://example.com/bom-json' }),
+    )
+    request.end()
+
+    const response = rewindable(
+      createMockedResponse({
+        headers: { 'content-type': 'application/json' },
+      }),
+    )
+    response.end(jsonPayload)
+
+    const setResult = await mockManager.set({ request, response })
+    expect(setResult.ok).toBe(true)
+    if (!setResult.ok) return
+
+    // The body should be stored as parsed JSON (BOM stripped)
+    const mockFileContent = await fs.promises.readFile(
+      setResult.value.mockPath,
+    )
+    const mockFile = JSON.parse(mockFileContent.toString())
+    expect(typeof mockFile.response.body).toBe('object')
+    expect(mockFile.response.body).toEqual({ key: 'value' })
+  })
+
+  it.each([
+    'application/ld+json',
+    'application/vnd.api+json',
+  ])(
+    'round-trips %s response body correctly through set then get',
+    async (contentType) => {
+      const mockManager = await createMockManager()
+      const expectedBody = { users: [{ id: 1, name: 'Alice' }] }
+      const jsonPayload = JSON.stringify(expectedBody)
+
+      const request = rewindable(
+        createMockedRequest({ url: `http://example.com/roundtrip-${contentType}` }),
+      )
+      request.end()
+
+      const response = rewindable(
+        createMockedResponse({
+          headers: { 'content-type': contentType },
+        }),
+      )
+      response.end(jsonPayload)
+
+      await mockManager.set({ request, response })
+
+      const getResult = await mockManager.get({ request })
+      expect(getResult.ok).toBe(true)
+      if (!getResult.ok) return
+
+      const body = await getBody(getResult.value.mockedResponse)
+      const bodyStr = body.toString()
+      // The served body must be valid JSON that matches what was stored
+      const parsed = JSON.parse(bodyStr)
+      expect(parsed).toEqual(expectedBody)
+    },
+  )
 })

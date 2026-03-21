@@ -4,7 +4,7 @@ const prettyErrorSymbol = Symbol('pretty-error')
 
 /**
  * @param {unknown} x
- * @returns {Boolean}
+ * @returns {boolean}
  */
 function isPrettyError(x) {
   return (

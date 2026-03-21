@@ -17,8 +17,12 @@ function createAsyncHttpServer(connectionHandler) {
      * @returns {Promise<void>}
      */
     listen(port = 0) {
-      return new Promise((resolve) => {
-        server.listen(port, resolve)
+      return new Promise((resolve, reject) => {
+        server.once('error', reject)
+        server.listen(port, () => {
+          server.removeListener('error', reject)
+          resolve()
+        })
       })
     },
     close() {

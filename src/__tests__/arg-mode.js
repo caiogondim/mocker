@@ -462,4 +462,26 @@ describe(`mode = 'pass-read'`, () => {
     expect(response.statusCode).toBe(404)
     expect(response.headers['x-mocker-mock-path']).toBe(`Not Found`)
   })
+
+  it('falls back to mock on DNS failure (ENOTFOUND)', async () => {
+    await using mocker = await createMocker({
+      origin: 'http://this-domain-does-not-exist-mocker-test.invalid',
+      mode: 'pass-read',
+    })
+    await mocker.listen()
+
+    const parsed = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
+    if (!parsed.ok) throw parsed.error
+    const requestResult = await createRequest({
+      url: parsed.value,
+      method: 'GET',
+    })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
+    request.end()
+    const response = await responsePromise
+
+    // Should fall back to mock (404 since no mock exists), not 500
+    expect(response.statusCode).toBe(404)
+  })
 })

@@ -54,19 +54,19 @@ function getHeaders(reqOrRes) {
 }
 
 /**
- * @param {unknown} x
- * @returns {x is Headers}
+ * @param {unknown} value
+ * @returns {value is Headers}
  */
-function isHeaders(x) {
+function isHeaders(value) {
   // Must be an object at the root level
-  if (getConstructorName(x) !== 'Object') {
+  if (getConstructorName(value) !== 'Object') {
     return false
   }
 
-  for (const value of Object.values(/** @type {object} */ (x))) {
-    const valueConstructorName = getConstructorName(value)
+  for (const headerValue of Object.values(/** @type {object} */ (value))) {
+    const valueConstructorName = getConstructorName(headerValue)
     if (
-      ['String', 'Number', 'Undefined', 'Null', 'Boolean'].includes(
+      ['String', 'Number', 'Undefined', 'Null'].includes(
         valueConstructorName,
       )
     ) {
@@ -74,12 +74,12 @@ function isHeaders(x) {
     }
 
     // `Array.isArray` To make TypeScript happy
-    if (valueConstructorName !== 'Array' || !Array.isArray(value)) {
+    if (valueConstructorName !== 'Array' || !Array.isArray(headerValue)) {
       return false
     }
 
     // In case a value is an Array, all values inside it must be a string
-    if (value.every((arrValue) => getConstructorName(arrValue) === 'String')) {
+    if (headerValue.every((arrValue) => getConstructorName(arrValue) === 'String')) {
       continue
     }
 
@@ -90,17 +90,68 @@ function isHeaders(x) {
 }
 
 /**
- * @param {unknown} x
+ * @param {unknown} value
  * @returns {Result<Headers>}
  */
-function parseHeaders(x) {
-  if (!isHeaders(x)) {
+function parseHeaders(value) {
+  if (!isHeaders(value)) {
     return {
       ok: false,
       error: new TypeError('Expected a valid Headers object'),
     }
   }
-  return { ok: true, value: x }
+  return { ok: true, value }
+}
+
+/**
+ * RFC 9110 §7.6.1 — hop-by-hop headers that MUST NOT be forwarded by
+ * an intermediary.
+ */
+const HOP_BY_HOP_HEADERS = new Set([
+  'connection',
+  'keep-alive',
+  'proxy-authenticate',
+  'proxy-authorization',
+  'te',
+  'trailer',
+  'transfer-encoding',
+  'upgrade',
+])
+
+/**
+ * Removes hop-by-hop headers from a headers object.
+ * Also removes any headers listed in the Connection header value
+ * (RFC 9110 §7.6.1).
+ *
+ * @param {Headers} headers
+ * @returns {Headers}
+ */
+function stripHopByHopHeaders(headers) {
+  /** @type {Headers} */
+  const output = {}
+
+  // Parse Connection header to find additional headers to strip
+  const connectionValue = headers['connection']
+  /** @type {Set<string>} */
+  const connectionTokens = new Set()
+  if (typeof connectionValue === 'string') {
+    for (const token of connectionValue.split(',')) {
+      const trimmed = token.trim().toLowerCase()
+      if (trimmed) {
+        connectionTokens.add(trimmed)
+      }
+    }
+  }
+
+  for (const [key, value] of Object.entries(headers)) {
+    const lowerKey = key.toLowerCase()
+    if (HOP_BY_HOP_HEADERS.has(lowerKey) || connectionTokens.has(lowerKey)) {
+      continue
+    }
+    output[key] = value
+  }
+
+  return output
 }
 
 export {
@@ -112,4 +163,5 @@ export {
   SecretNotFoundError,
   isHeaders,
   parseHeaders,
+  stripHopByHopHeaders,
 }

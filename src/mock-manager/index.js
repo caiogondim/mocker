@@ -11,6 +11,7 @@
 /** @typedef {import('../shared/stream/rewindable/types.js').Rewindable} Rewindable */
 /** @typedef {import('../shared/types.js').Json} Json */
 /** @typedef {'br' | 'deflate' | 'gzip'} ContentEncodingToken */
+/** @typedef {typeof import('node:fs/promises')} FsPromises */
 /** @typedef {(input: Buffer) => Promise<Buffer>} Decompressor */
 
 import path from 'node:path'
@@ -58,6 +59,19 @@ const decompressorsByEncoding = {
 }
 
 /**
+ * @param {unknown} value
+ * @returns {boolean}
+ */
+function isValidStatusCode(value) {
+  return (
+    typeof value === 'number' &&
+    Number.isInteger(value) &&
+    value >= 100 &&
+    value <= 599
+  )
+}
+
+/**
  * @param {string} value
  * @returns {value is ContentEncodingToken}
  */
@@ -67,11 +81,12 @@ function isSupportedContentEncoding(value) {
 
 /**
  * @param {string} contentEncoding
- * @returns {ContentEncodingToken[]}
+ * @returns {{ encodings: ContentEncodingToken[]; hasUnsupported: boolean }}
  */
 function parseContentEncodings(contentEncoding) {
   /** @type {ContentEncodingToken[]} */
   const output = []
+  let hasUnsupported = false
 
   for (const rawToken of `${contentEncoding}`.split(',')) {
     const token = rawToken.trim().toLowerCase()
@@ -79,12 +94,13 @@ function parseContentEncodings(contentEncoding) {
       continue
     }
     if (!isSupportedContentEncoding(token)) {
+      hasUnsupported = true
       continue
     }
     output.push(token)
   }
 
-  return output
+  return { encodings: output, hasUnsupported }
 }
 
 /**
@@ -171,21 +187,25 @@ function getHttpFileName(url, method, mockKeys) {
 /**
  * @param {Buffer} buffer
  * @param {string} algorithm
- * @returns {Promise<Buffer>}
+ * @returns {Promise<{ body: Buffer; fullyDecompressed: boolean }>}
  */
 async function uncompressBody(buffer, algorithm) {
   if (buffer.length === 0) {
-    return buffer
+    return { body: buffer, fullyDecompressed: true }
   }
 
-  const encodings = parseContentEncodings(algorithm)
+  const { encodings, hasUnsupported } = parseContentEncodings(algorithm)
+
+  if (hasUnsupported) {
+    return { body: buffer, fullyDecompressed: false }
+  }
 
   let output = buffer
   for (let i = encodings.length - 1; i >= 0; i -= 1) {
     output = await decompressorsByEncoding[encodings[i]](output)
   }
 
-  return output
+  return { body: output, fullyDecompressed: true }
 }
 
 /**
@@ -204,11 +224,18 @@ function parseBody(bodyBuffer, request, connectionId) {
   )
 
   if (isTextualContentType(headerContentType)) {
-    return bodyBuffer.toString()
+    const charset = parseCharset(headerContentType)
+    if (charset && !isNodeSupportedEncoding(charset)) {
+      return {
+        encoding: BODY_ENCODING_BASE64,
+        data: bodyBuffer.toString('base64'),
+      }
+    }
+    return bodyBuffer.toString(resolveCharset(charset || 'utf8'))
   }
 
-  if (headerContentType.includes('application/json')) {
-    const bodyString = bodyBuffer.toString()
+  if (isJsonContentType(headerContentType)) {
+    const bodyString = stripBom(bodyBuffer.toString())
     const parseResult = tryCatch(() => JSON.parse(bodyString))
     if (parseResult.ok) {
       return /** @type {Json} */ (parseResult.value)
@@ -231,15 +258,79 @@ function parseBody(bodyBuffer, request, connectionId) {
 
 /**
  * @param {string} contentType
+ * @returns {string | undefined}
+ */
+function parseCharset(contentType) {
+  const match = contentType.match(/charset=([^\s;]+)/i)
+  if (!match) return undefined
+  return match[1].toLowerCase().replace(/^["']|["']$/g, '')
+}
+
+const NODE_SUPPORTED_ENCODINGS = new Set([
+  'utf8', 'utf-8', 'ascii', 'latin1', 'binary', 'base64', 'hex',
+  'ucs2', 'ucs-2', 'utf16le', 'utf-16le',
+])
+
+/** @type {Record<string, BufferEncoding>} */
+const CHARSET_ALIASES = {
+  'iso-8859-1': 'latin1',
+  'iso-8859-15': 'latin1',
+  'us-ascii': 'ascii',
+  'windows-1252': 'latin1',
+}
+
+/**
+ * @param {string} charset
+ * @returns {boolean}
+ */
+function isNodeSupportedEncoding(charset) {
+  return NODE_SUPPORTED_ENCODINGS.has(charset) || charset in CHARSET_ALIASES
+}
+
+/**
+ * @param {string} charset
+ * @returns {BufferEncoding}
+ */
+function resolveCharset(charset) {
+  if (charset in CHARSET_ALIASES) {
+    return CHARSET_ALIASES[charset]
+  }
+  return /** @type {BufferEncoding} */ (charset)
+}
+
+/**
+ * @param {string} str
+ * @returns {string}
+ */
+function stripBom(str) {
+  return str.charCodeAt(0) === 0xfeff ? str.slice(1) : str
+}
+
+/**
+ * @param {string} contentType
+ * @returns {boolean}
+ */
+function isJsonContentType(contentType) {
+  return (
+    contentType.includes('application/json') ||
+    contentType.includes('+json')
+  )
+}
+
+/**
+ * @param {string} contentType
  * @returns {boolean}
  */
 function isTextualContentType(contentType) {
   return (
     contentType.startsWith('text/') ||
     contentType.includes('application/xml') ||
+    contentType.includes('+xml') ||
     contentType.includes('application/javascript') ||
     contentType.includes('application/x-www-form-urlencoded') ||
-    contentType.includes('application/graphql')
+    contentType.includes('application/graphql') ||
+    contentType.includes('application/yaml') ||
+    contentType.includes('+yaml')
   )
 }
 
@@ -277,14 +368,17 @@ function sanitizeRequestHeaders(headers, secrets) {
 /**
  * @param {Headers} headers
  * @param {Headers} secrets
+ * @param {boolean} [fullyDecompressed]
  * @returns {Headers}
  */
-function sanitizeResponseHeaders(headers, secrets) {
+function sanitizeResponseHeaders(headers, secrets, fullyDecompressed = true) {
   // `redactHeaders` creates a copy of `headers` so we don't need to call `clone`
   const headersClone = redactHeaders(headers, secrets)
 
-  // Remove `content-encoding` header since we always serve non-compressed assets.
-  if ('content-encoding' in headersClone) {
+  // Only remove `content-encoding` when body was fully decompressed.
+  // If the body uses an unsupported encoding (e.g. zstd), preserve the header
+  // so clients know the body is still compressed.
+  if (fullyDecompressed && 'content-encoding' in headersClone) {
     delete headersClone['content-encoding']
   }
 
@@ -303,8 +397,8 @@ function sanitizeResponseHeaders(headers, secrets) {
  * @returns {string}
  */
 function buildLabel(body, request, mockKeys) {
-  for (const k of mockKeys) {
-    if (k === 'body' || k.startsWith('body.')) {
+  for (const mockKey of mockKeys) {
+    if (mockKey === 'body' || mockKey.startsWith('body.')) {
       const gqlResult = getGraphQLFileName(body)
       return gqlResult.ok
         ? gqlResult.value
@@ -320,13 +414,14 @@ function buildLabel(body, request, mockKeys) {
  * @returns {unknown}
  */
 function resolveBodyPath(dotPath, body) {
+  const root = Array.isArray(body) ? body[0] : body
   const props = dotPath.split('.').slice(1)
   return props.reduce(
     (/** @type {unknown} */ obj, key) =>
-      obj !== null && typeof obj === 'object'
+      obj !== null && typeof obj === 'object' && !Array.isArray(obj)
         ? /** @type {Record<string, unknown>} */ (obj)[key]
         : undefined,
-    /** @type {unknown} */ (body),
+    /** @type {unknown} */ (root),
   )
 }
 
@@ -340,8 +435,12 @@ function resolveBodyPath(dotPath, body) {
 function buildMockKeyFingerprint(request, reqBody, body, mockKeys) {
   const parts = []
   for (const mockKey of mockKeys) {
-    if (mockKey === 'method' || mockKey === 'headers' || mockKey === 'url') {
+    if (mockKey === 'method' || mockKey === 'url') {
       parts.push(JSON.stringify(request[mockKey]))
+    } else if (mockKey === 'headers') {
+      const headers = getHeaders(request)
+      delete headers['content-length']
+      parts.push(JSON.stringify(headers))
     } else if (mockKey === 'body') {
       parts.push(String(reqBody))
     } else if (mockKey.startsWith('body.') && typeof body === 'object') {
@@ -396,9 +495,10 @@ function serializeBody(part) {
   }
 
   const contentType = `${part.headers?.['content-type'] ?? ''}`
-  return contentType.includes('application/json')
-    ? JSON.stringify(part.body)
-    : /** @type {string} */ (part.body)
+  if (isJsonContentType(contentType)) {
+    return JSON.stringify(part.body)
+  }
+  return part.body == null ? '' : String(part.body)
 }
 
 /**
@@ -445,10 +545,12 @@ function validateMockFileShape(fileJson) {
       error: new TypeError('Mock file request.method and request.url must be strings'),
     }
   }
-  if (typeof responseStatusCode !== 'number') {
+  if (!isValidStatusCode(responseStatusCode)) {
     return {
       ok: false,
-      error: new TypeError('Mock file response.statusCode must be a number'),
+      error: new TypeError(
+        'Mock file response.statusCode must be an integer between 100 and 599',
+      ),
     }
   }
 
@@ -459,7 +561,7 @@ function validateMockFileShape(fileJson) {
  * @param {MockFile} fileJson
  * @param {HttpStatusCode} statusCode
  * @param {Headers} redactedHeaders
- * @returns {import('../shared/types.js').Result<{ mockedResponse: MockedResponse & Rewindable; mockedRequest: MockedRequest & Rewindable }, Error>}
+ * @returns {Result<{ mockedResponse: MockedResponse & Rewindable; mockedRequest: MockedRequest & Rewindable }, Error>}
  */
 function buildMockedPair(fileJson, statusCode, redactedHeaders) {
   const responseHeadersResult = unredactHeaders(
@@ -516,9 +618,7 @@ function createMockManager({
   redactedHeaders = {},
   fs = nativeFs,
 }) {
-  const fsPromises = /** @type {typeof import('node:fs/promises')} */ (
-    fs.promises
-  )
+  const fsPromises = /** @type {FsPromises} */ (fs.promises)
 
   /**
    * @param {string} filePath
@@ -636,11 +736,9 @@ function createMockManager({
     }
 
     // We need the raw values from response to uncompress the body
-    const compressionAlgorithm = `${fileContent.response.headers['content-encoding']}`
-    const resBodyUncompressedBuffer = await uncompressBody(
-      resBodyBuffer,
-      compressionAlgorithm,
-    )
+    const compressionAlgorithm = `${fileContent.response.headers['content-encoding'] ?? ''}`
+    const { body: resBodyUncompressedBuffer, fullyDecompressed } =
+      await uncompressBody(resBodyBuffer, compressionAlgorithm)
     const resBody = parseBody(resBodyUncompressedBuffer, response, connectionId)
     fileContent.response.body = resBody
 
@@ -648,6 +746,7 @@ function createMockManager({
     fileContent.response.headers = sanitizeResponseHeaders(
       fileContent.response.headers,
       redactedHeaders,
+      fullyDecompressed,
     )
     fileContent.request.headers = sanitizeRequestHeaders(
       fileContent.request.headers,

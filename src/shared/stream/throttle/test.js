@@ -56,4 +56,24 @@ describe('throttle', () => {
       'bps must be a positive integer or Infinity',
     )
   })
+
+  it('resolves pending refills when the stream is destroyed', async () => {
+    // Use very low bps so the first chunk exhausts tokens and awaits refill
+    const throttleStream = throttle({ bps: 1 })
+
+    // Write a chunk larger than bps to force a refill wait
+    throttleStream.write(Buffer.alloc(4, 0x42))
+    // Give the transform a tick to enter the refill await
+    await new Promise((resolve) => setTimeout(resolve, 50))
+
+    const t1 = Date.now()
+    throttleStream.destroy()
+
+    // Wait a bit and verify it cleaned up quickly
+    await new Promise((resolve) => setTimeout(resolve, 200))
+    const t2 = Date.now()
+
+    expect(t2 - t1).toBeLessThan(1000)
+    expect(throttleStream.destroyed).toBe(true)
+  }, 2000)
 })

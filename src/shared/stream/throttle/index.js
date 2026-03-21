@@ -12,6 +12,8 @@ class TokenBucket {
   #refillResolvers = []
   /** @type {boolean} */
   #hasPendingRefill = false
+  /** @type {ReturnType<typeof setTimeout> | null} */
+  #fillTimer = null
 
   /**
    * @param {Object} options
@@ -41,7 +43,11 @@ class TokenBucket {
 
     if (!this.#hasPendingRefill) {
       this.#hasPendingRefill = true
-      setTimeout(() => this.#fill(), 1000 / this.#fillFrequency).unref()
+      this.#fillTimer = setTimeout(
+        () => this.#fill(),
+        1000 / this.#fillFrequency,
+      )
+      this.#fillTimer.unref()
     }
 
     if (quantity <= this.#tokens) {
@@ -61,9 +67,22 @@ class TokenBucket {
     })
   }
 
+  abort() {
+    if (this.#fillTimer !== null) {
+      clearTimeout(this.#fillTimer)
+      this.#fillTimer = null
+    }
+    this.#hasPendingRefill = false
+    for (const resolve of this.#refillResolvers) {
+      resolve()
+    }
+    this.#refillResolvers = []
+  }
+
   #fill() {
     this.#tokens = this.#capacity
     this.#hasPendingRefill = false
+    this.#fillTimer = null
     for (const resolve of this.#refillResolvers) {
       resolve()
     }
@@ -90,6 +109,7 @@ function throttle({ bps }) {
     async transform(data, encoding, callback) {
       try {
         for (let chunkStart = 0; chunkStart < data.length; chunkStart += bps) {
+          if (this.destroyed) return callback()
           const chunkEnd = Math.min(data.length, chunkStart + bps)
           const chunkSize = chunkEnd - chunkStart
           const takeResult = tokenBucket.take(chunkSize)
@@ -98,6 +118,7 @@ function throttle({ bps }) {
           }
           if (!takeResult.value) {
             await tokenBucket.refill()
+            if (this.destroyed) return callback()
             chunkStart -= bps
             continue
           }
@@ -109,6 +130,10 @@ function throttle({ bps }) {
           error instanceof Error ? error : new Error(String(error)),
         )
       }
+    },
+    destroy(error, callback) {
+      tokenBucket.abort()
+      callback(error)
     },
   })
   return stream

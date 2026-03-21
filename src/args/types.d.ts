@@ -29,7 +29,7 @@ export type Args = Readonly<{
   overwriteResponseHeaders: Headers;
   overwriteRequestHeaders: Headers;
   cors: boolean;
-  proxy: HttpUrl;
+  proxy: HttpUrl | '';
 }>;
 
 export type UnbrandedArgs = Readonly<{

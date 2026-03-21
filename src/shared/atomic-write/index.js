@@ -1,4 +1,5 @@
 /** @template T @template {Error} [E=Error] @typedef {import('../types.js').Result<T, E>} Result */
+/** @typedef {import('../types.js').FsLike} FsLike */
 
 import nativeFs from 'node:fs'
 import { randomUUID } from 'node:crypto'
@@ -9,7 +10,7 @@ import { Readable } from 'node:stream'
  * @param {Object} options
  * @param {string} options.filePath
  * @param {string} options.content
- * @param {import('../types.d.ts').FsLike} [options.fs]
+ * @param {FsLike} [options.fs]
  * @returns {Promise<Result<void>>}
  */
 async function atomicWrite({ filePath, content, fs = nativeFs }) {

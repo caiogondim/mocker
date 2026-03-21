@@ -36,7 +36,7 @@ function createLogger({
 } = {}) {
   /**
    * @param {LoggerLevels} method
-   * @returns {Boolean}
+   * @returns {boolean}
    */
   function _shouldLog(method) {
     if (forceLog) return true
@@ -46,7 +46,7 @@ function createLogger({
 
   /**
    * @param {unknown[]} args
-   * @returns {Boolean}
+   * @returns {boolean}
    */
   function log(...args) {
     if (!_shouldLog('verbose')) {
@@ -60,7 +60,7 @@ function createLogger({
 
   /**
    * @param {unknown[]} args
-   * @returns {Boolean}
+   * @returns {boolean}
    */
   function warn(...args) {
     if (!_shouldLog('warn')) {
@@ -74,7 +74,7 @@ function createLogger({
 
   /**
    * @param {unknown[]} args
-   * @returns {Boolean}
+   * @returns {boolean}
    */
   function error(...args) {
     if (!_shouldLog('error')) {
@@ -85,7 +85,7 @@ function createLogger({
     // already formatted.
     if (isPrettyError(args[0])) {
       _console.error(/** @type {{ message: unknown }} */ (args[0]).message)
-      return false
+      return true
     }
 
     _console.error(red('erro'), ...args)
@@ -95,7 +95,7 @@ function createLogger({
 
   /**
    * @param {unknown[]} args
-   * @returns {Boolean}
+   * @returns {boolean}
    */
   function info(...args) {
     if (!_shouldLog('warn')) {
@@ -109,7 +109,7 @@ function createLogger({
 
   /**
    * @param {unknown[]} args
-   * @returns {Boolean}
+   * @returns {boolean}
    */
   function success(...args) {
     if (!_shouldLog('warn')) {

@@ -22,7 +22,7 @@ async function attempt(asyncThunk, shouldRetry, onRetry) {
  * @template T
  * @param {function(): Promise<T>} asyncThunk
  * @param {Object} options
- * @param {Number} [options.retries]
+ * @param {number} [options.retries]
  * @param {function(T): boolean} [options.shouldRetry]
  * @param {function(): void} [options.onRetry]
  * @param {function(): Promise<void>} [options.backoff]

@@ -12,15 +12,19 @@ function delay({ ms }) {
   }
 
   let isFirstChunk = true
+  const ac = new AbortController()
   const stream = new Transform({
     async transform(chunk, encoding, callback) {
       try {
         if (isFirstChunk) {
-          await sleep(ms)
+          await sleep(ms, undefined, { signal: ac.signal })
           isFirstChunk = false
         }
         return callback(null, chunk)
       } catch (error) {
+        if (/** @type {Error} */ (error).name === 'AbortError') {
+          return callback()
+        }
         return callback(
           error instanceof Error ? error : new Error(String(error)),
         )
@@ -29,6 +33,10 @@ function delay({ ms }) {
     flush(callback) {
       isFirstChunk = true
       callback()
+    },
+    destroy(error, callback) {
+      ac.abort()
+      callback(error)
     },
   })
   return stream

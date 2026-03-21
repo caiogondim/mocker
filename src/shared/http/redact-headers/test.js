@@ -1,3 +1,5 @@
+/** @typedef {import('../types.js').Headers} Headers */
+
 import { describe, it, expect } from '@jest/globals'
 import { redactHeaders, unredactHeaders, SecretNotFoundError } from './index.js'
 
@@ -31,7 +33,7 @@ describe('redactHeaders', () => {
     expect(unredactResult1.ok).toBe(true)
     expect(
       redactHeaders(
-        /** @type {{ ok: true; value: any }} */ (unredactResult1).value,
+        /** @type {{ ok: true; value: Headers }} */ (unredactResult1).value,
         redactedHeaders1,
       ),
     ).toEqual(headers1)
@@ -49,7 +51,7 @@ describe('redactHeaders', () => {
     )
     expect(unredactResult2.ok).toBe(true)
     expect(
-      /** @type {{ ok: true; value: any }} */ (unredactResult2).value,
+      /** @type {{ ok: true; value: Headers }} */ (unredactResult2).value,
     ).toEqual(headers2)
   })
 })
@@ -65,7 +67,7 @@ describe('unredactHeaders', () => {
     const result = unredactHeaders(headers, redactedHeaders)
     expect(result.ok).toBe(false)
     expect(
-      /** @type {{ ok: false; error: any }} */ (result).error,
+      /** @type {{ ok: false; error: Error }} */ (result).error,
     ).toBeInstanceOf(SecretNotFoundError)
   })
 
@@ -78,7 +80,7 @@ describe('unredactHeaders', () => {
     const redactedHeaders = { 'example-token': '12341234', foo: 'ipsum' }
     const result = unredactHeaders(headers, redactedHeaders)
     expect(result.ok).toBe(true)
-    expect(/** @type {{ ok: true; value: any }} */ (result).value).toEqual({
+    expect(/** @type {{ ok: true; value: Headers }} */ (result).value).toEqual({
       'example-token': '12341234',
       foo: 'ipsum',
       host: 'example.com',
@@ -95,7 +97,7 @@ describe('unredactHeaders', () => {
     const redactedHeaders = { 'example-token': '12341234', foo: 'ipsum' }
     const result = unredactHeaders(input, redactedHeaders)
     expect(result.ok).toBe(true)
-    expect(/** @type {{ ok: true; value: any }} */ (result).value).not.toBe(
+    expect(/** @type {{ ok: true; value: Headers }} */ (result).value).not.toBe(
       input,
     )
     expect(JSON.stringify(input)).toEqual(inputSnapshot)
@@ -113,7 +115,7 @@ describe('unredactHeaders', () => {
     expect(unredactResult1.ok).toBe(true)
     expect(
       redactHeaders(
-        /** @type {{ ok: true; value: any }} */ (unredactResult1).value,
+        /** @type {{ ok: true; value: Headers }} */ (unredactResult1).value,
         redactedHeaders1,
       ),
     ).toEqual(headers1)
@@ -131,7 +133,7 @@ describe('unredactHeaders', () => {
     )
     expect(unredactResult2.ok).toBe(true)
     expect(
-      /** @type {{ ok: true; value: any }} */ (unredactResult2).value,
+      /** @type {{ ok: true; value: Headers }} */ (unredactResult2).value,
     ).toEqual(headers2)
   })
 })

@@ -46,49 +46,6 @@ function stripMargin(str, marginChar = '|') {
   return output.join('\n')
 }
 
-// Matches ANSI terminal escape codes (e.g. \u001b[32m for green text)
-const ANSI_ESCAPE_CODE_REGEX = /\u001b\[[0-9]+m/g // eslint-disable-line no-control-regex
-
-/**
- * @param {string[][]} data
- * @returns {string}
- */
-function table(...data) {
-  /** @type {number[]} */
-  const maxWidths = []
-  const lines = []
-
-  for (const dataLine of data) {
-    for (const [i, datum] of dataLine.entries()) {
-      const datumWithoutFormattingCode = datum.replace(
-        ANSI_ESCAPE_CODE_REGEX,
-        '',
-      )
-      maxWidths[i] = Math.max(
-        maxWidths[i] || 0,
-        datumWithoutFormattingCode.length,
-      )
-    }
-  }
-
-  for (const dataLine of data) {
-    const lineEntries = []
-    for (const [i, datum] of dataLine.entries()) {
-      const datumWithoutFormattingCode = datum.replace(
-        ANSI_ESCAPE_CODE_REGEX,
-        '',
-      )
-      const endPadding = datumWithoutFormattingCode
-        .padEnd(maxWidths[i], ' ')
-        .replace(datumWithoutFormattingCode, '')
-      lineEntries.push(`${datum}${endPadding}`)
-    }
-    lines.push(lineEntries.join('  '))
-  }
-
-  return lines.join('\n')
-}
-
 /**
  * @param {unknown} x
  * @returns {string}
@@ -121,4 +78,4 @@ function stringify(x) {
   )
 }
 
-export { bold, red, blue, yellow, green, stripMargin, table, dim, stringify }
+export { bold, red, blue, yellow, green, stripMargin, dim, stringify }

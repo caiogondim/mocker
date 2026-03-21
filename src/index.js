@@ -8,6 +8,8 @@
 /** @typedef {InstanceType<import('./mock-manager/mocked-request.js')["default"]>} MockedRequest */
 /** @template T @template {Error} [E=Error] @typedef {import('./shared/types.js').Result<T, E>} Result */
 /** @typedef {import('./mock-manager/mock-file-error.js').MockFileError} MockFileError */
+/** @typedef {import('node:net').Socket} NetSocket */
+/** @typedef {InstanceType<import('./mock-manager/mocked-response.js')["default"]>} MockedResponse */
 
 import path from 'node:path'
 import http from 'node:http'
@@ -23,6 +25,7 @@ import {
   redactHeaders,
   isHeaders,
   SecretNotFoundError,
+  stripHopByHopHeaders,
 } from './shared/http/index.js'
 import { MODE } from './args/index.js'
 import { HTTP_METHOD } from './shared/http-method/index.js'
@@ -43,6 +46,16 @@ class OriginResponseError extends Error {
 
 const terminationSignals = ['SIGHUP', 'SIGINT', 'SIGTERM']
 
+/** Network error codes that indicate origin is unreachable (fallback to mock). */
+const NETWORK_ERROR_CODES = new Set([
+  'ECONNREFUSED',
+  'ECONNRESET',
+  'ENOTFOUND',
+  'ETIMEDOUT',
+  'EHOSTUNREACH',
+  'EAI_AGAIN',
+])
+
 /**
  * @param {unknown} error
  * @param {string} mockBasename
@@ -60,6 +73,7 @@ function logUpdateError(error, mockBasename, progressStr) {
   } else {
     logger.warn(
       `${dim(progressStr)} ${bold(mockBasename)} error while updating mock. mock was not modified`,
+      error,
     )
   }
 }
@@ -70,19 +84,9 @@ function logUpdateError(error, mockBasename, progressStr) {
  * @returns {void}
  */
 function copyResponseAttrs(responseSource, responseTarget) {
-  /** @type {Headers} */
-  const headers = {}
-
-  for (const [headerKey, headerValue] of Object.entries(
-    getHeaders(responseSource),
-  )) {
-    if (typeof headerValue === 'undefined') {
-      continue
-    }
-    headers[headerKey] = headerValue
-  }
-
-  delete headers['content-length']
+  const rawHeaders = getHeaders(responseSource)
+  delete rawHeaders['content-length']
+  const headers = stripHopByHopHeaders(rawHeaders)
 
   responseTarget.statusCode = responseSource.statusCode || HTTP_STATUS_CODE.OK
   if (responseSource.statusMessage) {
@@ -101,7 +105,7 @@ function copyResponseAttrs(responseSource, responseTarget) {
  * @returns {Promise<void>}
  */
 async function respondNotFound(response, connectionId) {
-  logger.info(`${dim(connectionId)} 👈 ${formatStatusCode(404)}`)
+  logger.info(`${dim(connectionId)} 👈 ${formatStatusCode(HTTP_STATUS_CODE.NOT_FOUND)}`)
 
   response.setHeader('x-mocker-request-id', connectionId)
   response.setHeader('x-mocker-response-from', 'Mock')
@@ -156,7 +160,7 @@ class Mocker {
   /** @type {http.Server | null} */
   #httpServer = null
 
-  /** @type {Set<import('node:net').Socket>} */
+  /** @type {Set<NetSocket>} */
   #connections = new Set()
 
   /** @type {Promise<void> | null} */
@@ -204,7 +208,7 @@ class Mocker {
   async listen(port = this.#args.port) {
     const args = this.#args
 
-    function printStartMessage() {
+    function formatStartMessage() {
       return `\nstarting mocker 🥸 v${
         packageJson.version
       } with arguments: \n${Object.entries(args)
@@ -233,7 +237,7 @@ class Mocker {
         .join('\n')}\n`
     }
 
-    logger.log(printStartMessage())
+    logger.log(formatStartMessage())
     this.#addListeners()
 
     if (args.update === 'startup' || args.update === 'only') {
@@ -246,12 +250,7 @@ class Mocker {
       return
     }
 
-    return new Promise((resolve) => {
-      logger.info(
-        `started on port ${bold(port)}, with pid ${bold(
-          process.pid,
-        )}, and proxying ${bold(args.origin)}`,
-      )
+    return new Promise((resolve, reject) => {
       const httpServer = http.createServer(this.#server.bind(this))
       httpServer.on('connection', (socket) => {
         this.#connections.add(socket)
@@ -259,7 +258,16 @@ class Mocker {
           this.#connections.delete(socket)
         })
       })
-      this.#httpServer = httpServer.listen(port, resolve)
+      httpServer.once('error', reject)
+      this.#httpServer = httpServer.listen(port, () => {
+        httpServer.removeListener('error', reject)
+        logger.info(
+          `started on port ${bold(port)}, with pid ${bold(
+            process.pid,
+          )}, and proxying ${bold(args.origin)}`,
+        )
+        resolve()
+      })
     })
   }
 
@@ -434,7 +442,7 @@ class Mocker {
       }
       response.end()
 
-      logger.info(`${dim(connectionId)} 👈 ${formatStatusCode(500)}`)
+      logger.info(`${dim(connectionId)} 👈 ${formatStatusCode(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)}`)
       return
     }
     await using requestRewindable = requestRewindableResult.value
@@ -457,7 +465,7 @@ class Mocker {
       }
       response.end()
 
-      logger.info(`${dim(connectionId)} 👈 ${formatStatusCode(500)}`)
+      logger.info(`${dim(connectionId)} 👈 ${formatStatusCode(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)}`)
     }
   }
 
@@ -498,20 +506,22 @@ class Mocker {
    *@returns {Promise<void>}
    */
   async #handleCors(request, response, connectionId) {
-    logger.info(`${dim(connectionId)} 👈 ${formatStatusCode(200)} CORS`)
+    logger.info(`${dim(connectionId)} 👈 ${formatStatusCode(HTTP_STATUS_CODE.OK)} CORS`)
 
     if (request.headers.origin) {
       response.setHeader('access-control-allow-origin', request.headers.origin)
     }
+    response.setHeader('vary', 'Origin')
     response.setHeader('access-control-allow-credentials', 'true')
     response.setHeader(
       'access-control-allow-methods',
-      'PUT, GET, POST, DELETE, OPTIONS',
+      'GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS',
     )
     response.setHeader(
       'access-control-allow-headers',
       request.headers['access-control-request-headers'] || '*',
     )
+    response.setHeader('access-control-max-age', '86400')
     response.end()
   }
 
@@ -550,12 +560,11 @@ class Mocker {
       await this.#respondFromOrigin(request, response, connectionId)
       return
     } catch (error) {
-      if (
-        !(
-          error instanceof OriginResponseError ||
-          Reflect.get(error || {}, 'code') === 'ECONNREFUSED'
-        )
-      ) {
+      const errorCode = Reflect.get(error || {}, 'code')
+      const isNetworkError =
+        error instanceof OriginResponseError ||
+        NETWORK_ERROR_CODES.has(errorCode)
+      if (!isNetworkError) {
         throw error
       }
 
@@ -581,7 +590,7 @@ class Mocker {
   }
 
   /**
-   * @param {{ mockedResponse: InstanceType<import('./mock-manager/mocked-response.js')["default"]>; mockPath: string }} mockResult
+   * @param {{ mockedResponse: MockedResponse; mockPath: string }} mockResult
    * @param {http.IncomingMessage & Rewindable} request
    * @param {http.ServerResponse} response
    * @param {ConnectionId} connectionId
@@ -627,7 +636,7 @@ class Mocker {
         response.writeHead(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)
       }
       response.end()
-      logger.info(`${dim(connectionId)} 👈 ${formatStatusCode(500)}`)
+      logger.info(`${dim(connectionId)} 👈 ${formatStatusCode(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)}`)
     }
   }
 
@@ -652,7 +661,7 @@ class Mocker {
 
     const requestResult = await origin.request({
       url,
-      headers: /** @type {Headers} */ (requestHeaders),
+      headers: stripHopByHopHeaders(/** @type {Headers} */ (requestHeaders)),
       method: /** @type {HttpMethod | undefined} */ (method),
     })
 
@@ -704,12 +713,20 @@ class Mocker {
       )} serving from origin`,
     )
 
-    await pipeline(
-      originToProxyResponseRewindable.rewind(),
-      delay({ ms: args.delay }),
-      throttle({ bps: args.throttle }),
-      proxyToClientResponse,
-    )
+    try {
+      await pipeline(
+        originToProxyResponseRewindable.rewind(),
+        delay({ ms: args.delay }),
+        throttle({ bps: args.throttle }),
+        proxyToClientResponse,
+      )
+    } catch (error) {
+      logger.error(`${dim(connectionId)} error piping origin response.`, error)
+      if (!proxyToClientResponse.headersSent) {
+        proxyToClientResponse.writeHead(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)
+      }
+      proxyToClientResponse.end()
+    }
   }
 
   /**
@@ -730,6 +747,7 @@ class Mocker {
 
     if (args.cors && requestHeaders.origin) {
       response.setHeader('access-control-allow-origin', requestHeaders.origin)
+      response.setHeader('vary', 'Origin')
     }
   }
 
@@ -770,9 +788,7 @@ class Mocker {
       logger.warn(
         `${dim(
           connectionId,
-        )} not saving response from origin since status code is not ${formatStatusCode(
-          HTTP_STATUS_CODE.OK,
-        )} but ${formatStatusCode(response.statusCode)}`,
+        )} not saving response from origin since status code is not 2xx but ${formatStatusCode(response.statusCode)}`,
       )
     }
   }

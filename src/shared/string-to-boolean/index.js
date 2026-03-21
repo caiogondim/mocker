@@ -1,6 +1,6 @@
 /**
  * @param {string} str
- * @returns {Boolean}
+ * @returns {boolean}
  */
 function stringToBoolean(str) {
   return (

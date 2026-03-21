@@ -1343,4 +1343,101 @@ describe('error conditions', () => {
     const body = `${await getBody(response)}`
     expect(body).toBe('slow but ok')
   })
+
+  it('rejects listen() promise when port is already in use', async () => {
+    await using origin = createServer(async (req, res) => {
+      res.end('ok')
+    })
+    await origin.listen()
+
+    // First mocker takes an auto-assigned port
+    await using mocker1 = await createMocker({
+      mode: 'pass',
+      origin: `http://localhost:${origin.port}`,
+    })
+    await mocker1.listen()
+    const takenPort = mocker1.port
+
+    // Second mocker tries the same port — should reject, not hang
+    await using mocker2 = await createMocker({
+      mode: 'pass',
+      origin: `http://localhost:${origin.port}`,
+      port: takenPort,
+    })
+    await expect(mocker2.listen()).rejects.toThrow()
+  })
+})
+
+//-
+// 12. CORS (cross-origin resource sharing)
+//-
+
+describe('CORS', () => {
+  it('sets Vary: Origin on non-preflight responses when cors is enabled', async () => {
+    await using origin = createEchoServer()
+    await origin.listen()
+
+    await using mocker = await createMocker({
+      mode: 'pass',
+      origin: `http://localhost:${origin.port}`,
+      cors: true,
+    })
+    await mocker.listen()
+
+    const parsed = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
+    if (!parsed.ok) throw parsed.error
+    const requestResult = await createRequest({
+      url: parsed.value,
+      method: 'GET',
+      headers: {
+        origin: 'https://example.com',
+      },
+    })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
+    request.end()
+    const response = await responsePromise
+    await getBody(response)
+
+    expect(response.headers['access-control-allow-origin']).toBe(
+      'https://example.com',
+    )
+    // Vary: Origin MUST be set to prevent caches from serving wrong origin
+    const vary = response.headers['vary']
+    expect(vary).toBeDefined()
+    expect(
+      typeof vary === 'string'
+        ? vary.toLowerCase().includes('origin')
+        : false,
+    ).toBe(true)
+  })
+
+  it('does not set access-control-allow-origin when cors is disabled', async () => {
+    await using origin = createEchoServer()
+    await origin.listen()
+
+    await using mocker = await createMocker({
+      mode: 'pass',
+      origin: `http://localhost:${origin.port}`,
+      cors: false,
+    })
+    await mocker.listen()
+
+    const parsed = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
+    if (!parsed.ok) throw parsed.error
+    const requestResult = await createRequest({
+      url: parsed.value,
+      method: 'GET',
+      headers: {
+        origin: 'https://example.com',
+      },
+    })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
+    request.end()
+    const response = await responsePromise
+    await getBody(response)
+
+    expect(response.headers['access-control-allow-origin']).toBeUndefined()
+  })
 })

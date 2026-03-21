@@ -1,3 +1,5 @@
+/** @typedef {import('node:net').AddressInfo} AddressInfo */
+
 import { describe, it, expect, jest } from '@jest/globals'
 import { createServer as createDuplicateRequestServer } from '../../../../tools/duplicate-request-server/index.js'
 import { createServer as createFlakyServer } from '../../../../tools/flaky-server/index.js'
@@ -239,9 +241,7 @@ describe('createRequest', () => {
     await new Promise((resolve) =>
       httpServer.listen(0, '127.0.0.1', /** @type {() => void} */ (resolve)),
     )
-    const port = /** @type {import('node:net').AddressInfo} */ (
-      httpServer.address()
-    ).port
+    const port = /** @type {AddressInfo} */ (httpServer.address()).port
 
     try {
       const parsed = parseAbsoluteHttpUrl(`http://127.0.0.1:${port}`)
@@ -302,9 +302,7 @@ describe('createRequest', () => {
     await new Promise((resolve) =>
       httpServer.listen(0, '127.0.0.1', /** @type {() => void} */ (resolve)),
     )
-    const port = /** @type {import('node:net').AddressInfo} */ (
-      httpServer.address()
-    ).port
+    const port = /** @type {AddressInfo} */ (httpServer.address()).port
 
     try {
       const parsed = parseAbsoluteHttpUrl(`http://127.0.0.1:${port}`)
@@ -326,6 +324,31 @@ describe('createRequest', () => {
     } finally {
       await new Promise((resolve) => httpServer.close(resolve))
     }
+  })
+
+  it('cleans up event listeners after successful response', async () => {
+    await using duplicateRequestServer = createDuplicateRequestServer()
+    await duplicateRequestServer.listen()
+
+    const parsed = parseAbsoluteHttpUrl(
+      `http://localhost:${duplicateRequestServer.port}`,
+    )
+    if (!parsed.ok) throw parsed.error
+
+    const requestResult = await createRequest({
+      url: parsed.value,
+      method: 'GET',
+    })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
+    request.end()
+
+    await responsePromise
+
+    // After the response promise resolves, the 'error' and 'response'
+    // listeners should have been removed from the request.
+    expect(request.listenerCount('error')).toBe(0)
+    expect(request.listenerCount('response')).toBe(0)
   })
 
   // Regression test

@@ -1,6 +1,7 @@
 /** @typedef {import('../shared/http/types.js').Headers} Headers */
 /** @typedef {import('../shared/types.js').ConnectionId} ConnectionId */
 /** @typedef {import('../shared/types.js').HttpStatusCode} HttpStatusCode */
+/** @typedef {import('node:stream').TransformCallback} TransformCallback */
 
 import { Transform } from 'node:stream'
 
@@ -36,7 +37,7 @@ class MockedResponse extends Transform {
   /**
    * @param {Buffer} chunk
    * @param {string} encoding
-   * @param {Function} callback
+   * @param {TransformCallback} callback
    * @returns {void}
    */
   _transform(chunk, encoding, callback) {
