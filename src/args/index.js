@@ -1,5 +1,5 @@
 /** @typedef {import('./types.js').Args} Args */
-/** @template T @template {Error} [E=Error] @typedef {import('../shared/types.js').Result<T, E>} Result */
+/** @import { Result } from '../shared/types.js' */
 /** @typedef {import('./types.js').HttpUrl} HttpUrl */
 /** @typedef {import('./types.js').AbsoluteDirPath} AbsoluteDirPath */
 /** @typedef {import('./types.js').NonNegativeInteger} NonNegativeInteger */

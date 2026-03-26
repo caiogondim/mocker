@@ -1,5 +1,5 @@
 /** @typedef {import('../types.js').Headers} Headers */
-/** @template T @template {Error} [E=Error] @typedef {import('../../types.js').Result<T, E>} Result */
+/** @import { Result } from '../../types.js' */
 
 class SecretNotFoundError extends Error {
   /** @param {string} message */

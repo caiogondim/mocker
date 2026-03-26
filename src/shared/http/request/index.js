@@ -2,7 +2,7 @@
 /** @typedef {import('../../types.js').AbsoluteHttpUrl} AbsoluteHttpUrl */
 /** @typedef {import('../../types.js').HttpMethod} HttpMethod */
 /** @typedef {import('../types.js').Headers} Headers */
-/** @template T @template {Error} [E=Error] @typedef {import('../../types.js').Result<T, E>} Result */
+/** @import { Result } from '../../types.js' */
 /** @typedef {import('node:net').Socket} NetSocket */
 /** @typedef {import('node:http').RequestOptions} RequestOptions */
 

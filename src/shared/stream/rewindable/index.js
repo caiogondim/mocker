@@ -1,5 +1,5 @@
 /** @typedef {import('./types.js').Rewindable} Rewindable */
-/** @template T @template {Error} [E=Error] @typedef {import('../../types.js').Result<T, E>} Result */
+/** @import { Result } from '../../types.js' */
 
 import { Readable } from 'node:stream'
 

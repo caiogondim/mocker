@@ -15,9 +15,17 @@ either as a command-line tool or as a library.
 
 ## Installation
 
+### Homebrew
+
 ```bash
 brew tap caiogondim/tap
 brew install mocker
+```
+
+### Docker
+
+```bash
+docker run --rm -p 8273:8273 caiogondim/mocker --origin http://example.com --mode pass
 ```
 
 ## Usage

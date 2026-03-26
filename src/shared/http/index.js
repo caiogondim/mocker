@@ -5,7 +5,7 @@
 /** @typedef {import('../types.js').HttpIncomingMessage} HttpIncomingMessage */
 /** @typedef {import('../types.js').HttpServerResponse} HttpServerResponse */
 /** @typedef {import('./types.js').Headers} Headers */
-/** @template T @template {Error} [E=Error] @typedef {import('../types.js').Result<T, E>} Result */
+/** @import { Result } from '../types.js' */
 
 import getConstructorName from '../get-constructor-name/index.js'
 import createRequest from './request/index.js'

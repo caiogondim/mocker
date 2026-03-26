@@ -1,4 +1,4 @@
-/** @template T @template {Error} [E=Error] @typedef {import('../../types.js').Result<T, E>} Result */
+/** @import { Result } from '../../types.js' */
 
 import createBackoff from '../../backoff/index.js'
 

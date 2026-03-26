@@ -6,7 +6,7 @@
 /** @typedef {import('./shared/http/index.js').Headers} Headers */
 /** @typedef {import('./shared/types.js').HttpMethod} HttpMethod */
 /** @typedef {InstanceType<import('./mock-manager/mocked-request.js')["default"]>} MockedRequest */
-/** @template T @template {Error} [E=Error] @typedef {import('./shared/types.js').Result<T, E>} Result */
+/** @import { Result } from './shared/types.js' */
 /** @typedef {import('./mock-manager/mock-file-error.js').MockFileError} MockFileError */
 /** @typedef {import('node:net').Socket} NetSocket */
 /** @typedef {InstanceType<import('./mock-manager/mocked-response.js')["default"]>} MockedResponse */

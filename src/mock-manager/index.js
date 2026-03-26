@@ -2,7 +2,7 @@
 /** @typedef {import('../shared/types.js').HttpIncomingMessage} HttpIncomingMessage */
 /** @typedef {import('../shared/types.js').HttpServerResponse} HttpServerResponse */
 /** @typedef {import('../shared/types.js').ConnectionId} ConnectionId */
-/** @template T @template {Error} [E=Error] @typedef {import('../shared/types.js').Result<T, E>} Result */
+/** @import { Result } from '../shared/types.js' */
 /** @typedef {import('../shared/types.js').HttpStatusCode} HttpStatusCode */
 /** @typedef {import('./types.js').MockFile} MockFile */
 /** @typedef {import('./types.js').RequestFile} RequestFile */

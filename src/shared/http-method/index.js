@@ -1,5 +1,5 @@
 /** @typedef {import('../types.js').HttpMethod} HttpMethod */
-/** @template T @template {Error} [E=Error] @typedef {import('../types.js').Result<T, E>} Result */
+/** @import { Result } from '../types.js' */
 
 const HTTP_METHOD = /** @satisfies {Record<string, HttpMethod>} */ (
   /** @type {const} */ ({
