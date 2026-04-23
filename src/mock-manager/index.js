@@ -268,8 +268,17 @@ function parseCharset(contentType) {
 }
 
 const NODE_SUPPORTED_ENCODINGS = new Set([
-  'utf8', 'utf-8', 'ascii', 'latin1', 'binary', 'base64', 'hex',
-  'ucs2', 'ucs-2', 'utf16le', 'utf-16le',
+  'utf8',
+  'utf-8',
+  'ascii',
+  'latin1',
+  'binary',
+  'base64',
+  'hex',
+  'ucs2',
+  'ucs-2',
+  'utf16le',
+  'utf-16le',
 ])
 
 /** @type {Record<string, BufferEncoding>} */
@@ -313,8 +322,7 @@ function stripBom(str) {
  */
 function isJsonContentType(contentType) {
   return (
-    contentType.includes('application/json') ||
-    contentType.includes('+json')
+    contentType.includes('application/json') || contentType.includes('+json')
   )
 }
 
@@ -517,7 +525,9 @@ function validateMockFileShape(fileJson) {
   if (!isRecord(request) || !isRecord(response)) {
     return {
       ok: false,
-      error: new TypeError('Mock file must include request and response objects'),
+      error: new TypeError(
+        'Mock file must include request and response objects',
+      ),
     }
   }
 
@@ -536,7 +546,9 @@ function validateMockFileShape(fileJson) {
   if (typeof requestMethod !== 'string' || typeof requestUrl !== 'string') {
     return {
       ok: false,
-      error: new TypeError('Mock file request.method and request.url must be strings'),
+      error: new TypeError(
+        'Mock file request.method and request.url must be strings',
+      ),
     }
   }
   if (!isValidStatusCode(responseStatusCode)) {

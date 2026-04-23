@@ -36,9 +36,16 @@ function getHeaders(reqOrRes) {
   let raw = {}
 
   if ('headers' in reqOrRes) {
-    raw = /** @type {Record<string, unknown>} */ (structuredClone(reqOrRes.headers))
-  } else if ('getHeaders' in reqOrRes && typeof reqOrRes.getHeaders === 'function') {
-    raw = /** @type {Record<string, unknown>} */ (structuredClone(reqOrRes.getHeaders()))
+    raw = /** @type {Record<string, unknown>} */ (
+      structuredClone(reqOrRes.headers)
+    )
+  } else if (
+    'getHeaders' in reqOrRes &&
+    typeof reqOrRes.getHeaders === 'function'
+  ) {
+    raw = /** @type {Record<string, unknown>} */ (
+      structuredClone(reqOrRes.getHeaders())
+    )
   }
 
   /** @type {Headers} */
@@ -65,9 +72,7 @@ function isHeaders(value) {
   for (const headerValue of Object.values(/** @type {object} */ (value))) {
     const valueConstructorName = getConstructorName(headerValue)
     if (
-      ['String', 'Number', 'Undefined', 'Null'].includes(
-        valueConstructorName,
-      )
+      ['String', 'Number', 'Undefined', 'Null'].includes(valueConstructorName)
     ) {
       continue
     }
@@ -78,7 +83,9 @@ function isHeaders(value) {
     }
 
     // In case a value is an Array, all values inside it must be a string
-    if (headerValue.every((arrValue) => getConstructorName(arrValue) === 'String')) {
+    if (
+      headerValue.every((arrValue) => getConstructorName(arrValue) === 'String')
+    ) {
       continue
     }
 

@@ -2,7 +2,8 @@
 
 ## Homebrew
 
-The Homebrew formula lives in the [caiogondim/homebrew-tap](https://github.com/caiogondim/homebrew-tap) repo.
+The Homebrew formula lives in the
+[caiogondim/homebrew-tap](https://github.com/caiogondim/homebrew-tap) repo.
 
 ### Install
 
@@ -19,8 +20,8 @@ brew uninstall mocker
 
 ## Releasing
 
-Releases are created via GitHub Actions. The workflow runs CI checks, creates
-a git tag, and publishes a GitHub Release with your changelog.
+Releases are created via GitHub Actions. The workflow runs CI checks, creates a
+git tag, and publishes a GitHub Release with your changelog.
 
 ```bash
 gh workflow run release.yml \

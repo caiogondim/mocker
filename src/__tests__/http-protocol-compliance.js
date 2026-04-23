@@ -1406,9 +1406,7 @@ describe('CORS', () => {
     const vary = response.headers['vary']
     expect(vary).toBeDefined()
     expect(
-      typeof vary === 'string'
-        ? vary.toLowerCase().includes('origin')
-        : false,
+      typeof vary === 'string' ? vary.toLowerCase().includes('origin') : false,
     ).toBe(true)
   })
 

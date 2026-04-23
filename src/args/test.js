@@ -85,9 +85,7 @@ describe('--port', () => {
     const net = await import('node:net')
     const server = net.default.createServer()
     await new Promise((resolve) => server.listen(0, () => resolve(undefined)))
-    const takenPort = /** @type {AddressInfo} */ (
-      server.address()
-    ).port
+    const takenPort = /** @type {AddressInfo} */ (server.address()).port
 
     // When I call `parserArgv` passing a `--port` that is already in use
     const argv = ['', '', ...getRequiredArgs(), '--port', `${takenPort}`]

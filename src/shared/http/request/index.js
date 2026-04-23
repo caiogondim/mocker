@@ -174,7 +174,9 @@ function createResponsePromise(request) {
       reject(error)
     }
     function onTimeout() {
-      request.destroy(createRequestTimeoutError('response', RESPONSE_TIMEOUT_MS))
+      request.destroy(
+        createRequestTimeoutError('response', RESPONSE_TIMEOUT_MS),
+      )
     }
     function cleanup() {
       request.setTimeout(0)
@@ -203,9 +205,7 @@ async function createRequest({ url, headers = {}, method = HTTP_METHOD.GET }) {
   }
   const nativeRequest = nativeRequestResult.value
   const requestParams = prepareRequestParams(urlObj, method, headers)
-  const request = nativeRequest(
-    /** @type {RequestOptions} */ (requestParams),
-  )
+  const request = nativeRequest(/** @type {RequestOptions} */ (requestParams))
   await waitForRequestSocketConnection(request)
   const responsePromise = createResponsePromise(request)
 
@@ -264,7 +264,10 @@ function attachReplayRecorder(request) {
         ),
       )
       requestWriteCalls.push(/** @type {Parameters<RequestWrite>} */ (args))
-      return target.apply(thisArg, /** @type {Parameters<RequestWrite>} */ (args))
+      return target.apply(
+        thisArg,
+        /** @type {Parameters<RequestWrite>} */ (args),
+      )
     },
   })
 

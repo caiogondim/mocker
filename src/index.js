@@ -104,7 +104,9 @@ function copyResponseAttrs(responseSource, responseTarget) {
  * @returns {Promise<void>}
  */
 async function respondNotFound(response, connectionId) {
-  logger.info(`${dim(connectionId)} 👈 ${formatStatusCode(HTTP_STATUS_CODE.NOT_FOUND)}`)
+  logger.info(
+    `${dim(connectionId)} 👈 ${formatStatusCode(HTTP_STATUS_CODE.NOT_FOUND)}`,
+  )
 
   response.setHeader('x-mocker-request-id', connectionId)
   response.setHeader('x-mocker-response-from', 'Mock')
@@ -441,7 +443,9 @@ class Mocker {
       }
       response.end()
 
-      logger.info(`${dim(connectionId)} 👈 ${formatStatusCode(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)}`)
+      logger.info(
+        `${dim(connectionId)} 👈 ${formatStatusCode(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)}`,
+      )
       return
     }
     await using requestRewindable = requestRewindableResult.value
@@ -464,7 +468,9 @@ class Mocker {
       }
       response.end()
 
-      logger.info(`${dim(connectionId)} 👈 ${formatStatusCode(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)}`)
+      logger.info(
+        `${dim(connectionId)} 👈 ${formatStatusCode(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)}`,
+      )
     }
   }
 
@@ -505,7 +511,9 @@ class Mocker {
    *@returns {Promise<void>}
    */
   async #handleCors(request, response, connectionId) {
-    logger.info(`${dim(connectionId)} 👈 ${formatStatusCode(HTTP_STATUS_CODE.OK)} CORS`)
+    logger.info(
+      `${dim(connectionId)} 👈 ${formatStatusCode(HTTP_STATUS_CODE.OK)} CORS`,
+    )
 
     if (request.headers.origin) {
       response.setHeader('access-control-allow-origin', request.headers.origin)
@@ -635,7 +643,9 @@ class Mocker {
         response.writeHead(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)
       }
       response.end()
-      logger.info(`${dim(connectionId)} 👈 ${formatStatusCode(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)}`)
+      logger.info(
+        `${dim(connectionId)} 👈 ${formatStatusCode(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)}`,
+      )
     }
   }
 
