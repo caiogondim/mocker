@@ -22,6 +22,14 @@ brew tap caiogondim/tap
 brew install mocker
 ```
 
+### npm (from source)
+
+```bash
+git clone https://github.com/caiogondim/mocker.git
+cd mocker
+npm link
+```
+
 ### Docker
 
 ```bash
