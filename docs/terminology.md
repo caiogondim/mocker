@@ -110,4 +110,4 @@ Streams are used for I/O throughout the project because they are a more
 idiomatic and performant way to do I/O in Node.js.
 
 More info on
-[Node.js docs](https://nodejs.org/dist/latest-v14.x/docs/api/stream.html).
+[Node.js docs](https://nodejs.org/api/stream.html).

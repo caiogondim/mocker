@@ -41,14 +41,4 @@ curl -sL https://github.com/caiogondim/mocker/archive/refs/tags/v1.2.0.tar.gz | 
 
 ## Docker
 
-### Build
-
-```bash
-docker build -t mocker .
-```
-
-### Run
-
-```bash
-docker run --rm -p 8273:8273 mocker --origin http://example.com --mode pass
-```
+See [Docker](./docker.md).

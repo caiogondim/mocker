@@ -125,3 +125,11 @@ headers will be used on the request to origin.
 
 Send CORS headers between client and proxy. Helpful in case origin is also
 sending CORS headers.
+
+`--proxy`
+
+- Required: `false`
+- Default: `''`
+- e.g.: `--proxy http://localhost:8080`
+
+Upstream HTTP(S) proxy URL used when forwarding requests to origin.

@@ -5,7 +5,7 @@
 1. Start the `math-server`
 
 ```bash
-node tools/mocker/tools/math-server 8889
+node tools/math-server 8889
 ```
 
 2. Start mocker as a proxy for `math-server`

@@ -5,3 +5,5 @@
 - [Terminology](./terminology.md)
 - [Architecture](./architecture.md)
 - [Recipes](./recipes.md)
+- [Docker](./docker.md)
+- [Development](./dev.md)
