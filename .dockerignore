@@ -1,9 +1,8 @@
+# Reduce build context size (~5GB without these exclusions)
 .git
-docs/
 node_modules/
-coverage/
-**/*.ts
-**/test.js
-.npmrc
-.npmignore
-tools/
+experiments/
+proxies/
+
+# Everything else excluded by selective COPY in Dockerfile
+# (only mocker, package.json, src/ are copied)

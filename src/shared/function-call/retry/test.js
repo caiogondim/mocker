@@ -1,5 +1,6 @@
-const sleep = require('../../sleep')
-const retry = require('.')
+import { describe, it, expect, jest } from '@jest/globals'
+import { setTimeout as sleep } from 'node:timers/promises'
+import retry from './index.js'
 
 async function backoff() {}
 
@@ -21,8 +22,6 @@ function createThrowUntilN(n) {
 
 describe('retry', () => {
   it('retries if thunk throws error', async () => {
-    expect.assertions(4)
-
     //
     // Test behavior without `retry`
     //
@@ -30,32 +29,31 @@ describe('retry', () => {
     const throwUntil3 = createThrowUntilN(3)
     await expect(throwUntil3()).rejects.toThrow(Error)
     await expect(throwUntil3()).rejects.toThrow(Error)
-    await expect(throwUntil3()).resolves.toBe('lorem')
+    expect(await throwUntil3()).toBe('lorem')
 
     //
     // Test behavior with `retry`
     //
 
-    await expect(retry(createThrowUntilN(3), { backoff })).resolves.toBe(
-      'lorem'
-    )
+    const result = await retry(createThrowUntilN(3), { backoff })
+    expect(result.ok).toBe(true)
+    if (!result.ok) throw result.error
+    expect(result.value).toBe('lorem')
   })
 
   it('retries up to `retries`', async () => {
-    expect.assertions(1)
-    await expect(
-      retry(createThrowUntilN(3), { retries: 2, backoff })
-    ).rejects.toThrow(Error)
+    const result = await retry(createThrowUntilN(3), { retries: 2, backoff })
+    expect(result.ok).toBe(false)
+    if (result.ok) throw new Error('expected failure')
+    expect(result.error).toBeInstanceOf(Error)
   })
 
   it('retries in case `shouldRetry` returns true', async () => {
-    expect.assertions(1)
-
     function createNumberGenerator() {
       let num = 0
       return async () => {
         num += 1
-        await sleep(100)
+        await sleep(1)
         return num
       }
     }
@@ -69,14 +67,13 @@ describe('retry', () => {
       return num < 2
     }
 
-    await expect(
-      retry(numberGenerator, { shouldRetry, backoff })
-    ).resolves.toBe(2)
+    const result = await retry(numberGenerator, { shouldRetry, backoff })
+    expect(result.ok).toBe(true)
+    if (!result.ok) throw result.error
+    expect(result.value).toBe(2)
   })
 
   it('executes `onRetry` on each retry', async () => {
-    expect.assertions(1)
-
     const retries = 3
     let onRetryCalls = 0
     function onRetry() {
@@ -88,16 +85,17 @@ describe('retry', () => {
   })
 
   it('backs off between each retry', async () => {
-    expect.assertions(2)
-
     const retries = 3
     const throwUntil3 = createThrowUntilN(3)
     // Passing a mock since we are not testing the backoff behavior
+    /** @type {jest.Mock<() => Promise<void>>} */
     const mockBackoff = jest.fn()
 
     const result = await retry(throwUntil3, { retries, backoff: mockBackoff })
 
-    expect(result).toBe('lorem')
+    expect(result.ok).toBe(true)
+    if (!result.ok) throw result.error
+    expect(result.value).toBe('lorem')
     expect(mockBackoff).toHaveBeenCalledTimes(2)
   })
 })

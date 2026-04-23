@@ -1,23 +1,19 @@
-const createId = require('.')
+import { describe, it, expect } from '@jest/globals'
+import createId from './index.js'
 
 describe('createId', () => {
-  it('creates an id with characters only present on alphabet parameter', () => {
-    expect.assertions(32)
+  it('creates a valid UUID', () => {
+    const id = createId()
 
-    const alphabet = ['a', 'b', 'c', 'd', 'e']
-    const id = createId(32, alphabet)
-
-    for (const char of id) {
-      expect(alphabet).toContain(char)
-    }
+    expect(id).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+    )
   })
 
-  it('creates an id with a length as passed as argument', () => {
-    expect.assertions(1)
+  it('creates unique ids', () => {
+    const id1 = createId()
+    const id2 = createId()
 
-    const length = 16
-    const id = createId(length)
-
-    expect(id).toHaveLength(length)
+    expect(id1).not.toBe(id2)
   })
 })

@@ -1,56 +1,12 @@
-function createAlphabet() {
-  const output = []
+/** @typedef {import('../types.js').ConnectionId} ConnectionId */
 
-  for (let i = 'A'.charCodeAt(0); i <= 'Z'.charCodeAt(0); i += 1) {
-    output.push(String.fromCharCode(i))
-  }
-
-  for (let i = 'a'.charCodeAt(0); i <= 'z'.charCodeAt(0); i += 1) {
-    output.push(String.fromCharCode(i))
-  }
-
-  for (let i = '0'.charCodeAt(0); i <= '9'.charCodeAt(0); i += 1) {
-    output.push(String.fromCharCode(i))
-  }
-
-  return output
-}
-
-/** @readonly */
-const defaultAlphabet = createAlphabet()
+import { randomUUID } from 'node:crypto'
 
 /**
- * @param {any[]} arr
- * @returns {number}
+ * @returns {ConnectionId}
  */
-function getRandomIndex(arr) {
-  return Math.floor(Math.random() * arr.length)
+function createId() {
+  return /** @type {ConnectionId} */ (randomUUID())
 }
 
-/**
- * @template T
- * @param {T[]} arr
- * @returns {T}
- */
-function getRandomValue(arr) {
-  return arr[getRandomIndex(arr)]
-}
-
-/**
- * Returns a string with `length` size with random values from `alphabet`.
- *
- * @param {Number} [length]
- * @param {string[]} [alphabet]
- * @returns {string}
- */
-function createId(length = 32, alphabet = defaultAlphabet) {
-  const output = []
-
-  while (output.length < length) {
-    output.push(getRandomValue(alphabet))
-  }
-
-  return output.join('')
-}
-
-module.exports = createId
+export default createId

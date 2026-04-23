@@ -1,9 +1,7 @@
-const net = require('net')
-const { queue } = require('../function-call')
+import net from 'node:net'
+import { queue } from '../function-call/index.js'
 
 /**
- * Returns `true` if port is not available. `false` otherwise.
- *
  * @param {number} port
  * @returns {Promise<boolean>}
  */
@@ -21,4 +19,4 @@ function isPortTaken(port) {
   })
 }
 
-module.exports = queue(isPortTaken)
+export default queue(isPortTaken)

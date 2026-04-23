@@ -1,11 +1,10 @@
-/** @typedef {import('../../types').StreamReadable} StreamReadable */
-
 /**
- * @param {AsyncIterable<any> | Iterable<any>} stream
- * @returns {Promise<any[]>}
+ * @template T
+ * @param {AsyncIterable<T> | Iterable<T>} stream
+ * @returns {Promise<T[]>}
  */
 async function values(stream) {
-  /** @type {any[]} */
+  /** @type {T[]} */
   const chunks = []
   for await (const chunk of stream) {
     chunks.push(chunk)
@@ -13,4 +12,4 @@ async function values(stream) {
   return chunks
 }
 
-module.exports = values
+export default values

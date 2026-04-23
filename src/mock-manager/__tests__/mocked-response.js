@@ -1,10 +1,9 @@
-const { getBody } = require('../../shared/http')
-const { createMockedResponse } = require('./helpers/mocked-response')
+import { describe, it, expect } from '@jest/globals'
+import { getBody } from '../../shared/http/index.js'
+import { createMockedResponse } from './helpers/mocked-response.js'
 
 describe('mockedResponse', () => {
   it('is a duplex stream', async () => {
-    expect.assertions(1)
-
     const mockedResponse = createMockedResponse()
 
     // Write to the stream

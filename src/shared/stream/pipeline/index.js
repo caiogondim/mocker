@@ -1,6 +1,3 @@
-const stream = require('stream')
-const { promisify } = require('util')
+import { pipeline } from 'node:stream/promises'
 
-const pipeline = promisify(stream.pipeline)
-
-module.exports = pipeline
+export default pipeline

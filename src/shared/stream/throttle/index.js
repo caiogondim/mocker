@@ -1,101 +1,96 @@
-const { Transform, PassThrough } = require('stream')
+import { Transform, PassThrough } from 'node:stream'
 
 // https://en.wikipedia.org/wiki/Token_bucket
 class TokenBucket {
+  /** @type {number} */
+  #capacity
+  /** @type {number} */
+  #fillFrequency
+  /** @type {number} */
+  #tokens = 0
+  /** @type {Array<function(unknown=): void>} */
+  #refillResolvers = []
+  /** @type {boolean} */
+  #hasPendingRefill = false
+  /** @type {ReturnType<typeof setTimeout> | null} */
+  #fillTimer = null
+
   /**
    * @param {Object} options
    * @param {number} options.capacity
    * @param {number} options.fillFrequency
    */
   constructor({ capacity, fillFrequency }) {
-    /**
-     * @private
-     *
-     * @readonly
-     */
-    this._capacity = capacity
-
-    /**
-     * @private
-     *
-     * @readonly
-     */
-    this._fillFrequency = fillFrequency
-
-    /**
-     * @private
-     * @type {number}
-     */
-    this._tokens = 0
-
-    /**
-     * @private
-     *
-     * @type {null | typeof setTimeout}
-     */
-    this._interval = null
-
-    /** @private */
-    this._refillResolve = () => {}
-
-    /** @private */
-    this._isInitialized = false
-
-    /** @private */
-    this._hasPendingRefill = false
+    this.#capacity = capacity
+    this.#fillFrequency = fillFrequency
   }
 
-  /** @returns {number} */
   get tokens() {
-    return this._tokens
+    return this.#tokens
   }
 
   /**
    * @param {number} quantity
-   * @returns {Boolean}
+   * @returns {{ ok: true; value: boolean } | { ok: false; error: TypeError }}
    */
   take(quantity) {
     if (!Number.isInteger(quantity) || quantity <= 0) {
-      throw TypeError('quantity must be a positive integer')
+      return {
+        ok: false,
+        error: TypeError('quantity must be a positive integer'),
+      }
     }
 
-    if (!this._hasPendingRefill) {
-      this._hasPendingRefill = true
-      setTimeout(() => this._fill(), 1000 / this._fillFrequency)
+    if (!this.#hasPendingRefill) {
+      this.#hasPendingRefill = true
+      this.#fillTimer = setTimeout(
+        () => this.#fill(),
+        1000 / this.#fillFrequency,
+      )
+      this.#fillTimer.unref()
     }
 
-    if (quantity <= this._tokens) {
-      this._tokens -= quantity
-      return true
+    if (quantity <= this.#tokens) {
+      this.#tokens -= quantity
+      return { ok: true, value: true }
     }
-    return false
+    return { ok: true, value: false }
   }
 
-  /** @returns {Promise<void>} */
   async refill() {
-    if (this._capacity === this._tokens) {
+    if (this.#capacity === this.#tokens) {
       return Promise.resolve()
     }
 
     return new Promise((resolve) => {
-      this._refillResolve = resolve
+      this.#refillResolvers.push(resolve)
     })
   }
 
-  /**
-   * @private
-   * @returns {void}
-   */
-  _fill() {
-    this._tokens = this._capacity
-    this._hasPendingRefill = false
-    this._refillResolve()
+  abort() {
+    if (this.#fillTimer !== null) {
+      clearTimeout(this.#fillTimer)
+      this.#fillTimer = null
+    }
+    this.#hasPendingRefill = false
+    for (const resolve of this.#refillResolvers) {
+      resolve()
+    }
+    this.#refillResolvers = []
+  }
+
+  #fill() {
+    this.#tokens = this.#capacity
+    this.#hasPendingRefill = false
+    this.#fillTimer = null
+    for (const resolve of this.#refillResolvers) {
+      resolve()
+    }
+    this.#refillResolvers = []
   }
 }
 
 /**
- * Throttles a stream pipeline.
- *
  * @param {Object} options
  * @param {number} options.bps
  * @returns {Transform}
@@ -105,15 +100,25 @@ function throttle({ bps }) {
     return new PassThrough()
   }
 
+  if (!Number.isInteger(bps) || bps <= 0) {
+    throw new TypeError('bps must be a positive integer or Infinity')
+  }
+
   const tokenBucket = new TokenBucket({ capacity: bps, fillFrequency: 1 })
   const stream = new Transform({
     async transform(data, encoding, callback) {
       try {
         for (let chunkStart = 0; chunkStart < data.length; chunkStart += bps) {
-          const chunkEnd = Math.min(data.length, chunkStart + bps + 1)
+          if (this.destroyed) return callback()
+          const chunkEnd = Math.min(data.length, chunkStart + bps)
           const chunkSize = chunkEnd - chunkStart
-          if (!tokenBucket.take(chunkSize)) {
+          const takeResult = tokenBucket.take(chunkSize)
+          if (!takeResult.ok) {
+            return callback(takeResult.error)
+          }
+          if (!takeResult.value) {
             await tokenBucket.refill()
+            if (this.destroyed) return callback()
             chunkStart -= bps
             continue
           }
@@ -121,15 +126,17 @@ function throttle({ bps }) {
         }
         return callback(null)
       } catch (error) {
-        if (error === null || error === undefined || error instanceof Error) {
-          return callback(error)
-        } else {
-          throw error
-        }
+        return callback(
+          error instanceof Error ? error : new Error(String(error)),
+        )
       }
+    },
+    destroy(error, callback) {
+      tokenBucket.abort()
+      callback(error)
     },
   })
   return stream
 }
 
-module.exports = throttle
+export default throttle

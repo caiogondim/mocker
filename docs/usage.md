@@ -1,7 +1,7 @@
 ## Usage
 
 ```bash
-yarn start --origin http://example.com --responsesDir ./responses/example-com --mode read-write
+npm start -- --origin http://example.com --mocksDir ./responses/example-com --mode read-write
 ```
 
 ## Options
@@ -11,10 +11,10 @@ yarn start --origin http://example.com --responsesDir ./responses/example-com --
 - Required: `true`
 - e.g.: `--origin https://graphql.example.com`
 
-`--responsesDir`
+`--mocksDir`
 
 - Required: `true`
-- e.g.: `--responsesDir /path/to/folder`
+- e.g.: `--mocksDir /path/to/folder`
 
 Path to read/write mocked responses.
 
@@ -25,7 +25,7 @@ Path to read/write mocked responses.
 - Valid values: A subset of `url`, `method`, `headers`, `body`
 - e.g.: `--mockKeys url,method`, `--mockKeys url,method,body`
 
-It's also possible to select a slice of the body request, if it's formmatted as
+It's also possible to select a slice of the request body, if it's formatted as
 JSON, using a dot notation: `--mockKeys url,method,body.prop1.prop2`
 
 `--port`
@@ -50,7 +50,7 @@ secrets before updating mocks with `--update startup`.
 - Required: `false`
 - Default: `0`
 
-Max number of requests to origin while response is not 200. Be careful about
+Max number of requests to origin while the response is not 200. Be careful about
 enabling retries for idempotent endpoints (HTTP POST, HTTP PATCH, ...).
 
 `--delay`
@@ -58,23 +58,23 @@ enabling retries for idempotent endpoints (HTTP POST, HTTP PATCH, ...).
 - Required: `false`
 - Default: `0`
 
-Adds a synthetic delay to each request. Value in miliseconds.
+Adds a synthetic delay to each request. Value in milliseconds.
 
 `--throttle`
 
 - Required: `false`
 - Default: `Infinity`
 
-Adds a synthetic throttling to each request. Value in kB/s.
+Adds a synthetic throttling to each request. Value in bytes/s.
 
 `--update`
 
 - Required: `false`
 - Default: `off`
 - Valid values:
-  - `startup`: updates all mocks in `--responsesDir` at startup time.
+  - `startup`: updates all mocks in `--mocksDir` at startup time.
   - `off`
-  - `only`: updates all mocks in `--responsesDir` and terminates process
+  - `only`: updates all mocks in `--mocksDir` and terminates process
 
 `--mode`
 
@@ -89,17 +89,9 @@ Adds a synthetic throttling to each request. Value in kB/s.
   - `read-write`: if a mocked response exists for the request, use it, otherwise
     get a response from origin, save it and send it to the user agent
   - `read-pass`: if a mocked response exists for the request, use it, otherwise
-    returns from origin
+    get a response from origin
   - `pass-read`: if origin is available and returns a not-500, use it, otherwise
     tries to use a mocked response
-
-`--workers`
-
-- Required: `false`
-- Default: `1`
-
-The total number of spawned process is `workers + 1` since there is also a load
-balancer on top of all workers.
 
 `--logging`
 
@@ -133,3 +125,11 @@ headers will be used on the request to origin.
 
 Send CORS headers between client and proxy. Helpful in case origin is also
 sending CORS headers.
+
+`--proxy`
+
+- Required: `false`
+- Default: `''`
+- e.g.: `--proxy http://localhost:8080`
+
+Upstream HTTP(S) proxy URL used when forwarding requests to origin.

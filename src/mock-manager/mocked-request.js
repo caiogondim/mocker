@@ -1,15 +1,17 @@
-/** @typedef {import('../shared/http').Headers} Headers */
+/** @typedef {import('../shared/http/types.js').Headers} Headers */
+/** @typedef {import('../shared/types.js').HttpMethod} HttpMethod */
 
-const { Transform } = require('stream')
+import { PassThrough } from 'node:stream'
+import { HTTP_METHOD } from '../shared/http-method/index.js'
 
-class MockedRequest extends Transform {
+class MockedRequest extends PassThrough {
   /**
    * @param {Object} options
    * @param {string} options.url
    * @param {Headers} [options.headers]
-   * @param {String} [options.method]
+   * @param {HttpMethod} [options.method]
    */
-  constructor({ url, method = 'GET', headers = {} }) {
+  constructor({ url, method = HTTP_METHOD.GET, headers = {} }) {
     super()
 
     /** @readonly */
@@ -21,16 +23,6 @@ class MockedRequest extends Transform {
     /** @readonly */
     this.url = url
   }
-
-  /**
-   * @param {Buffer} chunk
-   * @param {string} encoding
-   * @param {Function} callback
-   * @returns {void}
-   */
-  _transform(chunk, encoding, callback) {
-    callback(null, chunk)
-  }
 }
 
-module.exports = MockedRequest
+export default MockedRequest

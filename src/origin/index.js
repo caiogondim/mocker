@@ -1,50 +1,38 @@
-/** @typedef {import('../shared/http/types').Headers} Headers */
+/** @typedef {import('../shared/http/types.js').Headers} Headers */
+/** @typedef {import('../shared/types.js').AbsoluteHttpUrl} AbsoluteHttpUrl */
+/** @typedef {import('../args/types.js').HttpUrl} HttpUrl */
+/** @typedef {import('../args/types.js').NonNegativeInteger} NonNegativeInteger */
+/** @typedef {import('../shared/types.js').HttpMethod} HttpMethod */
 
-const { createRequest } = require('../shared/http')
+import { createRequest } from '../shared/http/index.js'
+import { HTTP_METHOD } from '../shared/http-method/index.js'
 
-class Origin {
-  /**
-   * @param {Object} options
-   * @param {string} options.host
-   * @param {number} [options.retries]
-   * @param {Headers} [options.overwriteRequestHeaders]
-   */
-  constructor({ host, retries = 0, overwriteRequestHeaders = {} }) {
-    /**
-     * @private
-     * @readonly
-     */
-    this._host = host
-
-    /**
-     * @private
-     * @readonly
-     */
-    this._retries = retries
-
-    /**
-     * @private
-     * @readonly
-     */
-    this._overwriteRequestHeaders = overwriteRequestHeaders
-  }
+/**
+ * @param {Object} options
+ * @param {HttpUrl} options.host
+ * @param {NonNegativeInteger} [options.retries]
+ * @param {Headers} [options.overwriteRequestHeaders]
+ * @param {HttpUrl} [options.proxyUrl]
+ */
+function createOrigin({
+  host,
+  retries = /** @type {NonNegativeInteger} */ (0),
+  overwriteRequestHeaders = {},
+  proxyUrl,
+}) {
+  const parsedProxyUrl = proxyUrl ? new URL(proxyUrl) : null
 
   /**
    * @param {Object} options
    * @param {string} options.url
-   * @param {Object<string, any>} [options.headers]
-   * @param {string | undefined} [options.method]
+   * @param {Headers} [options.headers]
+   * @param {HttpMethod} [options.method]
    * @returns {ReturnType<createRequest>}
    */
-  async request({ url, headers = {}, method = 'GET' }) {
-    const {
-      _retries: retries,
-      _overwriteRequestHeaders: overwriteRequestHeaders,
-    } = this
-    const headersCopy = global.structuredClone(headers)
-    const absoluteUrl = this._getAbsolutetUrl(url)
+  async function request({ url, headers = {}, method = HTTP_METHOD.GET }) {
+    const headersCopy = { ...headers }
+    const absoluteUrl = getAbsoluteUrl(url)
 
-    // Overwriting request headers before creating the request
     for (const [key, value] of Object.entries(overwriteRequestHeaders)) {
       if (value === null || value === undefined) {
         delete headersCopy[key]
@@ -53,30 +41,50 @@ class Origin {
       }
     }
 
-    const [request, responsePromise] = await createRequest({
-      url: absoluteUrl,
+    // When using a proxy, rewrite the URL to go through it
+    const requestUrl = parsedProxyUrl
+      ? rewriteUrlForProxy(absoluteUrl, parsedProxyUrl)
+      : absoluteUrl
+
+    const result = await createRequest({
+      url: requestUrl,
       headers: headersCopy,
       method,
       retries,
     })
 
-    return [request, responsePromise]
+    if (!result.ok) {
+      return result
+    }
+
+    return { ok: true, value: result.value }
   }
 
   /**
-   * @private
    * @param {string} url
-   * @returns {string}
+   * @returns {AbsoluteHttpUrl}
    */
-  _getAbsolutetUrl(url) {
-    const { _host: host } = this
-
+  function getAbsoluteUrl(url) {
     if (url.startsWith('http://') || url.startsWith('https://')) {
-      return url
+      return /** @type {AbsoluteHttpUrl} */ (url)
     }
-
-    return `${host}${url}`
+    return /** @type {AbsoluteHttpUrl} */ (`${host}${url}`)
   }
+
+  return { request }
 }
 
-module.exports = { Origin }
+/**
+ * @param {AbsoluteHttpUrl} absoluteUrl
+ * @param {URL} parsedProxyUrl
+ * @returns {AbsoluteHttpUrl}
+ */
+function rewriteUrlForProxy(absoluteUrl, parsedProxyUrl) {
+  const original = new URL(absoluteUrl)
+  original.protocol = parsedProxyUrl.protocol
+  original.hostname = parsedProxyUrl.hostname
+  original.port = parsedProxyUrl.port
+  return /** @type {AbsoluteHttpUrl} */ (original.toString())
+}
+
+export { createOrigin }

@@ -1,30 +1,39 @@
-/** @typedef {import('./args').Args} Args */
-/** @typedef {import('./shared/types').AsyncHttpServer} AsyncHttpServer */
-/** @typedef {import('./shared/types').FsLike} FsLike */
-/** @typedef {import('./shared/stream/rewindable/types').Rewindable} Rewindable */
-/** @typedef {import('./shared/http').Headers} Headers */
-/** @typedef {import('./mock-manager/mocked-request')} MockedRequest */
+/** @typedef {import('./args/index.js').Args} Args */
+/** @typedef {import('./shared/types.js').AsyncHttpServer} AsyncHttpServer */
+/** @typedef {import('./shared/types.js').FsLike} FsLike */
+/** @typedef {import('./shared/types.js').ConnectionId} ConnectionId */
+/** @typedef {import('./shared/stream/rewindable/types.js').Rewindable} Rewindable */
+/** @typedef {import('./shared/http/index.js').Headers} Headers */
+/** @typedef {import('./shared/types.js').HttpMethod} HttpMethod */
+/** @typedef {InstanceType<import('./mock-manager/mocked-request.js')["default"]>} MockedRequest */
+/** @import { Result } from './shared/types.js' */
+/** @typedef {import('./mock-manager/mock-file-error.js').MockFileError} MockFileError */
+/** @typedef {import('node:net').Socket} NetSocket */
+/** @typedef {InstanceType<import('./mock-manager/mocked-response.js')["default"]>} MockedResponse */
 
-const path = require('path')
-const http = require('http')
-const cluster = require('cluster')
-const os = require('os')
-const packageJson = require('../package.json')
-const Logger = require('./shared/logger')
-const { bold, dim, green, yellow, red } = require('./shared/logger/format')
-const { MockManager } = require('./mock-manager')
-const { Origin } = require('./origin')
-const { delay, throttle, pipeline, rewindable } = require('./shared/stream')
-const createId = require('./shared/create-id')
-const {
+import path from 'node:path'
+import http from 'node:http'
+import createLogger from './shared/logger/index.js'
+import { bold, dim, green, yellow, red } from './shared/logger/format/index.js'
+import { createMockManager } from './mock-manager/index.js'
+import { createOrigin } from './origin/index.js'
+import { delay, throttle, pipeline, rewindable } from './shared/stream/index.js'
+import createId from './shared/create-id/index.js'
+import {
   getHeaders,
   redactHeaders,
   isHeaders,
   SecretNotFoundError,
-} = require('./shared/http')
+  stripHopByHopHeaders,
+} from './shared/http/index.js'
+import { MODE } from './args/index.js'
+import { HTTP_METHOD } from './shared/http-method/index.js'
+import { HTTP_STATUS_CODE } from './shared/http-status-code/index.js'
 
-const logger = new Logger()
+import packageJson from '../package.json' with { type: 'json' }
+const logger = createLogger()
 const closingMockerText = '\r  \nclosing mocker 👋'
+const SHUTDOWN_TIMEOUT_MS = 3000
 
 class OriginResponseError extends Error {
   /** @param {string} message */
@@ -36,7 +45,37 @@ class OriginResponseError extends Error {
 
 const terminationSignals = ['SIGHUP', 'SIGINT', 'SIGTERM']
 
-const nonFatalErrors = ['ENOTFOUND', 'ERR_TLS_CERT_ALTNAME_INVALID']
+/** Network error codes that indicate origin is unreachable (fallback to mock). */
+const NETWORK_ERROR_CODES = new Set([
+  'ECONNREFUSED',
+  'ECONNRESET',
+  'ENOTFOUND',
+  'ETIMEDOUT',
+  'EHOSTUNREACH',
+  'EAI_AGAIN',
+])
+
+/**
+ * @param {unknown} error
+ * @param {string} mockBasename
+ * @param {string} progressStr
+ */
+function logUpdateError(error, mockBasename, progressStr) {
+  if (error instanceof SecretNotFoundError) {
+    logger.warn(
+      `${dim(progressStr)} ${bold(mockBasename)} ${error.message}. mock was not modified`,
+    )
+  } else if (error && Reflect.get(error, 'code') === 'EACCES') {
+    logger.warn(
+      `${dim(progressStr)} ${bold(mockBasename)} file is read-only. mock was not modified`,
+    )
+  } else {
+    logger.warn(
+      `${dim(progressStr)} ${bold(mockBasename)} error while updating mock. mock was not modified`,
+      error,
+    )
+  }
+}
 
 /**
  * @param {http.IncomingMessage} responseSource
@@ -44,29 +83,16 @@ const nonFatalErrors = ['ENOTFOUND', 'ERR_TLS_CERT_ALTNAME_INVALID']
  * @returns {void}
  */
 function copyResponseAttrs(responseSource, responseTarget) {
-  /** @type {Object<string, any>} */
-  const headers = {}
+  const rawHeaders = getHeaders(responseSource)
+  delete rawHeaders['content-length']
+  const headers = stripHopByHopHeaders(rawHeaders)
 
-  for (const [headerKey, headerValue] of Object.entries(
-    getHeaders(responseSource)
-  )) {
-    if (typeof headerValue === 'undefined') {
-      continue
-    }
-    headers[headerKey] = headerValue
-  }
-
-  delete headers['content-length']
-
+  responseTarget.statusCode = responseSource.statusCode || HTTP_STATUS_CODE.OK
   if (responseSource.statusMessage) {
-    responseTarget.statusCode = responseSource.statusCode || 200
     responseTarget.statusMessage = responseSource.statusMessage
-    for (const [key, value] of Object.entries(headers)) {
-      responseTarget.setHeader(key, value)
-    }
-  } else {
-    responseTarget.statusCode = responseSource.statusCode || 200
-    for (const [key, value] of Object.entries(headers)) {
+  }
+  for (const [key, value] of Object.entries(headers)) {
+    if (value !== null) {
       responseTarget.setHeader(key, value)
     }
   }
@@ -74,16 +100,18 @@ function copyResponseAttrs(responseSource, responseTarget) {
 
 /**
  * @param {http.ServerResponse} response
- * @param {string} connectionId
+ * @param {ConnectionId} connectionId
  * @returns {Promise<void>}
  */
 async function respondNotFound(response, connectionId) {
-  logger.info(`${dim(connectionId)} 👈 ${formatStatusCode(404)}`)
+  logger.info(
+    `${dim(connectionId)} 👈 ${formatStatusCode(HTTP_STATUS_CODE.NOT_FOUND)}`,
+  )
 
   response.setHeader('x-mocker-request-id', connectionId)
   response.setHeader('x-mocker-response-from', 'Mock')
   response.setHeader('x-mocker-mock-path', 'Not Found')
-  response.writeHead(404)
+  response.writeHead(HTTP_STATUS_CODE.NOT_FOUND)
   response.end()
 }
 
@@ -106,16 +134,16 @@ function formatStatusCode(statusCode) {
 /**
  * @param {http.IncomingMessage} request
  * @param {http.ServerResponse} response
- * @param {string} connectionId
+ * @param {ConnectionId} connectionId
  * @returns {void}
  */
 function handleLiveAndReadinessConnection(request, response, connectionId) {
-  const statusCode = 200
+  const statusCode = HTTP_STATUS_CODE.OK
 
   logger.info(
     `${dim(connectionId)} 👈 ${formatStatusCode(
-      statusCode
-    )} serving health check from mocker`
+      statusCode,
+    )} serving health check from mocker`,
   )
 
   response.writeHead(statusCode)
@@ -123,74 +151,65 @@ function handleLiveAndReadinessConnection(request, response, connectionId) {
 }
 
 class Mocker {
+  /** @type {Args & { fs: FsLike }} */
+  #args
+
+  #origin
+
+  #mockManager
+
+  /** @type {http.Server | null} */
+  #httpServer = null
+
+  /** @type {Set<NetSocket>} */
+  #connections = new Set()
+
+  /** @type {Promise<void> | null} */
+  #closingPromise = null
+
+  /** @type {(() => Promise<void>)[] } */
+  #signalHandlers = []
+
   /** @param {Args & { fs: FsLike }} args */
   constructor(args) {
-    /**
-     * @private
-     * @readonly
-     */
-    this._args = args
+    this.#args = args
 
-    /**
-     * @private
-     * @readonly
-     */
-    this._origin = new Origin({
+    this.#origin = createOrigin({
       host: args.origin,
       retries: args.retries,
       overwriteRequestHeaders: args.overwriteRequestHeaders,
+      ...(args.proxy !== '' ? { proxyUrl: args.proxy } : {}),
     })
 
-    /**
-     * @private
-     * @readonly
-     */
-    this._mockManager = new MockManager({
-      responsesDir: args.responsesDir,
+    this.#mockManager = createMockManager({
+      mocksDir: args.mocksDir,
       mockKeys: args.mockKeys,
       redactedHeaders: args.redactedHeaders,
       fs: args.fs,
     })
-
-    /**
-     * @private
-     * @type {http.Server | null}
-     */
-    this._httpServer = null
-
-    this._state = {
-      isClosing: false,
-    }
-
-    /** @type {AsyncHttpServer} */
-    // Checks if instance implements AsyncHttpServer interface.
-    // eslint-disable-next-line no-unused-vars
-    const instance = this
   }
 
-  /**
-   * Returns `true` if the server is running and listening on a TCP port.
-   * `false` otherwise.
-   *
-   * @returns {boolean}
-   */
+  /** @returns {boolean} */
   get listening() {
-    if (!this._httpServer) return false
-    return this._httpServer.listening
+    if (!this.#httpServer) return false
+    return this.#httpServer.listening
+  }
+
+  /** @returns {number} */
+  get port() {
+    const addr = this.#httpServer?.address()
+    if (addr && typeof addr === 'object') return addr.port
+    return 0
   }
 
   /**
-   * Binds server to a TCP port.
-   *
    * @param {number} port
    * @returns {Promise<void>}
    */
-  async listen(port = this._args.port) {
-    const { _args: args, _state: state } = this
+  async listen(port = this.#args.port) {
+    const args = this.#args
 
-    state.isClosing = false
-
-    function printStartMessage() {
+    function formatStartMessage() {
       return `\nstarting mocker 🥸 v${
         packageJson.version
       } with arguments: \n${Object.entries(args)
@@ -210,7 +229,7 @@ class Mocker {
             return `- ${bold(entry[0])}: ${JSON.stringify(
               redactHeaders(entry[1], args.redactedHeaders),
               null,
-              2
+              2,
             )}`
           }
 
@@ -219,117 +238,64 @@ class Mocker {
         .join('\n')}\n`
     }
 
-    // Type definition for cluster module is broken
-    // @ts-expect-error
-    if (cluster.isPrimary) {
-      logger.log(printStartMessage())
+    logger.log(formatStartMessage())
+    this.#addListeners()
 
-      this._addListeners()
-
-      if (args.update === 'startup' || args.update === 'only') {
-        await this._updateMocks()
-      }
-
-      if (args.update === 'only') {
-        logger.log(closingMockerText)
-        return
-      }
+    if (args.update === 'startup' || args.update === 'only') {
+      await this.#updateMocks()
     }
 
-    return new Promise((resolve) => {
-      // Cluster mode doesn't play well with Jest.
-      if (process.env.NODE_ENV === 'test') {
-        logger.info(
-          `started on port ${bold(port)}, with pid ${bold(
-            process.pid
-          )}, and proxying ${bold(args.origin)}`
-        )
-        this._httpServer = http
-          .createServer(this._server.bind(this))
-          .listen(port, resolve)
-        // Type definition for cluster module is broken
-        // @ts-expect-error
-      } else if (cluster.isPrimary) {
-        logger.info(
-          `started on port ${bold(port)}, with pid ${bold(
-            process.pid
-          )}, and proxying ${bold(args.origin)}`
-        )
-
-        const numCpus = os.cpus().length
-        logger.info(
-          `system has ${bold(numCpus)} CPU${
-            numCpus > 1 ? 's' : ''
-          }, spawning ${bold(args.workers)} worker${
-            args.workers > 1 ? 's' : ''
-          }`
-        )
-
-        for (let i = 0; i < args.workers; i += 1) {
-          // Type definition for cluster module is broken
-          // @ts-expect-error
-          cluster.fork()
-        }
-
-        // Type definition for cluster module is broken
-        // @ts-expect-error
-        cluster.on('online', (worker) => {
-          logger.info(`worker pid ${bold(worker.process.pid)} started`)
-        })
-
-        // Type definition for cluster module is broken
-        // @ts-expect-error
-        cluster.on('exit', (worker) => {
-          if (!state.isClosing) {
-            logger.warn(`worker pid ${bold(worker.process.pid)} died`)
-
-            // Type definition for cluster module is broken
-            // @ts-expect-error
-            cluster.fork()
-          }
-        })
-
-        // Type definition for cluster module is broken
-        // @ts-expect-error
-        cluster.on('listening', resolve)
-
-        // Type definition for cluster module is broken
-        // @ts-expect-error
-      } else if (cluster.isWorker) {
-        this._httpServer = http
-          .createServer(this._server.bind(this))
-          .listen(port, resolve)
-      }
-    })
-  }
-
-  /**
-   * Closes server and releases all used resources.
-   *
-   * @returns {Promise<void>}
-   */
-  async close() {
-    const { _state: state, _httpServer: httpServer } = this
-
-    state.isClosing = true
-
-    this._removeListeners()
-
-    // Type definition for cluster module is broken
-    // @ts-expect-error
-    if (process.env.NODE_ENV !== 'test' && cluster.isPrimary) {
-      return new Promise((resolve) => {
-        // Type definition for cluster module is broken
-        // @ts-expect-error
-        cluster.disconnect(resolve)
-      })
+    if (args.update === 'only') {
+      this.#removeListeners()
+      logger.log(closingMockerText)
+      return
     }
 
     return new Promise((resolve, reject) => {
-      if (httpServer) {
-        httpServer.close((error) => {
-          state.isClosing = false
+      const httpServer = http.createServer(this.#server.bind(this))
+      httpServer.on('connection', (socket) => {
+        this.#connections.add(socket)
+        socket.on('close', () => {
+          this.#connections.delete(socket)
+        })
+      })
+      httpServer.once('error', reject)
+      this.#httpServer = httpServer.listen(port, () => {
+        httpServer.removeListener('error', reject)
+        logger.info(
+          `started on port ${bold(port)}, with pid ${bold(
+            process.pid,
+          )}, and proxying ${bold(args.origin)}`,
+        )
+        resolve()
+      })
+    })
+  }
 
+  /** @returns {Promise<void>} */
+  async close() {
+    if (this.#closingPromise) {
+      return this.#closingPromise
+    }
+
+    const httpServer = this.#httpServer
+
+    this.#removeListeners()
+
+    this.#closingPromise = new Promise((resolve, reject) => {
+      if (httpServer && httpServer.listening) {
+        const forceCloseTimeout = setTimeout(() => {
+          if (typeof httpServer.closeIdleConnections === 'function') {
+            httpServer.closeIdleConnections()
+          }
+          for (const connection of this.#connections) {
+            connection.destroy()
+          }
+        }, SHUTDOWN_TIMEOUT_MS)
+
+        httpServer.close((error) => {
+          clearTimeout(forceCloseTimeout)
+          this.#closingPromise = null
           if (error) {
             reject(error)
           } else {
@@ -337,50 +303,123 @@ class Mocker {
           }
         })
       } else {
-        state.isClosing = false
+        this.#closingPromise = null
         resolve()
       }
     })
+
+    return this.#closingPromise
+  }
+
+  async [Symbol.asyncDispose]() {
+    await this.close()
   }
 
   /**
-   * @private
    * @returns {void}
    */
-  _addListeners() {
+  #addListeners() {
     for (const signal of terminationSignals) {
-      process.on(signal, async () => {
+      const handler = async () => {
+        if (this.#closingPromise) {
+          return
+        }
         logger.log(closingMockerText)
         await this.close()
-      })
+      }
+      this.#signalHandlers.push(handler)
+      process.once(signal, handler)
     }
   }
 
   /**
-   * @private
    * @returns {void}
    */
-  _removeListeners() {
-    for (const signal of terminationSignals) {
-      process.removeAllListeners(signal)
+  #removeListeners() {
+    for (let i = 0; i < this.#signalHandlers.length; i++) {
+      process.removeListener(terminationSignals[i], this.#signalHandlers[i])
+    }
+    this.#signalHandlers = []
+  }
+
+  /**
+   * @param {http.IncomingMessage & Rewindable} request
+   * @param {http.ServerResponse} response
+   * @param {ConnectionId} connectionId
+   * @returns {Promise<Result<undefined>>}
+   */
+  async #dispatchByMode(request, response, connectionId) {
+    try {
+      const args = this.#args
+      switch (args.mode) {
+        case MODE.READ: {
+          await this.#handleConnectionWithReadMode(
+            request,
+            response,
+            connectionId,
+          )
+          return { ok: true, value: undefined }
+        }
+        case MODE.READ_WRITE: {
+          await this.#handleConnectionWithReadOrForwardMode(
+            request,
+            response,
+            connectionId,
+            'warn',
+          )
+          return { ok: true, value: undefined }
+        }
+        case MODE.READ_PASS: {
+          await this.#handleConnectionWithReadOrForwardMode(
+            request,
+            response,
+            connectionId,
+            'info',
+          )
+          return { ok: true, value: undefined }
+        }
+        case MODE.WRITE:
+        case MODE.PASS: {
+          await this.#respondFromOrigin(request, response, connectionId)
+          return { ok: true, value: undefined }
+        }
+        case MODE.PASS_READ: {
+          await this.#handleConnectionWithPassReadMode(
+            request,
+            response,
+            connectionId,
+          )
+          return { ok: true, value: undefined }
+        }
+        default: {
+          const _exhaustiveCheck = /** @type {never} */ (args.mode)
+          return {
+            ok: false,
+            error: new TypeError(`invalid args.mode: ${_exhaustiveCheck}`),
+          }
+        }
+      }
+    } catch (error) {
+      return {
+        ok: false,
+        error: error instanceof Error ? error : new Error(String(error)),
+      }
     }
   }
 
   /**
-   * @private
    * @param {http.IncomingMessage} request
    * @param {http.ServerResponse} response
    * @returns {Promise<void>}
    */
-  // eslint-disable-next-line complexity
-  async _server(request, response) {
-    const { _args: args } = this
+  async #server(request, response) {
+    const args = this.#args
     const connectionId = createId()
 
     response.setHeader('x-powered-by', 'mocker')
 
     logger.info(
-      `${dim(connectionId)} 👉 ${bold(request.method)} ${bold(request.url)}`
+      `${dim(connectionId)} 👉 ${bold(request.method)} ${bold(request.url)}`,
     )
 
     // Implementing live and readiness health checks under "/.well-known/"
@@ -395,251 +434,162 @@ class Mocker {
       return
     }
 
-    const requestRewindable = rewindable(request)
+    const requestRewindableResult = rewindable(request)
+    if (!requestRewindableResult.ok) {
+      logger.error(`${dim(connectionId)} ${requestRewindableResult.error}`)
 
-    if (args.cors && request.method === 'OPTIONS') {
-      this._handleCors(requestRewindable, response, connectionId)
-      return
-    }
-
-    try {
-      switch (args.mode) {
-        case 'read': {
-          await this._handleConnectionWithReadMode(
-            requestRewindable,
-            response,
-            connectionId
-          )
-          return
-        }
-        case 'read-write': {
-          await this._handleConnectionWithReadWriteMode(
-            requestRewindable,
-            response,
-            connectionId
-          )
-          return
-        }
-        case 'read-pass': {
-          await this._handleConnectionWithReadPassMode(
-            requestRewindable,
-            response,
-            connectionId
-          )
-          return
-        }
-        case 'write': {
-          await this._handleConnectionWithWriteMode(
-            requestRewindable,
-            response,
-            connectionId
-          )
-          return
-        }
-        case 'pass': {
-          await this._handleConnectionWithPassMode(
-            requestRewindable,
-            response,
-            connectionId
-          )
-          return
-        }
-        case 'pass-read': {
-          await this._handleConnectionWithPassReadMode(
-            requestRewindable,
-            response,
-            connectionId
-          )
-          return
-        }
-        default: {
-          throw new TypeError(`invalid args.mode: ${args.mode}`)
-        }
+      if (!response.headersSent) {
+        response.writeHead(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)
       }
-    } catch (error) {
-      logger.error(`${dim(connectionId)} ${error}`)
-
-      response.writeHead(500)
       response.end()
 
-      logger.info(`${dim(connectionId)} 👈 ${formatStatusCode(500)}`)
+      logger.info(
+        `${dim(connectionId)} 👈 ${formatStatusCode(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)}`,
+      )
+      return
+    }
+    await using requestRewindable = requestRewindableResult.value
 
-      const errorCode = Reflect.get(error || {}, 'code')
-      if (nonFatalErrors.includes(errorCode)) {
-        return
+    if (args.cors && request.method === HTTP_METHOD.OPTIONS) {
+      this.#handleCors(requestRewindable, response, connectionId)
+      return
+    }
+
+    const result = await this.#dispatchByMode(
+      requestRewindable,
+      response,
+      connectionId,
+    )
+    if (!result.ok) {
+      logger.error(`${dim(connectionId)} ${result.error}`)
+
+      if (!response.headersSent) {
+        response.writeHead(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)
       }
+      response.end()
 
-      throw error
+      logger.info(
+        `${dim(connectionId)} 👈 ${formatStatusCode(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)}`,
+      )
     }
   }
 
   /**
-   * @private
    * @param {http.IncomingMessage & Rewindable} request
    * @param {http.ServerResponse} response
-   * @param {string} connectionId
+   * @param {ConnectionId} connectionId
+   * @param {'warn' | 'info'} logLevel
    * @returns {Promise<void>}
    */
-  async _handleConnectionWithWriteMode(request, response, connectionId) {
-    await this._respondFromOrigin(request, response, connectionId)
-  }
-
-  /**
-   * @private
-   * @param {http.IncomingMessage & Rewindable} request
-   * @param {http.ServerResponse} response
-   * @param {string} connectionId
-   * @returns {Promise<void>}
-   */
-  async _handleConnectionWithPassMode(request, response, connectionId) {
-    await this._respondFromOrigin(request, response, connectionId)
-  }
-
-  /**
-   * @private
-   * @param {http.IncomingMessage & Rewindable} request
-   * @param {http.ServerResponse} response
-   * @param {string} connectionId
-   * @returns {Promise<void>}
-   */
-  async _handleConnectionWithReadWriteMode(request, response, connectionId) {
-    const { _mockManager: mockManager } = this
-
-    const { hasMock, mockPath } = await mockManager.has({
-      request,
-      connectionId,
-    })
-    const mockBasename = path.basename(mockPath)
-
-    if (hasMock) {
-      await this._respondFromMock(request, response, connectionId)
+  async #handleConnectionWithReadOrForwardMode(
+    request,
+    response,
+    connectionId,
+    logLevel,
+  ) {
+    const getResult = await this.#mockManager.get({ request, connectionId })
+    if (getResult.ok) {
+      await this.#serveFromMockResult(
+        getResult.value,
+        request,
+        response,
+        connectionId,
+      )
       return
     }
-
-    logger.warn(
-      `${dim(connectionId)} mocked response "${mockBasename}" was not found`
+    const mockBasename = path.basename(getResult.error.mockPath)
+    logger[logLevel](
+      `${dim(connectionId)} mocked response "${mockBasename}" was not found`,
     )
-    await this._respondFromOrigin(request, response, connectionId)
+    await this.#respondFromOrigin(request, response, connectionId)
   }
 
   /**
-   * @private
-   * @param {http.IncomingMessage & Rewindable} request
-   * @param {http.ServerResponse} response
-   * @param {string} connectionId
-   * @returns {Promise<void>}
-   */
-  async _handleConnectionWithReadPassMode(request, response, connectionId) {
-    const { _mockManager: mockManager } = this
-
-    const { hasMock, mockPath } = await mockManager.has({
-      request,
-      connectionId,
-    })
-    const mockBasename = path.basename(mockPath)
-
-    if (hasMock) {
-      await this._respondFromMock(request, response, connectionId)
-      return
-    }
-
-    logger.info(
-      `${dim(connectionId)} mocked response "${mockBasename}" was not found`
-    )
-    await this._respondFromOrigin(request, response, connectionId)
-  }
-
-  /**
-   *@private
    *@param {http.IncomingMessage} request
    *@param {http.ServerResponse} response
-   *@param {string} connectionId
+   *@param {ConnectionId} connectionId
    *@returns {Promise<void>}
    */
-  async _handleCors(request, response, connectionId) {
-    logger.info(`${dim(connectionId)} 👈 ${formatStatusCode(200)} CORS`)
+  async #handleCors(request, response, connectionId) {
+    logger.info(
+      `${dim(connectionId)} 👈 ${formatStatusCode(HTTP_STATUS_CODE.OK)} CORS`,
+    )
 
+    if (request.headers.origin) {
+      response.setHeader('access-control-allow-origin', request.headers.origin)
+    }
+    response.setHeader('vary', 'Origin')
+    response.setHeader('access-control-allow-credentials', 'true')
     response.setHeader(
-      'access-control-allow-origin',
-      `${request.headers.origin}`
-    )
-    response.setHeader('Access-Control-Allow-Credentials', 'true')
-    response.setHeader(
-      'Access-Control-Allow-Methods',
-      'PUT, GET, POST, DELETE, OPTIONS'
+      'access-control-allow-methods',
+      'GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS',
     )
     response.setHeader(
-      'Access-Control-Allow-Headers',
-      'Content-Type, x-cf-source-id, x-cf-corr-id'
+      'access-control-allow-headers',
+      request.headers['access-control-request-headers'] || '*',
     )
+    response.setHeader('access-control-max-age', '86400')
     response.end()
   }
 
   /**
-   * @private
    * @param {http.IncomingMessage & Rewindable} request
    * @param {http.ServerResponse} response
-   * @param {string} connectionId
+   * @param {ConnectionId} connectionId
    * @returns {Promise<void>}
    */
-  async _handleConnectionWithReadMode(request, response, connectionId) {
-    const { _mockManager: mockManager } = this
-
-    const { hasMock, mockPath } = await mockManager.has({
-      request,
-      connectionId,
-    })
-    const mockBasename = path.basename(mockPath)
-
-    if (hasMock) {
-      await this._respondFromMock(request, response, connectionId)
+  async #handleConnectionWithReadMode(request, response, connectionId) {
+    const getResult = await this.#mockManager.get({ request, connectionId })
+    if (getResult.ok) {
+      await this.#serveFromMockResult(
+        getResult.value,
+        request,
+        response,
+        connectionId,
+      )
       return
     }
-
+    const mockBasename = path.basename(getResult.error.mockPath)
     logger.warn(
-      `${dim(connectionId)} mocked response "${mockBasename}" was not found`
+      `${dim(connectionId)} mocked response "${mockBasename}" was not found`,
     )
     await respondNotFound(response, connectionId)
   }
 
   /**
-   * @private
    * @param {http.IncomingMessage & Rewindable} request
    * @param {http.ServerResponse} response
-   * @param {string} connectionId
+   * @param {ConnectionId} connectionId
    * @returns {Promise<void>}
    */
-  async _handleConnectionWithPassReadMode(request, response, connectionId) {
-    const { _mockManager: mockManager } = this
-
+  async #handleConnectionWithPassReadMode(request, response, connectionId) {
     try {
-      await this._respondFromOrigin(request, response, connectionId)
+      await this.#respondFromOrigin(request, response, connectionId)
       return
     } catch (error) {
-      if (
-        !(
-          error instanceof OriginResponseError ||
-          Reflect.get(error || {}, 'code') === 'ECONNREFUSED'
-        )
-      ) {
+      const errorCode = Reflect.get(error || {}, 'code')
+      const isNetworkError =
+        error instanceof OriginResponseError ||
+        NETWORK_ERROR_CODES.has(errorCode)
+      if (!isNetworkError) {
         throw error
       }
 
       logger.warn(`${dim(connectionId)} error fetching from origin`)
 
-      const { hasMock, mockPath } = await mockManager.has({
-        request,
-        connectionId,
-      })
-      const mockBasename = path.basename(mockPath)
-
-      if (hasMock) {
-        await this._respondFromMock(request, response, connectionId)
+      const getResult = await this.#mockManager.get({ request, connectionId })
+      if (getResult.ok) {
+        await this.#serveFromMockResult(
+          getResult.value,
+          request,
+          response,
+          connectionId,
+        )
         return
       }
-
+      const mockBasename = path.basename(getResult.error.mockPath)
       logger.warn(
-        `${dim(connectionId)} mocked response "${mockBasename}" was not found`
+        `${dim(connectionId)} mocked response "${mockBasename}" was not found`,
       )
       await respondNotFound(response, connectionId)
       return
@@ -647,129 +597,154 @@ class Mocker {
   }
 
   /**
-   * @private
+   * @param {{ mockedResponse: MockedResponse; mockPath: string }} mockResult
    * @param {http.IncomingMessage & Rewindable} request
    * @param {http.ServerResponse} response
-   * @param {string} connectionId
+   * @param {ConnectionId} connectionId
    * @returns {Promise<void>}
    */
-  async _respondFromMock(request, response, connectionId) {
-    const { _args: args, _mockManager: mockManager } = this
+  async #serveFromMockResult(
+    { mockedResponse, mockPath },
+    request,
+    response,
+    connectionId,
+  ) {
+    const args = this.#args
+    const mockBasename = path.basename(mockPath)
+
+    logger.info(
+      `${dim(connectionId)} 👈 ${formatStatusCode(mockedResponse.statusCode)} serving from mocked response "${mockBasename}"`,
+    )
+
+    response.statusCode = mockedResponse.statusCode
+    response.setHeader('x-mocker-mock-path', mockPath)
+    response.setHeader('x-mocker-response-from', 'Mock')
+    response.setHeader('x-mocker-request-id', connectionId)
+    for (const [key, value] of Object.entries(mockedResponse.headers)) {
+      if (value === null || value === undefined) continue
+      response.setHeader(key, value)
+    }
+
+    this.#overwriteResponseHeaders(
+      response,
+      /** @type {Headers} */ (request.headers),
+    )
 
     try {
-      const { mockedResponse, mockPath } = await mockManager.get({
-        request,
-        connectionId,
-      })
-      const mockBasename = path.basename(mockPath)
-
-      logger.info(
-        `${dim(connectionId)} 👈 ${formatStatusCode(
-          mockedResponse.statusCode
-        )} serving from mocked response "${mockBasename}"`
-      )
-
-      response.statusCode = mockedResponse.statusCode
-      response.setHeader('x-mocker-mock-path', mockPath)
-      response.setHeader('x-mocker-response-from', 'Mock')
-      response.setHeader('x-mocker-request-id', connectionId)
-      for (const [key, value] of Object.entries(mockedResponse.headers)) {
-        if (value === null || value === undefined) {
-          continue
-        }
-        response.setHeader(key, value)
-      }
-
-      this._overwriteResponseHeaders(response, request.headers)
-
       await pipeline(
         mockedResponse,
         delay({ ms: args.delay }),
         throttle({ bps: args.throttle }),
-        response
+        response,
       )
     } catch (error) {
-      logger.error(
-        `${dim(connectionId)} error reading mocked response from disk.`,
-        error
-      )
-
-      response.writeHead(500)
+      logger.error(`${dim(connectionId)} error piping mocked response.`, error)
+      if (!response.headersSent) {
+        response.writeHead(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)
+      }
       response.end()
-
-      logger.info(`${dim(connectionId)} 👈 ${formatStatusCode(500)}`)
+      logger.info(
+        `${dim(connectionId)} 👈 ${formatStatusCode(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)}`,
+      )
     }
   }
 
   /**
-   * @private
    * @param {http.IncomingMessage & Rewindable} clientToProxyRequest
    * @param {http.ServerResponse} proxyToClientResponse
-   * @param {string} connectionId
+   * @param {ConnectionId} connectionId
    * @returns {Promise<void>}
    */
-  async _respondFromOrigin(
+  async #respondFromOrigin(
     clientToProxyRequest,
     proxyToClientResponse,
-    connectionId
+    connectionId,
   ) {
-    const { _args: args, _origin: origin } = this
-    const { method = undefined, url = '' } = clientToProxyRequest
-    const requestHeaders = global.structuredClone(clientToProxyRequest.headers)
+    const args = this.#args
+    const origin = this.#origin
+    const { method, url = '' } = clientToProxyRequest
+    const requestHeaders = clientToProxyRequest.headers
 
     proxyToClientResponse.setHeader('x-mocker-request-id', connectionId)
     proxyToClientResponse.setHeader('x-mocker-response-from', 'Origin')
 
+    const requestResult = await origin.request({
+      url,
+      headers: stripHopByHopHeaders(/** @type {Headers} */ (requestHeaders)),
+      method: /** @type {HttpMethod | undefined} */ (method),
+    })
+
+    if (!requestResult.ok) {
+      throw requestResult.error
+    }
+
     const [proxyToOriginRequest, originToProxyResponsePromise] =
-      await origin.request({
-        url,
-        headers: requestHeaders,
-        method,
-      })
+      requestResult.value
 
     const [originToProxyResponse] = await Promise.all([
       originToProxyResponsePromise,
       pipeline(clientToProxyRequest.rewind(), proxyToOriginRequest),
     ])
-    const originToProxyResponseRewindable = rewindable(originToProxyResponse)
+    const originToProxyResponseRewindableResult = rewindable(
+      originToProxyResponse,
+    )
+    if (!originToProxyResponseRewindableResult.ok) {
+      throw originToProxyResponseRewindableResult.error
+    }
+    await using originToProxyResponseRewindable =
+      originToProxyResponseRewindableResult.value
 
     const originToProxyResponseStatusCode =
-      originToProxyResponse?.statusCode ?? 500
-    if (args.mode === 'pass-read' && originToProxyResponseStatusCode >= 500) {
+      originToProxyResponse?.statusCode ??
+      HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR
+    if (
+      args.mode === MODE.PASS_READ &&
+      originToProxyResponseStatusCode >= 500
+    ) {
       throw new OriginResponseError(`${originToProxyResponseStatusCode}`)
     }
 
     copyResponseAttrs(originToProxyResponse, proxyToClientResponse)
-    this._overwriteResponseHeaders(proxyToClientResponse, requestHeaders)
+    this.#overwriteResponseHeaders(
+      proxyToClientResponse,
+      /** @type {Headers} */ (requestHeaders),
+    )
 
-    await this._writeMockIfOk(
+    await this.#writeMockIfOk(
       clientToProxyRequest,
       originToProxyResponseRewindable,
-      connectionId
+      connectionId,
     )
 
     logger.info(
       `${dim(connectionId)} 👈 ${formatStatusCode(
-        originToProxyResponse.statusCode
-      )} serving from origin`
+        originToProxyResponse.statusCode,
+      )} serving from origin`,
     )
 
-    await pipeline(
-      originToProxyResponseRewindable.rewind(),
-      delay({ ms: args.delay }),
-      throttle({ bps: args.throttle }),
-      proxyToClientResponse
-    )
+    try {
+      await pipeline(
+        originToProxyResponseRewindable.rewind(),
+        delay({ ms: args.delay }),
+        throttle({ bps: args.throttle }),
+        proxyToClientResponse,
+      )
+    } catch (error) {
+      logger.error(`${dim(connectionId)} error piping origin response.`, error)
+      if (!proxyToClientResponse.headersSent) {
+        proxyToClientResponse.writeHead(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)
+      }
+      proxyToClientResponse.end()
+    }
   }
 
   /**
-   * @private
    * @param {http.ServerResponse} response
    * @param {Headers} requestHeaders
    * @returns {void}
    */
-  _overwriteResponseHeaders(response, requestHeaders) {
-    const { _args: args } = this
+  #overwriteResponseHeaders(response, requestHeaders) {
+    const args = this.#args
 
     for (const [key, value] of Object.entries(args.overwriteResponseHeaders)) {
       if (value === null || value === undefined) {
@@ -779,65 +754,115 @@ class Mocker {
       }
     }
 
-    if (args.cors) {
-      response.setHeader(
-        'access-control-allow-origin',
-        `${requestHeaders.origin}`
-      )
+    if (args.cors && requestHeaders.origin) {
+      response.setHeader('access-control-allow-origin', requestHeaders.origin)
+      response.setHeader('vary', 'Origin')
     }
   }
 
   /**
-   * @private
    * @param {(http.IncomingMessage | MockedRequest) & Rewindable} request
    * @param {http.IncomingMessage & Rewindable} response
-   * @param {string} connectionId
+   * @param {ConnectionId} connectionId
    * @returns {Promise<void>}
    */
-  async _writeMockIfOk(request, response, connectionId) {
-    const { _args: args, _mockManager: mockManager } = this
+  async #writeMockIfOk(request, response, connectionId) {
+    const args = this.#args
+    const mockManager = this.#mockManager
 
-    if (!(args.mode === 'write' || args.mode === 'read-write')) return
+    if (!(args.mode === MODE.WRITE || args.mode === MODE.READ_WRITE)) return
 
     if (
       response.statusCode &&
       response.statusCode >= 200 &&
       response.statusCode < 300
     ) {
-      try {
-        const { mockPath } = await mockManager.set({
-          request,
-          response,
-          connectionId,
-        })
-        const mockBasename = path.basename(mockPath)
+      const setResult = await mockManager.set({
+        request,
+        response,
+        connectionId,
+      })
+      if (setResult.ok) {
+        const mockBasename = path.basename(setResult.value.mockPath)
         logger.info(
-          `${dim(connectionId)} mock for request created on "${mockBasename}"`
+          `${dim(connectionId)} mock for request created on "${mockBasename}"`,
         )
-      } catch (error) {
-        logger.error(`${dim(connectionId)} error while saving mock`, error)
+      } else {
+        logger.error(
+          `${dim(connectionId)} error while saving mock`,
+          setResult.error,
+        )
       }
     } else {
       logger.warn(
         `${dim(
-          connectionId
-        )} not saving response from origin since status code is not ${formatStatusCode(
-          200
-        )} but ${formatStatusCode(response.statusCode)}`
+          connectionId,
+        )} not saving response from origin since status code is not 2xx but ${formatStatusCode(response.statusCode)}`,
       )
     }
   }
 
   /**
-   * @private
-   * @param {Object} options
-   * @param {Function} [options.fault] For fault injection.
+   * @param {Result<{ mockPath: string; mockedRequest: MockedRequest & Rewindable }, MockFileError>} item
+   * @param {string} progressStr
+   * @returns {Promise<void>}
    */
-  // eslint-disable-next-line complexity
-  async _updateMocks({ fault = () => {} } = {}) {
-    const { _mockManager: mockManager, _origin: origin } = this
+  async #updateMock(item, progressStr) {
+    if (!item.ok) throw item.error
+
+    const mockBasename = path.basename(item.value.mockPath)
+    const { mockedRequest } = item.value
+
+    const requestResult = await this.#origin.request({
+      url: mockedRequest.url,
+      headers: mockedRequest.headers,
+      method: mockedRequest.method,
+    })
+
+    if (!requestResult.ok) {
+      throw requestResult.error
+    }
+
+    const [proxyToOriginRequest, originToProxyResponsePromise] =
+      requestResult.value
+
+    const [originToProxyResponseResult] = await Promise.all([
+      (async () => {
+        const result = rewindable(await originToProxyResponsePromise)
+        if (!result.ok) throw result.error
+        return result.value
+      })(),
+      pipeline(mockedRequest.rewind(), proxyToOriginRequest),
+    ])
+    await using originToProxyResponse = originToProxyResponseResult
+
+    if (
+      originToProxyResponse.statusCode &&
+      originToProxyResponse.statusCode >= 200 &&
+      originToProxyResponse.statusCode < 300
+    ) {
+      const setResult = await this.#mockManager.set({
+        request: mockedRequest,
+        response: originToProxyResponse,
+      })
+      if (setResult.ok) {
+        logger.success(`${dim(progressStr)} ${bold(mockBasename)}`)
+      } else {
+        logger.warn(
+          `${dim(progressStr)} ${bold(mockBasename)} error while saving mock. mock was not modified`,
+        )
+      }
+    } else {
+      logger.warn(
+        `${dim(progressStr)} ${bold(mockBasename)} request to origin errored. mock was not modified`,
+      )
+    }
+  }
+
+  async #updateMocks() {
+    const mockManager = this.#mockManager
     const total = await mockManager.size()
-    let i = 1
+    let completedCount = 1
 
     if (total === 0) {
       logger.warn('no mocks in the responses folder, skipping mocks update')
@@ -847,81 +872,39 @@ class Mocker {
     logger.info(`updating ${bold(total)} mocks...`)
 
     function progress() {
-      return `[${`${i}`.padStart(`${total}`.length, '0')}/${total}]`
+      return `[${`${completedCount}`.padStart(`${total}`.length, '0')}/${total}]`
     }
 
-    for await (const {
-      mockPath,
-      mockedRequest,
-      error,
-    } of mockManager.getAll()) {
+    for await (const item of mockManager.getAll()) {
+      const mockPath = item.ok ? item.value.mockPath : item.error.mockPath
       const mockBasename = path.basename(mockPath)
 
       try {
-        if (error) {
-          throw error
-        }
+        if (item.ok) {
+          await using mockedRequest = item.value.mockedRequest
+          await using mockedResponse = item.value.mockedResponse
+          void mockedResponse
 
-        fault()
-
-        if (mockedRequest === null) continue // To make TypeScript happy.
-
-        const [proxyToOriginRequest, originToProxyResponsePromise] =
-          await origin.request({
-            url: mockedRequest.url,
-            headers: mockedRequest.headers,
-            method: mockedRequest.method,
-          })
-
-        const [originToProxyResponse] = await Promise.all([
-          (async () => {
-            return rewindable(await originToProxyResponsePromise)
-          })(),
-          pipeline(mockedRequest.rewind(), proxyToOriginRequest),
-        ])
-
-        if (
-          originToProxyResponse.statusCode &&
-          originToProxyResponse.statusCode >= 200 &&
-          originToProxyResponse.statusCode < 300
-        ) {
-          await mockManager.set({
-            request: mockedRequest,
-            response: originToProxyResponse,
-          })
-          logger.success(`${dim(progress())} ${bold(mockBasename)}`)
-        } else {
-          logger.warn(
-            `${dim(progress())} ${bold(
-              mockBasename
-            )} request to origin errored. mock was not modified`
+          await this.#updateMock(
+            {
+              ok: true,
+              value: {
+                mockPath: item.value.mockPath,
+                mockedRequest,
+              },
+            },
+            progress(),
           )
+        } else {
+          await this.#updateMock(item, progress())
         }
       } catch (error_) {
-        if (error_ instanceof SecretNotFoundError) {
-          logger.warn(
-            `${dim(progress())} ${bold(mockBasename)} ${
-              error_.message
-            }. mock was not modified`
-          )
-        } else if (error_ && Reflect.get(error_, 'code') === 'EACCES') {
-          logger.warn(
-            `${dim(progress())} ${bold(
-              mockBasename
-            )} file is read-only. mock was not modified`
-          )
-        } else {
-          logger.warn(
-            `${dim(progress())} ${bold(
-              mockBasename
-            )} error while updating mock. mock was not modified`
-          )
-        }
+        logUpdateError(error_, mockBasename, progress())
       }
 
-      i += 1
+      completedCount += 1
     }
   }
 }
 
-module.exports = Mocker
+export default Mocker

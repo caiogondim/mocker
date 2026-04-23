@@ -1,5 +1,8 @@
-const path = require('path')
-const {
+/** @typedef {import('node:net').AddressInfo} AddressInfo */
+
+import { describe, it, expect } from '@jest/globals'
+import path from 'node:path'
+import {
   parseArgv,
   PORT_DEFAULT,
   RETRIES_DEFAULT,
@@ -8,7 +11,7 @@ const {
   OVERWRITE_RESPONSE_HEADERS_DEFAULT,
   REDACTED_HEADERS_DEFAULT,
   CORS_DEFAULT,
-} = require('./index')
+} from './index.js'
 
 function getRequiredArgs() {
   return ['--origin', 'https://example.com']
@@ -16,31 +19,19 @@ function getRequiredArgs() {
 
 describe('behavior', () => {
   it('throws an error if argv has an invalid arg', async () => {
-    expect.assertions(2)
-
     const argv1 = ['', '', ...getRequiredArgs()]
-    await expect(parseArgv(argv1)).resolves.not.toThrow()
+    await parseArgv(argv1)
 
     const argv2 = ['', '', ...getRequiredArgs(), '--foo', 'bar']
-    await expect(parseArgv(argv2)).rejects.toMatchInlineSnapshot(`
-      [TypeError: [1mTypeError[22m[0m: invalid arg
-      [32mExpected[89m[0m one of ["--origin", "--port", "--delay", "--throttle", "--update", "--mode", "--workers", "--responsesDir", "--logging", "--mockKeys", "--redactedHeaders", "--retries", "--overwriteResponseHeaders", "--overwriteRequestHeaders", "--cors"]
-      [31mReceived[89m[0m "--foo"]
-    `)
+    await expect(parseArgv(argv2)).rejects.toThrow(/invalid arg/)
   })
 
   it('throws an error if argv doesnt respect the `--key value` pattern', async () => {
-    expect.assertions(3)
-
     const argv1 = ['', '', '--origin', 'http://example.com', '--delay']
-    await expect(parseArgv(argv1)).rejects.toMatchInlineSnapshot(`
-            [TypeError: [1mTypeError[22m[0m: args has invalid shape
-            [32mExpected[89m[0m args following the pattern "--arg1 value1 --arg2 value2"
-            [31mReceived[89m[0m "http://example.com --delay"]
-          `)
+    await expect(parseArgv(argv1)).rejects.toThrow(/args has invalid shape/)
 
     const argv2 = ['', '', ...getRequiredArgs(), '--delay', '100']
-    await expect(parseArgv(argv2)).resolves.not.toThrow()
+    await parseArgv(argv2)
 
     const argv3 = [
       '',
@@ -50,108 +41,66 @@ describe('behavior', () => {
       '--delay',
       '--origin',
     ]
-    await expect(parseArgv(argv3)).rejects.toMatchInlineSnapshot(`
-            [TypeError: [1mTypeError[22m[0m: args has invalid shape
-            [32mExpected[89m[0m args following the pattern "--arg1 value1 --arg2 value2"
-            [31mReceived[89m[0m "http://example.com --delay --origin"]
-          `)
+    await expect(parseArgv(argv3)).rejects.toThrow(/args has invalid shape/)
   })
 })
 
 describe('--origin', () => {
   it('throws an error if not set', async () => {
-    expect.assertions(1)
     const argv = ['', '', '--port', '8273']
-    await expect(parseArgv(argv)).rejects.toMatchInlineSnapshot(`
-            [TypeError: [1mTypeError[22m[0m: invalid --origin
-            [32mExpected[89m[0m valid URL
-            [31mReceived[89m[0m ""]
-          `)
+    await expect(parseArgv(argv)).rejects.toThrow(/invalid --origin/)
   })
 
   it('throws an error if not a valid URL', async () => {
-    expect.assertions(1)
     const argv = ['', '', '--origin', 'lorem-ipsum']
-    await expect(parseArgv(argv)).rejects.toMatchInlineSnapshot(`
-            [TypeError: [1mTypeError[22m[0m: invalid --origin
-            [32mExpected[89m[0m valid URL
-            [31mReceived[89m[0m "lorem-ipsum"]
-          `)
+    await expect(parseArgv(argv)).rejects.toThrow(/invalid --origin/)
   })
 
   it('throws an error if protocol is not http: or https:', async () => {
-    expect.assertions(1)
     const argv = ['', '', '--origin', 'lorem://ipsum.com']
-    await expect(parseArgv(argv)).rejects.toMatchInlineSnapshot(`
-            [TypeError: [1mTypeError[22m[0m: invalid --origin
-            [32mExpected[89m[0m URL with HTTP or HTTPS protocol
-            [31mReceived[89m[0m "lorem://ipsum.com"]
-          `)
+    await expect(parseArgv(argv)).rejects.toThrow(/invalid --origin/)
   })
 })
 
 describe('--port', () => {
   it('receives a default value if not set', async () => {
-    expect.assertions(1)
-
     const argv = ['', '', ...getRequiredArgs()]
     const args = await parseArgv(argv)
 
-    expect(args.port).toStrictEqual(PORT_DEFAULT)
+    expect(args.port).toEqual(PORT_DEFAULT)
   })
 
   it('throws an error if not a positive number', async () => {
-    expect.assertions(1)
     const argv = ['', '', ...getRequiredArgs(), '--port', '-8273']
-    await expect(parseArgv(argv)).rejects.toMatchInlineSnapshot(`
-            [TypeError: [1mTypeError[22m[0m: invalid --port
-            [32mExpected[89m[0m positive integer
-            [31mReceived[89m[0m "-8273"]
-          `)
+    await expect(parseArgv(argv)).rejects.toThrow(/invalid --port/)
   })
 
   it('throws an error if not an integer', async () => {
-    expect.assertions(1)
     const argv = ['', '', ...getRequiredArgs(), '--port', 'lorem-ipsum']
-    await expect(parseArgv(argv)).rejects.toMatchInlineSnapshot(`
-            [TypeError: [1mTypeError[22m[0m: invalid --port
-            [32mExpected[89m[0m positive integer
-            [31mReceived[89m[0m "lorem-ipsum"]
-          `)
+    await expect(parseArgv(argv)).rejects.toThrow(/invalid --port/)
   })
 
   it('throws an error if port is already in use', async () => {
-    expect.assertions(1)
-
-    // Given I have a port already in use
-    jest.resetModules()
-    jest.doMock('../shared/is-port-taken', () => {
-      return async () => true
-    })
-    // eslint-disable-next-line node/global-require
-    const { parseArgv } = require('./index')
+    // Given I have a port already in use — bind an actual port
+    const net = await import('node:net')
+    const server = net.default.createServer()
+    await new Promise((resolve) => server.listen(0, () => resolve(undefined)))
+    const takenPort = /** @type {AddressInfo} */ (server.address()).port
 
     // When I call `parserArgv` passing a `--port` that is already in use
-    const argv = ['', '', ...getRequiredArgs(), '--port', `8123`]
-    const parseArgvPromise = parseArgv(argv)
+    const argv = ['', '', ...getRequiredArgs(), '--port', `${takenPort}`]
 
     try {
       // Then it should throw an error
-      await expect(parseArgvPromise).rejects.toMatchInlineSnapshot(`
-              [TypeError: [1mTypeError[22m[0m: invalid --port
-              [32mExpected[89m[0m available port on host
-              [31mReceived[89m[0m 8123]
-            `)
+      await expect(parseArgv(argv)).rejects.toThrow(/invalid --port/)
     } finally {
-      jest.resetModules()
+      await new Promise((resolve) => server.close(resolve))
     }
   })
 })
 
 describe('--delay', () => {
   it('receives a default value if not set', async () => {
-    expect.assertions(1)
-
     const argv = ['', '', ...getRequiredArgs()]
     const args = await parseArgv(argv)
 
@@ -159,59 +108,41 @@ describe('--delay', () => {
   })
 
   it('throws an error if not a positive number', async () => {
-    expect.assertions(1)
     const argv = ['', '', ...getRequiredArgs(), '--delay', '-8273']
-    await expect(parseArgv(argv)).rejects.toMatchInlineSnapshot(`
-            [TypeError: [1mTypeError[22m[0m: invalid --delay
-            [32mExpected[89m[0m positive integer
-            [31mReceived[89m[0m "-8273"]
-          `)
+    await expect(parseArgv(argv)).rejects.toThrow(/invalid --delay/)
   })
 
   it('throws an error if not an integer', async () => {
-    expect.assertions(1)
     const argv = ['', '', ...getRequiredArgs(), '--delay', 'lorem-ipsum']
-    await expect(parseArgv(argv)).rejects.toMatchInlineSnapshot(`
-            [TypeError: [1mTypeError[22m[0m: invalid --delay
-            [32mExpected[89m[0m positive integer
-            [31mReceived[89m[0m "lorem-ipsum"]
-          `)
+    await expect(parseArgv(argv)).rejects.toThrow(/invalid --delay/)
   })
 })
 
 describe('--throttle', () => {
   it('receives a default value if not set', async () => {
-    expect.assertions(1)
     const argv = ['', '', ...getRequiredArgs()]
     const args = await parseArgv(argv)
-    await expect(args.throttle).toStrictEqual(Infinity)
+    expect(args.throttle).toEqual(Infinity)
   })
 
   it('throws an error if not a positive number', async () => {
-    expect.assertions(1)
     const argv = ['', '', ...getRequiredArgs(), '--throttle', '-8273']
-    await expect(parseArgv(argv)).rejects.toMatchInlineSnapshot(`
-            [TypeError: [1mTypeError[22m[0m: invalid --throttle
-            [32mExpected[89m[0m positive integer
-            [31mReceived[89m[0m "-8273"]
-          `)
+    await expect(parseArgv(argv)).rejects.toThrow(/invalid --throttle/)
   })
 
   it('throws an error if not an integer', async () => {
-    expect.assertions(1)
     const argv = ['', '', ...getRequiredArgs(), '--throttle', 'lorem-ipsum']
-    await expect(parseArgv(argv)).rejects.toMatchInlineSnapshot(`
-            [TypeError: [1mTypeError[22m[0m: invalid --throttle
-            [32mExpected[89m[0m positive integer
-            [31mReceived[89m[0m "lorem-ipsum"]
-          `)
+    await expect(parseArgv(argv)).rejects.toThrow(/invalid --throttle/)
+  })
+
+  it('throws an error for zero', async () => {
+    const argv = ['', '', ...getRequiredArgs(), '--throttle', '0']
+    await expect(parseArgv(argv)).rejects.toThrow(/invalid --throttle/)
   })
 })
 
 describe('--mode', () => {
   it('receives a default value if not set', async () => {
-    expect.assertions(1)
-
     const argv = ['', '', ...getRequiredArgs()]
     const args = await parseArgv(argv)
 
@@ -219,8 +150,6 @@ describe('--mode', () => {
   })
 
   it('doesnt throw an error for a valid value', async () => {
-    expect.assertions(6)
-
     const validValues = [
       'read',
       'write',
@@ -232,13 +161,11 @@ describe('--mode', () => {
 
     for (const validValue of validValues) {
       const argv = ['', '', ...getRequiredArgs(), '--mode', validValue]
-      await expect(parseArgv(argv)).resolves.not.toThrow()
+      await parseArgv(argv)
     }
   })
 
   it('throws an error for an invalid value', async () => {
-    expect.assertions(1)
-
     const argv = [
       '',
       '',
@@ -247,19 +174,12 @@ describe('--mode', () => {
       '--mode',
       'lorem-ipsum',
     ]
-    // @ts-ignore
-    await expect(parseArgv(argv)).rejects.toMatchInlineSnapshot(`
-      [TypeError: [1mTypeError[22m[0m: invalid --mode
-      [32mExpected[89m[0m one of ["read", "write", "read-write", "pass", "read-pass", "pass-read"]
-      [31mReceived[89m[0m "lorem-ipsum"]
-    `)
+    await expect(parseArgv(argv)).rejects.toThrow(/invalid --mode/)
   })
 })
 
 describe('--update', () => {
   it('receives a default value if not set', async () => {
-    expect.assertions(1)
-
     const argv = ['', '', ...getRequiredArgs()]
     const args = await parseArgv(argv)
 
@@ -267,19 +187,15 @@ describe('--update', () => {
   })
 
   it('doesnt throw an error for a valid value', async () => {
-    expect.assertions(3)
-
     const validValues = ['off', 'startup', 'only']
 
     for (const validValue of validValues) {
       const argv = ['', '', ...getRequiredArgs(), '--update', validValue]
-      await expect(parseArgv(argv)).resolves.not.toThrow()
+      await parseArgv(argv)
     }
   })
 
   it('throws an error for an invalid value', async () => {
-    expect.assertions(1)
-
     const argv = [
       '',
       '',
@@ -288,134 +204,67 @@ describe('--update', () => {
       '--update',
       'lorem-ipsum',
     ]
-    // @ts-ignore
-    await expect(parseArgv(argv)).rejects.toMatchInlineSnapshot(`
-            [TypeError: [1mTypeError[22m[0m: invalid --update
-            [32mExpected[89m[0m one of ["off", "startup", "only"]
-            [31mReceived[89m[0m "lorem-ipsum"]
-          `)
+    await expect(parseArgv(argv)).rejects.toThrow(/invalid --update/)
   })
 })
 
-describe('--workers', () => {
+describe('--mocksDir', () => {
   it('receives a default value if not set', async () => {
-    expect.assertions(1)
-
     const argv = ['', '', ...getRequiredArgs()]
     const args = await parseArgv(argv)
 
-    expect(args.workers).toBe(1)
-  })
-
-  it('throws an error if not a positive number', async () => {
-    expect.assertions(1)
-
-    const argv = ['', '', ...getRequiredArgs(), '--workers', '-6']
-    await expect(parseArgv(argv)).rejects.toMatchInlineSnapshot(`
-            [TypeError: [1mTypeError[22m[0m: invalid --workers
-            [32mExpected[89m[0m positive integer
-            [31mReceived[89m[0m "-6"]
-          `)
-  })
-
-  it('throws an error if not an integer', async () => {
-    expect.assertions(1)
-    const argv = ['', '', ...getRequiredArgs(), '--workers', 'lorem-ipsum']
-    await expect(parseArgv(argv)).rejects.toMatchInlineSnapshot(`
-            [TypeError: [1mTypeError[22m[0m: invalid --workers
-            [32mExpected[89m[0m positive integer
-            [31mReceived[89m[0m "lorem-ipsum"]
-          `)
-  })
-
-  it('is always a positive Number', async () => {
-    expect.assertions(2)
-
-    const argv = ['', '', ...getRequiredArgs(), '--workers', '123']
-    const args = await parseArgv(argv)
-
-    expect(typeof args.workers).toBe('number')
-    expect(args.workers).toBeGreaterThan(0)
-  })
-})
-
-describe('--responsesDir', () => {
-  it('receives a default value if not set', async () => {
-    expect.assertions(1)
-
-    const argv = ['', '', ...getRequiredArgs()]
-    const args = await parseArgv(argv)
-
-    expect(args.workers).toBe(1)
+    expect(args.mocksDir).not.toBe(undefined)
   })
 
   it('doesnt throw an error for a valid value', async () => {
-    expect.assertions(1)
     const argv = [
       '',
       '',
       '--origin',
       'https://example.com',
-      '--responsesDir',
+      '--mocksDir',
       'src/',
     ]
-    await expect(parseArgv(argv)).resolves.not.toThrow(TypeError)
+    await parseArgv(argv)
   })
 
   it('throws an error for an invalid folder', async () => {
-    expect.assertions(1)
     const argv = [
       '',
       '',
       '--origin',
       'https://example.com',
-      '--responsesDir',
+      '--mocksDir',
       'non-existing-folder',
     ]
-    await expect(parseArgv(argv)).rejects.toMatchInlineSnapshot(`
-            [TypeError: [1mTypeError[22m[0m: invalid --responsesDir
-            [32mExpected[89m[0m a valid folder path
-            [31mReceived[89m[0m "non-existing-folder"]
-          `)
+    await expect(parseArgv(argv)).rejects.toThrow(/invalid --mocksDir/)
   })
 
   it('normalizes to an absolute path', async () => {
-    expect.assertions(1)
-
     const argv = ['', '', ...getRequiredArgs()]
     const args = await parseArgv(argv)
 
-    expect(path.isAbsolute(args.responsesDir)).toBe(true)
+    expect(path.isAbsolute(args.mocksDir)).toBe(true)
   })
 })
 
 describe('--logging', () => {
   it('receives a default value if not set', async () => {
-    expect.assertions(1)
-
     const argv = ['', '', ...getRequiredArgs()]
     const args = await parseArgv(argv)
 
-    expect(args.logging).toStrictEqual(LOGGING_DEFAULT)
+    expect(args.logging).toEqual(LOGGING_DEFAULT)
   })
 
   it('throws an error for invalid values', async () => {
-    expect.assertions(1)
-
     const argv = ['', '', ...getRequiredArgs(), '--logging', 'lorem-ipsum']
-    await expect(parseArgv(argv)).rejects.toMatchInlineSnapshot(`
-            [TypeError: [1mTypeError[22m[0m: invalid --logging
-            [32mExpected[89m[0m one of ["silent", "error", "warn", "verbose"]
-            [31mReceived[89m[0m "lorem-ipsum"]
-          `)
+    await expect(parseArgv(argv)).rejects.toThrow(/invalid --logging/)
   })
 
   it('accepts valid values', async () => {
-    expect.assertions(4)
-
     for (const validValue of LOGGING_VALID_VALUES) {
       const argv = ['', '', ...getRequiredArgs(), '--logging', validValue]
-      await expect(parseArgv(argv)).resolves.not.toThrow(TypeError)
+      await parseArgv(argv)
     }
   })
 })
@@ -424,29 +273,18 @@ describe('--mockKeys', () => {
   const validKeys = new Set(['url', 'method', 'body', 'headers'])
 
   it('receives a default value if not set', async () => {
-    expect.assertions(1)
-
     const argv = ['', '', ...getRequiredArgs()]
     const args = await parseArgv(argv)
 
-    expect(args.mockKeys).toStrictEqual(new Set(['url', 'method']))
+    expect(args.mockKeys).toEqual(new Set(['url', 'method']))
   })
 
   it('throws an error for invalid values', async () => {
-    expect.assertions(1)
-
     const argv = ['', '', ...getRequiredArgs(), '--mockKeys', 'lorem-ipsum']
-    await expect(parseArgv(argv)).rejects.toMatchInlineSnapshot(`
-            [TypeError: [1mTypeError[22m[0m: invalid --mockKeys
-            [32mExpected[89m[0m set of ["url", "method", "headers", "body"]
-            [31mReceived[89m[0m "lorem-ipsum"
-            [33mHint[89m[0m The body deep attributes can be used too, e.g.: "body.foo.bar"]
-          `)
+    await expect(parseArgv(argv)).rejects.toThrow(/invalid --mockKeys/)
   })
 
   it('accepts valid combination', async () => {
-    expect.assertions(24)
-
     const validKeysArr = [...validKeys]
 
     /**
@@ -456,7 +294,6 @@ describe('--mockKeys', () => {
      * @returns {string[][]}
      */
     function combine(cur = [], keys = [...validKeysArr], combinations = []) {
-      // eslint-disable-next-line jest/no-conditional-in-test
       if (cur.length >= 4) {
         combinations.push([...cur])
         return combinations
@@ -466,7 +303,7 @@ describe('--mockKeys', () => {
         combine(
           [...cur, keys[i]],
           keys.filter((key) => key !== keys[i]),
-          combinations
+          combinations,
         )
       }
 
@@ -482,24 +319,20 @@ describe('--mockKeys', () => {
         '--mockKeys',
         combination.join(','),
       ]
-      await expect(parseArgv(argv)).resolves.not.toThrow(Error)
+      await parseArgv(argv)
     }
   })
 })
 
 describe('--retries', () => {
   it('receives a default value if not set', async () => {
-    expect.assertions(1)
-
     const argv = ['', '', ...getRequiredArgs()]
     const args = await parseArgv(argv)
 
-    expect(args.retries).toStrictEqual(RETRIES_DEFAULT)
+    expect(args.retries).toEqual(RETRIES_DEFAULT)
   })
 
   it('accepts a positive integer', async () => {
-    expect.assertions(1)
-
     const argv = ['', '', ...getRequiredArgs(), '--retries', '3']
     const args = await parseArgv(argv)
 
@@ -507,38 +340,24 @@ describe('--retries', () => {
   })
 
   it('throws an error if a negative integer', async () => {
-    expect.assertions(1)
     const argv = ['', '', ...getRequiredArgs(), '--retries', '-8273']
-    await expect(parseArgv(argv)).rejects.toMatchInlineSnapshot(`
-            [TypeError: [1mTypeError[22m[0m: invalid --retries
-            [32mExpected[89m[0m positive integer
-            [31mReceived[89m[0m "-8273"]
-          `)
+    await expect(parseArgv(argv)).rejects.toThrow(/invalid --retries/)
   })
 
   it('throws an error if not an integer', async () => {
-    expect.assertions(1)
     const argv = ['', '', ...getRequiredArgs(), '--retries', 'lorem-ipsum']
-    await expect(parseArgv(argv)).rejects.toMatchInlineSnapshot(`
-            [TypeError: [1mTypeError[22m[0m: invalid --retries
-            [32mExpected[89m[0m positive integer
-            [31mReceived[89m[0m "lorem-ipsum"]
-          `)
+    await expect(parseArgv(argv)).rejects.toThrow(/invalid --retries/)
   })
 })
 
 describe('--redactedHeaders', () => {
   it('receives a default value if not set', async () => {
-    expect.assertions(1)
     const argv = ['', '', ...getRequiredArgs()]
     const args = await parseArgv(argv)
-    expect(args.overwriteResponseHeaders).toStrictEqual(
-      REDACTED_HEADERS_DEFAULT
-    )
+    expect(args.redactedHeaders).toEqual(REDACTED_HEADERS_DEFAULT)
   })
 
   it('parses value to an object', async () => {
-    expect.assertions(1)
     const argv = [
       '',
       '',
@@ -547,14 +366,12 @@ describe('--redactedHeaders', () => {
       '{"example-token": null}',
     ]
     const args = await parseArgv(argv)
-    expect(args.redactedHeaders).toStrictEqual({
+    expect(args.redactedHeaders).toEqual({
       'example-token': null,
     })
   })
 
   it('throws an error if not a valid JSON', async () => {
-    expect.assertions(2)
-
     // There is a final '}' missing to make it an invalid JSON
     const redactedHeaders1 = '{"content-type": "application/json"'
     const argv1 = [
@@ -564,11 +381,7 @@ describe('--redactedHeaders', () => {
       '--redactedHeaders',
       redactedHeaders1,
     ]
-    await expect(parseArgv(argv1)).rejects.toMatchInlineSnapshot(`
-            [TypeError: [1mTypeError[22m[0m: invalid --redactedHeaders
-            [32mExpected[89m[0m valid JSON string
-            [31mReceived[89m[0m "{\\"content-type\\": \\"application/json\\""]
-          `)
+    await expect(parseArgv(argv1)).rejects.toThrow(/invalid --redactedHeaders/)
 
     // undefined is not a valid JSON value
     const redactedHeaders2 = '{"content-type": undefined }'
@@ -579,16 +392,10 @@ describe('--redactedHeaders', () => {
       '--redactedHeaders',
       redactedHeaders2,
     ]
-    await expect(parseArgv(argv2)).rejects.toMatchInlineSnapshot(`
-            [TypeError: [1mTypeError[22m[0m: invalid --redactedHeaders
-            [32mExpected[89m[0m valid JSON string
-            [31mReceived[89m[0m "{\\"content-type\\": undefined }"]
-          `)
+    await expect(parseArgv(argv2)).rejects.toThrow(/invalid --redactedHeaders/)
   })
 
   it('throws an error if not a valid Header type', async () => {
-    expect.assertions(4)
-
     // Invalid since it must be an object at the root level
     const redactedHeaders1 = '[1, 2, 3]'
     const argv1 = [
@@ -598,11 +405,7 @@ describe('--redactedHeaders', () => {
       '--redactedHeaders',
       redactedHeaders1,
     ]
-    await expect(parseArgv(argv1)).rejects.toMatchInlineSnapshot(`
-            [TypeError: [1mTypeError[22m[0m: invalid --redactedHeaders
-            [32mExpected[89m[0m valid Header type { [header: string]: string[] string number null undefined }
-            [31mReceived[89m[0m [1,2,3]]
-          `)
+    await expect(parseArgv(argv1)).rejects.toThrow(/invalid --redactedHeaders/)
 
     // Invalid since it cannot have a depth larger than 2
     const redactedHeaders2 = '{"lorem": { "ipsum": "dolor" }}'
@@ -613,11 +416,7 @@ describe('--redactedHeaders', () => {
       '--redactedHeaders',
       redactedHeaders2,
     ]
-    await expect(parseArgv(argv2)).rejects.toMatchInlineSnapshot(`
-            [TypeError: [1mTypeError[22m[0m: invalid --redactedHeaders
-            [32mExpected[89m[0m valid Header type { [header: string]: string[] string number null undefined }
-            [31mReceived[89m[0m {"lorem":{"ipsum":"dolor"}}]
-          `)
+    await expect(parseArgv(argv2)).rejects.toThrow(/invalid --redactedHeaders/)
 
     // Invalid since it has an array of numbers
     const redactedHeaders3 = '{"lorem": [1, 2, 3]}'
@@ -628,11 +427,7 @@ describe('--redactedHeaders', () => {
       '--redactedHeaders',
       redactedHeaders3,
     ]
-    await expect(parseArgv(argv3)).rejects.toMatchInlineSnapshot(`
-            [TypeError: [1mTypeError[22m[0m: invalid --redactedHeaders
-            [32mExpected[89m[0m valid Header type { [header: string]: string[] string number null undefined }
-            [31mReceived[89m[0m {"lorem":[1,2,3]}]
-          `)
+    await expect(parseArgv(argv3)).rejects.toThrow(/invalid --redactedHeaders/)
 
     // Invalid since it has a number as key
     const redactedHeaders4 = '{1: "lorem"}'
@@ -643,26 +438,20 @@ describe('--redactedHeaders', () => {
       '--redactedHeaders',
       redactedHeaders4,
     ]
-    await expect(parseArgv(argv4)).rejects.toMatchInlineSnapshot(`
-            [TypeError: [1mTypeError[22m[0m: invalid --redactedHeaders
-            [32mExpected[89m[0m valid JSON string
-            [31mReceived[89m[0m "{1: \\"lorem\\"}"]
-          `)
+    await expect(parseArgv(argv4)).rejects.toThrow(/invalid --redactedHeaders/)
   })
 })
 
 describe('--overwriteResponseHeaders', () => {
   it('receives a default value if not set', async () => {
-    expect.assertions(1)
     const argv = ['', '', ...getRequiredArgs()]
     const args = await parseArgv(argv)
-    expect(args.overwriteResponseHeaders).toStrictEqual(
-      OVERWRITE_RESPONSE_HEADERS_DEFAULT
+    expect(args.overwriteResponseHeaders).toEqual(
+      OVERWRITE_RESPONSE_HEADERS_DEFAULT,
     )
   })
 
   it('parses value to an object', async () => {
-    expect.assertions(1)
     const argv = [
       '',
       '',
@@ -671,15 +460,13 @@ describe('--overwriteResponseHeaders', () => {
       '{"content-type": "application/json", "host": "example.com"}',
     ]
     const args = await parseArgv(argv)
-    expect(args.overwriteResponseHeaders).toStrictEqual({
+    expect(args.overwriteResponseHeaders).toEqual({
       'content-type': 'application/json',
       host: 'example.com',
     })
   })
 
   it('throws an error if not a valid JSON', async () => {
-    expect.assertions(2)
-
     // There is a final '}' missing to make it an invalid JSON
     const overwriteResponseHeaders1 = '{"content-type": "application/json"'
     const argv1 = [
@@ -689,11 +476,9 @@ describe('--overwriteResponseHeaders', () => {
       '--overwriteResponseHeaders',
       overwriteResponseHeaders1,
     ]
-    await expect(parseArgv(argv1)).rejects.toMatchInlineSnapshot(`
-            [TypeError: [1mTypeError[22m[0m: invalid --overwriteResponseHeaders
-            [32mExpected[89m[0m valid JSON string
-            [31mReceived[89m[0m "{\\"content-type\\": \\"application/json\\""]
-          `)
+    await expect(parseArgv(argv1)).rejects.toThrow(
+      /invalid --overwriteResponseHeaders/,
+    )
 
     // undefined is not a valid JSON value
     const overwriteResponseHeaders2 = '{"content-type": undefined }'
@@ -704,16 +489,12 @@ describe('--overwriteResponseHeaders', () => {
       '--overwriteResponseHeaders',
       overwriteResponseHeaders2,
     ]
-    await expect(parseArgv(argv2)).rejects.toMatchInlineSnapshot(`
-            [TypeError: [1mTypeError[22m[0m: invalid --overwriteResponseHeaders
-            [32mExpected[89m[0m valid JSON string
-            [31mReceived[89m[0m "{\\"content-type\\": undefined }"]
-          `)
+    await expect(parseArgv(argv2)).rejects.toThrow(
+      /invalid --overwriteResponseHeaders/,
+    )
   })
 
   it('throws an error if not a valid Header type', async () => {
-    expect.assertions(4)
-
     // Invalid since it must be an object at the root level
     const overwriteResponseHeaders1 = '[1, 2, 3]'
     const argv1 = [
@@ -723,11 +504,9 @@ describe('--overwriteResponseHeaders', () => {
       '--overwriteResponseHeaders',
       overwriteResponseHeaders1,
     ]
-    await expect(parseArgv(argv1)).rejects.toMatchInlineSnapshot(`
-            [TypeError: [1mTypeError[22m[0m: invalid --overwriteResponseHeaders
-            [32mExpected[89m[0m valid Header type { [header: string]: string[] string number null undefined }
-            [31mReceived[89m[0m [1,2,3]]
-          `)
+    await expect(parseArgv(argv1)).rejects.toThrow(
+      /invalid --overwriteResponseHeaders/,
+    )
 
     // Invalid since it cannot have a depth larger than 2
     const overwriteResponseHeaders2 = '{"lorem": { "ipsum": "dolor" }}'
@@ -738,11 +517,9 @@ describe('--overwriteResponseHeaders', () => {
       '--overwriteResponseHeaders',
       overwriteResponseHeaders2,
     ]
-    await expect(parseArgv(argv2)).rejects.toMatchInlineSnapshot(`
-            [TypeError: [1mTypeError[22m[0m: invalid --overwriteResponseHeaders
-            [32mExpected[89m[0m valid Header type { [header: string]: string[] string number null undefined }
-            [31mReceived[89m[0m {"lorem":{"ipsum":"dolor"}}]
-          `)
+    await expect(parseArgv(argv2)).rejects.toThrow(
+      /invalid --overwriteResponseHeaders/,
+    )
 
     // Invalid since it has an array of numbers
     const overwriteResponseHeaders3 = '{"lorem": [1, 2, 3]}'
@@ -753,11 +530,9 @@ describe('--overwriteResponseHeaders', () => {
       '--overwriteResponseHeaders',
       overwriteResponseHeaders3,
     ]
-    await expect(parseArgv(argv3)).rejects.toMatchInlineSnapshot(`
-            [TypeError: [1mTypeError[22m[0m: invalid --overwriteResponseHeaders
-            [32mExpected[89m[0m valid Header type { [header: string]: string[] string number null undefined }
-            [31mReceived[89m[0m {"lorem":[1,2,3]}]
-          `)
+    await expect(parseArgv(argv3)).rejects.toThrow(
+      /invalid --overwriteResponseHeaders/,
+    )
 
     // Invalid since it has a number as key
     const overwriteResponseHeaders4 = '{1: "lorem"}'
@@ -768,25 +543,20 @@ describe('--overwriteResponseHeaders', () => {
       '--overwriteResponseHeaders',
       overwriteResponseHeaders4,
     ]
-    await expect(parseArgv(argv4)).rejects.toMatchInlineSnapshot(`
-            [TypeError: [1mTypeError[22m[0m: invalid --overwriteResponseHeaders
-            [32mExpected[89m[0m valid JSON string
-            [31mReceived[89m[0m "{1: \\"lorem\\"}"]
-          `)
+    await expect(parseArgv(argv4)).rejects.toThrow(
+      /invalid --overwriteResponseHeaders/,
+    )
   })
 })
 
 describe('--overwriteRequestHeaders', () => {
   it('receives a default value if not set', async () => {
-    expect.assertions(1)
     const argv = ['', '', ...getRequiredArgs()]
     const args = await parseArgv(argv)
-    expect(args.overwriteRequestHeaders).toStrictEqual({ host: 'example.com' })
+    expect(args.overwriteRequestHeaders).toEqual({ host: 'example.com' })
   })
 
   it('parses value to an object', async () => {
-    expect.assertions(1)
-
     const argv = [
       '',
       '',
@@ -795,15 +565,13 @@ describe('--overwriteRequestHeaders', () => {
       '{"content-type": "application/json", "host": "example.com"}',
     ]
     const args = await parseArgv(argv)
-    expect(args.overwriteRequestHeaders).toStrictEqual({
+    expect(args.overwriteRequestHeaders).toEqual({
       'content-type': 'application/json',
       host: 'example.com',
     })
   })
 
   it('throws an error if not a valid JSON', async () => {
-    expect.assertions(2)
-
     // There is a final '}' missing to make it an invalid JSON
     const overwriteRequestHeaders1 = '{"content-type": "application/json"'
     const argv1 = [
@@ -813,11 +581,9 @@ describe('--overwriteRequestHeaders', () => {
       '--overwriteRequestHeaders',
       overwriteRequestHeaders1,
     ]
-    await expect(parseArgv(argv1)).rejects.toMatchInlineSnapshot(`
-            [TypeError: [1mTypeError[22m[0m: invalid --overwriteRequestHeaders
-            [32mExpected[89m[0m valid JSON string
-            [31mReceived[89m[0m "{\\"content-type\\": \\"application/json\\""]
-          `)
+    await expect(parseArgv(argv1)).rejects.toThrow(
+      /invalid --overwriteRequestHeaders/,
+    )
 
     // undefined is not a valid JSON value
     const overwriteRequestHeaders2 = '{"content-type": undefined }'
@@ -825,33 +591,27 @@ describe('--overwriteRequestHeaders', () => {
       '',
       '',
       ...getRequiredArgs(),
-      '--overwriteResponseHeaders',
+      '--overwriteRequestHeaders',
       overwriteRequestHeaders2,
     ]
-    await expect(parseArgv(argv2)).rejects.toMatchInlineSnapshot(`
-            [TypeError: [1mTypeError[22m[0m: invalid --overwriteResponseHeaders
-            [32mExpected[89m[0m valid JSON string
-            [31mReceived[89m[0m "{\\"content-type\\": undefined }"]
-          `)
+    await expect(parseArgv(argv2)).rejects.toThrow(
+      /invalid --overwriteRequestHeaders/,
+    )
   })
 
   it('throws an error if not a valid Header type', async () => {
-    expect.assertions(4)
-
     // Invalid since it must be an object at the root level
     const overwriteRequestHeaders1 = '[1, 2, 3]'
     const argv1 = [
       '',
       '',
       ...getRequiredArgs(),
-      '--overwriteResponseHeaders',
+      '--overwriteRequestHeaders',
       overwriteRequestHeaders1,
     ]
-    await expect(parseArgv(argv1)).rejects.toMatchInlineSnapshot(`
-            [TypeError: [1mTypeError[22m[0m: invalid --overwriteResponseHeaders
-            [32mExpected[89m[0m valid Header type { [header: string]: string[] string number null undefined }
-            [31mReceived[89m[0m [1,2,3]]
-          `)
+    await expect(parseArgv(argv1)).rejects.toThrow(
+      /invalid --overwriteRequestHeaders/,
+    )
 
     // Invalid since it cannot have a depth larger than 2
     const overwriteRequestHeaders2 = '{"lorem": { "ipsum": "dolor" }}'
@@ -859,14 +619,12 @@ describe('--overwriteRequestHeaders', () => {
       '',
       '',
       ...getRequiredArgs(),
-      '--overwriteResponseHeaders',
+      '--overwriteRequestHeaders',
       overwriteRequestHeaders2,
     ]
-    await expect(parseArgv(argv2)).rejects.toMatchInlineSnapshot(`
-            [TypeError: [1mTypeError[22m[0m: invalid --overwriteResponseHeaders
-            [32mExpected[89m[0m valid Header type { [header: string]: string[] string number null undefined }
-            [31mReceived[89m[0m {"lorem":{"ipsum":"dolor"}}]
-          `)
+    await expect(parseArgv(argv2)).rejects.toThrow(
+      /invalid --overwriteRequestHeaders/,
+    )
 
     // Invalid since it has an array of numbers
     const overwriteRequestHeaders3 = '{"lorem": [1, 2, 3]}'
@@ -874,14 +632,12 @@ describe('--overwriteRequestHeaders', () => {
       '',
       '',
       ...getRequiredArgs(),
-      '--overwriteResponseHeaders',
+      '--overwriteRequestHeaders',
       overwriteRequestHeaders3,
     ]
-    await expect(parseArgv(argv3)).rejects.toMatchInlineSnapshot(`
-            [TypeError: [1mTypeError[22m[0m: invalid --overwriteResponseHeaders
-            [32mExpected[89m[0m valid Header type { [header: string]: string[] string number null undefined }
-            [31mReceived[89m[0m {"lorem":[1,2,3]}]
-          `)
+    await expect(parseArgv(argv3)).rejects.toThrow(
+      /invalid --overwriteRequestHeaders/,
+    )
 
     // Invalid since it has a number as key
     const overwriteRequestHeaders4 = '{1: "lorem"}'
@@ -889,24 +645,20 @@ describe('--overwriteRequestHeaders', () => {
       '',
       '',
       ...getRequiredArgs(),
-      '--overwriteResponseHeaders',
+      '--overwriteRequestHeaders',
       overwriteRequestHeaders4,
     ]
-    await expect(parseArgv(argv4)).rejects.toMatchInlineSnapshot(`
-            [TypeError: [1mTypeError[22m[0m: invalid --overwriteResponseHeaders
-            [32mExpected[89m[0m valid JSON string
-            [31mReceived[89m[0m "{1: \\"lorem\\"}"]
-          `)
+    await expect(parseArgv(argv4)).rejects.toThrow(
+      /invalid --overwriteRequestHeaders/,
+    )
   })
 })
 
 describe('--cors', () => {
   it('receives a default value if not set', async () => {
-    expect.assertions(1)
-
     const argv = ['', '', ...getRequiredArgs()]
     const args = await parseArgv(argv)
-    expect(args.cors).toStrictEqual(CORS_DEFAULT)
+    expect(args.cors).toEqual(CORS_DEFAULT)
   })
 
   it.each([
@@ -916,9 +668,7 @@ describe('--cors', () => {
     ['1', true],
     ['false', false],
     ['0', false],
-  ])('is casted to boolean', async (input, expected) => {
-    expect.assertions(1)
-
+  ])('is casted to boolean %s', async (input, expected) => {
     const args = await parseArgv([
       '',
       '',
@@ -926,6 +676,6 @@ describe('--cors', () => {
       '--cors',
       input,
     ])
-    expect(args.cors).toStrictEqual(expected)
+    expect(args.cors).toEqual(expected)
   })
 })

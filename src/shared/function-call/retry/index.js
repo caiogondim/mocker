@@ -1,13 +1,32 @@
-const createBackoff = require('../../backoff')
+/** @import { Result } from '../../types.js' */
+
+import createBackoff from '../../backoff/index.js'
 
 /**
- * @param {function(): Promise<any>} asyncThunk
+ * @template T
+ * @param {function(): Promise<T>} asyncThunk
+ * @param {function(T): boolean} shouldRetry
+ * @param {function(): void} onRetry
+ * @returns {Promise<{ done: true; value: T } | { done: false }>}
+ */
+async function attempt(asyncThunk, shouldRetry, onRetry) {
+  const value = await asyncThunk()
+  if (!shouldRetry(value)) {
+    return { done: true, value }
+  }
+  onRetry()
+  return { done: false }
+}
+
+/**
+ * @template T
+ * @param {function(): Promise<T>} asyncThunk
  * @param {Object} options
- * @param {Number} [options.retries]
- * @param {function(any): boolean} [options.shouldRetry]
+ * @param {number} [options.retries]
+ * @param {function(T): boolean} [options.shouldRetry]
  * @param {function(): void} [options.onRetry]
  * @param {function(): Promise<void>} [options.backoff]
- * @returns {ReturnType<asyncThunk>}
+ * @returns {Promise<Result<T>>}
  */
 async function retry(
   asyncThunk,
@@ -16,29 +35,27 @@ async function retry(
     shouldRetry = () => false,
     onRetry = () => {},
     backoff = createBackoff(),
-  } = {}
+  } = {},
 ) {
-  let response
-
   for (let attempts = 0; attempts < retries; attempts += 1) {
     try {
-      response = await asyncThunk()
-      if (!shouldRetry(response)) {
-        return response
-      }
-      onRetry()
+      const result = await attempt(asyncThunk, shouldRetry, onRetry)
+      if (result.done)
+        return { ok: true, value: /** @type {T} */ (result.value) }
     } catch (error) {
-      if (attempts === retries - 1) {
-        throw error
-      } else {
-        onRetry()
-      }
+      if (attempts === retries - 1)
+        return { ok: false, error: /** @type {Error} */ (error) }
+      onRetry()
     }
-
     await backoff()
   }
 
-  return response
+  return {
+    ok: false,
+    error: new Error(
+      'retry exhausted all attempts without a successful response',
+    ),
+  }
 }
 
-module.exports = retry
+export default retry

@@ -1,13 +1,15 @@
-const { Volume, createFsFromVolume } = require('memfs')
-const { MockManager } = require('../..')
+/** @typedef {import('../../../args/types.js').AbsoluteDirPath} AbsoluteDirPath */
+
+import { Volume, createFsFromVolume } from 'memfs'
+import { createMockManager as createMockManagerFactory } from '../../index.js'
 
 async function createMemFs() {
-  const responsesDir = '/tmp'
+  const mocksDir = /** @type {AbsoluteDirPath} */ ('/tmp')
   const volume = new Volume()
   const fs = createFsFromVolume(volume)
-  await fs.promises.mkdir(responsesDir)
+  await fs.promises.mkdir(mocksDir)
 
-  return { responsesDir, fs }
+  return { mocksDir, fs }
 }
 
 async function createMockManager(opts = {}) {
@@ -16,10 +18,7 @@ async function createMockManager(opts = {}) {
     origin: '',
   }
 
-  return new MockManager({ ...defaults, ...opts })
+  return createMockManagerFactory({ ...defaults, ...opts })
 }
 
-module.exports = {
-  createMemFs,
-  createMockManager,
-}
+export { createMemFs, createMockManager }

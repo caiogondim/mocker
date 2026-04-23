@@ -1,0 +1,5 @@
+[alias]
+ci = "xtask ci"
+lint = "clippy"
+fmt-check = "fmt -- --check"
+coverage = "tarpaulin --skip-clean --out stdout"

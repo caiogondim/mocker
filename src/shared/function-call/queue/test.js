@@ -1,14 +1,13 @@
-const queueCalls = require('./index')
+import { describe, it, expect } from '@jest/globals'
+import queueCalls from './index.js'
 
 describe('queue', () => {
   it('enqueues calls to decorated function', async () => {
-    expect.assertions(10)
-
     let counter = 0
     function count() {
       return new Promise((resolve) => {
         counter += 1
-        setTimeout(resolve, 100)
+        setTimeout(resolve, 1)
       })
     }
 
@@ -46,8 +45,6 @@ describe('queue', () => {
   })
 
   it('has a function name that describes decorator and encapsulated function names', async () => {
-    expect.assertions(2)
-
     /**
      * @param {number} a
      * @param {number} b

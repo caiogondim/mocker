@@ -1,9 +1,9 @@
-const MockedRequest = require('../../mock-manager/mocked-request')
-const { isHeaders, getHeaders } = require('.')
+import { describe, it, expect, jest } from '@jest/globals'
+import MockedRequest from '../../mock-manager/mocked-request.js'
+import { isHeaders, getHeaders } from './index.js'
 
 describe('isHeaders()', () => {
   it('returns false if input is not an object', () => {
-    expect.assertions(5)
     expect(isHeaders(1)).toBe(false)
     expect(isHeaders('lorem')).toBe(false)
     expect(isHeaders(null)).toBe(false)
@@ -12,21 +12,17 @@ describe('isHeaders()', () => {
   })
 
   it('returns false if input is an object but has an invalid shape', () => {
-    expect.assertions(2)
     expect(isHeaders({ foo: { bar: 2 } })).toBe(false)
     expect(isHeaders({ foo: () => {} })).toBe(false)
   })
 
   it('returns true if input has a valid shape', () => {
-    expect.assertions(1)
     expect(isHeaders({ host: 'example.com', 'content-length': 123 })).toBe(true)
   })
 })
 
 describe('getHeaders()', () => {
   it('returns cloned headers', () => {
-    expect.assertions(2)
-
     // Given I have a request
     const headers = { a: 1, b: 2, c: 3 }
     const mockedRequest = new MockedRequest({
@@ -43,8 +39,6 @@ describe('getHeaders()', () => {
   })
 
   it('returns cloned headers for objects without `.headers`, but with a `.getHeaders` method', () => {
-    expect.assertions(2)
-
     // Given I have a request without a `.headers` property, but with a `.getHeaders` method
     const headers = { a: 1, b: 2, c: 3 }
     const request = {
@@ -52,7 +46,7 @@ describe('getHeaders()', () => {
     }
 
     // When I use `getHeaders()` on it
-    // @ts-ignore
+    // @ts-expect-error — intentionally passing a minimal object to test duck-typing fallback
     const clonedHeaders = getHeaders(request)
 
     // Then it should return a clone of the request's headers

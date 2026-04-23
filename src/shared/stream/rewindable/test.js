@@ -1,28 +1,29 @@
-const { PassThrough, Readable } = require('stream')
-const sleep = require('../../sleep')
-const values = require('../values')
-const rewindable = require('.')
+import { describe, it, expect } from '@jest/globals'
+import { PassThrough, Readable } from 'node:stream'
+import { setTimeout as sleep } from 'node:timers/promises'
+import values from '../values/index.js'
+import rewindable from './index.js'
 
 describe('rewindable', () => {
   it('exposes a rewind method that returns a stream that can be consumed from the start', async () => {
-    expect.assertions(1)
-
     const stream = new PassThrough()
-    const rewindableStream = rewindable(stream)
+    const result = rewindable(stream)
+    if (!result.ok) throw result.error
+    const rewindableStream = result.value
     stream.write('1')
     stream.write('2')
     stream.write('3')
     stream.end()
-    await expect(values(stream)).resolves.toStrictEqual(
-      await values(rewindableStream.rewind())
+    expect(await values(stream)).toEqual(
+      await values(rewindableStream.rewind()),
     )
   })
 
   it('can be rewinded even when stream is not finished', async () => {
-    expect.assertions(1)
-
     const stream = new PassThrough()
-    const rewindableStream = rewindable(stream)
+    const result = rewindable(stream)
+    if (!result.ok) throw result.error
+    const rewindableStream = result.value
     stream.write('1')
     stream.write('2')
 
@@ -44,10 +45,10 @@ describe('rewindable', () => {
   })
 
   it('rewindable stream is a proxy for the original stream', async () => {
-    expect.assertions(4)
-
     const stream = new PassThrough()
-    const rewindableStream = rewindable(stream)
+    const result = rewindable(stream)
+    if (!result.ok) throw result.error
+    const rewindableStream = result.value
     stream.write('1')
     stream.write('2')
     stream.end('3')
@@ -64,10 +65,10 @@ describe('rewindable', () => {
   })
 
   it('can be called N times', async () => {
-    expect.assertions(3)
-
     const stream = new PassThrough()
-    const rewindableStream = rewindable(stream)
+    const result = rewindable(stream)
+    if (!result.ok) throw result.error
+    const rewindableStream = result.value
     stream.write('1')
     stream.write('2')
     stream.end('3')
@@ -79,35 +80,35 @@ describe('rewindable', () => {
   })
 
   it('works with empty streams', async () => {
-    expect.assertions(1)
-
     const stream = new PassThrough()
-    const rewindableStream = rewindable(stream)
+    const result = rewindable(stream)
+    if (!result.ok) throw result.error
+    const rewindableStream = result.value
     stream.end()
 
     expect(`${await values(rewindableStream.rewind())}`).toBe('')
   })
 
-  it('throws an error in case the stream is already finished', async () => {
-    expect.assertions(1)
-
+  it('returns an error result in case the stream is already finished', async () => {
     const stream = new PassThrough()
     stream.end('')
 
     // First we consume the stream
     await values(stream)
 
-    // The we try to decorate the consumed stream, which should throw an error.
-    expect(() => rewindable(stream)).toThrow(
-      new Error('Stream is not readable')
-    )
+    // Then we try to decorate the consumed stream, which should return an error result.
+    const result = rewindable(stream)
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.error.message).toBe('Stream is not readable')
+    }
   })
 
   it('can be called N times, even before the stream is not finished', async () => {
-    expect.assertions(4)
-
     const stream = new PassThrough()
-    const rewindableStream = rewindable(stream)
+    const result = rewindable(stream)
+    if (!result.ok) throw result.error
+    const rewindableStream = result.value
     stream.write('1')
     stream.write('2')
 
@@ -128,19 +129,123 @@ describe('rewindable', () => {
   })
 
   it('returns a readable stream', async () => {
-    expect.assertions(1)
     const stream = new PassThrough()
-    const rewindableStream = rewindable(stream)
-    expect(rewindableStream.rewind().constructor).toStrictEqual(Readable)
+    const result = rewindable(stream)
+    if (!result.ok) throw result.error
+    const rewindableStream = result.value
+    expect(rewindableStream.rewind().constructor).toEqual(Readable)
+  })
+
+  it('throws when rewind is called after release', async () => {
+    const stream = new PassThrough()
+    const result = rewindable(stream)
+    if (!result.ok) throw result.error
+    const rewindableStream = result.value
+
+    stream.end('123')
+    expect(`${await values(rewindableStream.rewind())}`).toBe('123')
+
+    rewindableStream.release()
+    expect(() => rewindableStream.rewind()).toThrow(
+      'Rewindable stream was already released',
+    )
+  })
+
+  it('supports Symbol.asyncDispose for await using', async () => {
+    const stream = new PassThrough()
+    const result = rewindable(stream)
+    if (!result.ok) throw result.error
+
+    const rewindableStream = result.value
+    stream.end('123')
+    expect(`${await values(rewindableStream.rewind())}`).toBe('123')
+
+    await rewindableStream[Symbol.asyncDispose]()
+
+    expect(() => rewindableStream.rewind()).toThrow(
+      'Rewindable stream was already released',
+    )
+  })
+
+  it('supports Symbol.dispose for using', async () => {
+    const stream = new PassThrough()
+    const result = rewindable(stream)
+    if (!result.ok) throw result.error
+
+    const rewindableStream = result.value
+    stream.end('123')
+    expect(`${await values(rewindableStream.rewind())}`).toBe('123')
+
+    rewindableStream[Symbol.dispose]()
+
+    expect(() => rewindableStream.rewind()).toThrow(
+      'Rewindable stream was already released',
+    )
+  })
+
+  it('unblocks pending rewind consumer when released', async () => {
+    const stream = new PassThrough()
+    const result = rewindable(stream)
+    if (!result.ok) throw result.error
+    const rewindableStream = result.value
+    const rewound = rewindableStream.rewind()
+    const iterator = rewound[Symbol.asyncIterator]()
+
+    stream.write('1')
+    const first = await iterator.next()
+    expect(`${first.value}`).toBe('1')
+
+    const pendingNext = iterator.next()
+    await sleep(0)
+    rewindableStream.release()
+
+    await expect(pendingNext).rejects.toThrow(
+      'Rewindable stream was already released',
+    )
+  })
+
+  it('finishes rewound stream when source closes without end', async () => {
+    const stream = new PassThrough()
+    const result = rewindable(stream)
+    if (!result.ok) throw result.error
+    const rewindableStream = result.value
+    const rewound = rewindableStream.rewind()
+    const iterator = rewound[Symbol.asyncIterator]()
+
+    stream.write('1')
+    const first = await iterator.next()
+    expect(`${first.value}`).toBe('1')
+
+    const pendingNext = iterator.next()
+    await sleep(0)
+    stream.destroy()
+
+    const next = await pendingNext
+    expect(next.done).toBe(true)
+  })
+
+  it('fails fast when buffered stream data exceeds maxBufferBytes', async () => {
+    const stream = new PassThrough()
+    const result = rewindable(stream, { maxBufferBytes: 2 })
+    if (!result.ok) throw result.error
+    const rewindableStream = result.value
+    const rewound = rewindableStream.rewind()
+
+    stream.write('ab')
+    stream.write('c')
+
+    await expect(values(rewound)).rejects.toThrow(
+      'Rewindable stream exceeded max buffer size',
+    )
   })
 
   // # Regression test
   //
   it('works if stream ends without a value', async () => {
-    expect.assertions(1)
-
     const stream = new PassThrough()
-    const rewindableStream = rewindable(stream)
+    const result = rewindable(stream)
+    if (!result.ok) throw result.error
+    const rewindableStream = result.value
     stream.write('1')
     stream.write('2')
 

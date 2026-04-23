@@ -1,14 +1,13 @@
-const MockedRequest = require('../../mocked-request')
+import MockedRequest from '../../mocked-request.js'
+import { HTTP_METHOD } from '../../../shared/http-method/index.js'
 
 function createMockedRequest(opts = {}) {
   const defaults = {
     url: 'http://example.com',
-    method: 'GET',
+    method: HTTP_METHOD.GET,
   }
 
   return new MockedRequest({ ...defaults, ...opts })
 }
 
-module.exports = {
-  createMockedRequest,
-}
+export { createMockedRequest }

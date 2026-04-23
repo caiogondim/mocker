@@ -1,6 +1,7 @@
-/** @typedef {import('./index').Console} Console */
+/** @typedef {import('./index.js').Console} Console */
 
-const Logger = require('.')
+import { describe, it, expect } from '@jest/globals'
+import createLogger, { setLevel } from './index.js'
 
 /** @type {Console} */
 const consoleMock = {
@@ -11,82 +12,70 @@ const consoleMock = {
   error() {},
 }
 
-const logger = new Logger({ console: consoleMock })
+const logger = createLogger({ console: consoleMock })
 
-describe('logger.prototype.log', () => {
+describe('logger.log', () => {
   it('doesnt log on level "silent"', () => {
-    expect.assertions(1)
-    Logger.level = 'silent'
+    setLevel('silent')
     expect(logger.log('lorem ipsum')).toBe(false)
   })
 
   it('does log on level "verbose"', () => {
-    expect.assertions(1)
-    Logger.level = 'verbose'
+    setLevel('verbose')
     expect(logger.log('lorem ipsum')).toBe(true)
   })
 
   it('doesnt log on level "error"', () => {
-    expect.assertions(1)
-    Logger.level = 'error'
+    setLevel('error')
     expect(logger.log('lorem ipsum')).toBe(false)
   })
 
   it('doesnt log on level "warn"', () => {
-    expect.assertions(1)
-    Logger.level = 'warn'
+    setLevel('warn')
     expect(logger.log('lorem ipsum')).toBe(false)
   })
 })
 
-describe('logger.prototype.warn', () => {
+describe('logger.warn', () => {
   it('doesnt log on level "silent"', () => {
-    expect.assertions(1)
-    Logger.level = 'silent'
+    setLevel('silent')
     expect(logger.warn('lorem ipsum')).toBe(false)
   })
 
   it('does log on level "verbose"', () => {
-    expect.assertions(1)
-    Logger.level = 'verbose'
+    setLevel('verbose')
     expect(logger.warn('lorem ipsum')).toBe(true)
   })
 
   it('doesnt log on level "error"', () => {
-    expect.assertions(1)
-    Logger.level = 'error'
+    setLevel('error')
     expect(logger.warn('lorem ipsum')).toBe(false)
   })
 
   it('does log on level "warn"', () => {
-    expect.assertions(1)
-    Logger.level = 'warn'
+    setLevel('warn')
     expect(logger.warn('lorem ipsum')).toBe(true)
   })
 })
 
-describe('logger.prototype.error', () => {
+describe('logger.error', () => {
   it('doesnt log on level "silent"', () => {
-    expect.assertions(1)
-    Logger.level = 'silent'
+    setLevel('silent')
     expect(logger.error('lorem ipsum')).toBe(false)
   })
 
   it('does log on level "verbose"', () => {
-    expect.assertions(1)
-    Logger.level = 'verbose'
+    setLevel('verbose')
     expect(logger.error('lorem ipsum')).toBe(true)
   })
 
   it('does log on level "error"', () => {
-    expect.assertions(1)
-    Logger.level = 'error'
+    setLevel('error')
     expect(logger.error('lorem ipsum')).toBe(true)
   })
 
   it('does log on level "warn"', () => {
-    expect.assertions(1)
-    Logger.level = 'warn'
+    setLevel('warn')
     expect(logger.error('lorem ipsum')).toBe(true)
   })
 })

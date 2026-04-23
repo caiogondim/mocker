@@ -1,12 +1,12 @@
-/** @typedef {import('../../src/shared/types').AsyncHttpServer} AsyncHttpServer */
+/** @typedef {import('../../src/shared/types.js').AsyncHttpServer} AsyncHttpServer */
 
-const http = require('http')
+import { createAsyncHttpServer } from '../../src/shared/async-http-server/index.js'
 
 const commonHeaders = { 'content-type': 'text/plain' }
 
 /**
- * @param {http.IncomingMessage} req
- * @param {http.ServerResponse} res
+ * @param {import('node:http').IncomingMessage} req
+ * @param {import('node:http').ServerResponse} res
  * @returns {Promise<void>}
  */
 async function handleGet(req, res) {
@@ -34,8 +34,8 @@ async function handleGet(req, res) {
 }
 
 /**
- * @param {http.IncomingMessage} req
- * @param {http.ServerResponse} res
+ * @param {import('node:http').IncomingMessage} req
+ * @param {import('node:http').ServerResponse} res
  * @returns {Promise<void>}
  */
 async function handlePost(req, res) {
@@ -61,7 +61,7 @@ async function handlePost(req, res) {
 
 /** @returns {AsyncHttpServer} */
 function createServer() {
-  const server = http.createServer(async (req, res) => {
+  return createAsyncHttpServer(async (req, res) => {
     if (req.method === 'GET') {
       await handleGet(req, res)
       return
@@ -73,39 +73,13 @@ function createServer() {
     res.writeHead(404, {})
     res.end()
   })
-
-  return {
-    /**
-     * @param {number} port
-     * @returns {Promise<void>}
-     */
-    listen(port) {
-      return new Promise((resolve) => {
-        server.listen(port, resolve)
-      })
-    },
-    close() {
-      return new Promise((resolve, reject) => {
-        server.close((error) => {
-          if (error) {
-            reject(error)
-          } else {
-            resolve()
-          }
-        })
-      })
-    },
-    get listening() {
-      return server.listening
-    },
-  }
 }
 
 // @ts-ignore
-if (require.main === module) {
+if (process.argv[1] === import.meta.filename) {
   const port = Number(process.argv[2])
   const server = createServer()
   server.listen(port)
 }
 
-module.exports = { createServer }
+export { createServer }

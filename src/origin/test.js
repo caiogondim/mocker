@@ -1,51 +1,49 @@
-const getPort = require('get-port')
-const { Origin } = require('.')
-const { getBody } = require('../shared/http')
-const {
-  createServer: createRequestHeaderOnResponseBodyServer,
-} = require('../../tools/request-header-on-response-body-server')
-const { createServer: createFlakyServer } = require('../../tools/flaky-server')
-const { createServer: createMathServer } = require('../../tools/math-server')
+/** @typedef {import('../args/types.js').HttpUrl} HttpUrl */
+/** @typedef {import('../args/types.js').NonNegativeInteger} NonNegativeInteger */
+
+import { describe, it, expect } from '@jest/globals'
+import { createOrigin } from './index.js'
+import { getBody } from '../shared/http/index.js'
+import { createServer as createRequestHeaderOnResponseBodyServer } from '../../tools/request-header-on-response-body-server/index.js'
+import { createServer as createFlakyServer } from '../../tools/flaky-server/index.js'
+import { createServer as createMathServer } from '../../tools/math-server/index.js'
 
 describe('origin', () => {
   describe('request()', () => {
     it('overwrites request headers defined on `overwriteRequestHeaders` constructor argument', async () => {
-      expect.assertions(3)
-
-      const originPort = await getPort()
-      const requestHeaderOnResponseBodyServer =
+      await using requestHeaderOnResponseBodyServer =
         createRequestHeaderOnResponseBodyServer()
-      await requestHeaderOnResponseBodyServer.listen(originPort)
+      await requestHeaderOnResponseBodyServer.listen()
 
-      const origin = new Origin({
-        host: `http://localhost:${originPort}`,
+      const origin = createOrigin({
+        host: /** @type {HttpUrl} */ (
+          `http://localhost:${requestHeaderOnResponseBodyServer.port}`
+        ),
         overwriteRequestHeaders: { lorem: 'ipsum', dolor: 5, host: 'dolor' },
       })
-      const [request, responsePromise] = await origin.request({ url: `/` })
+      const result = await origin.request({ url: `/` })
+      expect(result.ok).toBe(true)
+      if (!result.ok) throw result.error
+      const [request, responsePromise] = result.value
       request.end()
       const response = await responsePromise
       const responseBody = (await getBody(response)).toString()
       const responseJson = JSON.parse(responseBody)
 
-      try {
-        expect(responseJson.host).toBe('dolor')
-        expect(responseJson.lorem).toBe('ipsum')
-        expect(responseJson.dolor).toBe('5')
-      } finally {
-        await requestHeaderOnResponseBodyServer.close()
-      }
+      expect(responseJson.host).toBe('dolor')
+      expect(responseJson.lorem).toBe('ipsum')
+      expect(responseJson.dolor).toBe('5')
     })
 
     it(`removes \`via\` header request header if \`overwriteRequestHeaders\` equals to \`{ via: null }\``, async () => {
-      expect.assertions(3)
-
-      const originPort = await getPort()
-      const requestHeaderOnResponseBodyServer =
+      await using requestHeaderOnResponseBodyServer =
         createRequestHeaderOnResponseBodyServer()
-      await requestHeaderOnResponseBodyServer.listen(originPort)
+      await requestHeaderOnResponseBodyServer.listen()
 
-      const origin = new Origin({
-        host: `http://localhost:${originPort}`,
+      const origin = createOrigin({
+        host: /** @type {HttpUrl} */ (
+          `http://localhost:${requestHeaderOnResponseBodyServer.port}`
+        ),
         overwriteRequestHeaders: {
           host: 'example.com',
           lorem: 'ipsum',
@@ -53,79 +51,72 @@ describe('origin', () => {
           via: null,
         },
       })
-      const [request, responsePromise] = await origin.request({ url: `/` })
+      const result = await origin.request({ url: `/` })
+      expect(result.ok).toBe(true)
+      if (!result.ok) throw result.error
+      const [request, responsePromise] = result.value
       request.end()
       const response = await responsePromise
       const responseBody = (await getBody(response)).toString()
       const responseJson = JSON.parse(responseBody)
 
-      try {
-        expect(responseJson.lorem).toBe('ipsum')
-        expect(responseJson.dolor).toBe('5')
-        expect(responseJson.via).toBeUndefined()
-      } finally {
-        await requestHeaderOnResponseBodyServer.close()
-      }
+      expect(responseJson.lorem).toBe('ipsum')
+      expect(responseJson.dolor).toBe('5')
+      expect(responseJson.via).toBeUndefined()
     })
 
     it('retries requests as defined on `retries` constructor argument', async () => {
-      expect.assertions(2)
-
       // This server always returns a 500 but on every 3rd request.
-      const flakyServer = createFlakyServer()
-      const originPort = await getPort()
-      await flakyServer.listen(originPort)
+      await using flakyServer = createFlakyServer()
+      await flakyServer.listen()
 
-      const origin = new Origin({
-        host: `http://localhost:${originPort}`,
-        retries: 3,
+      const origin = createOrigin({
+        host: /** @type {HttpUrl} */ (`http://localhost:${flakyServer.port}`),
+        retries: /** @type {NonNegativeInteger} */ (3),
       })
-      const [request, responsePromise] = await origin.request({
+      const result = await origin.request({
         url: `/`,
         method: 'POST',
       })
+      expect(result.ok).toBe(true)
+      if (!result.ok) throw result.error
+      const [request, responsePromise] = result.value
       request.write('lorem ipsum')
       request.write(' dolor')
       request.end(' sit amet')
 
-      try {
-        const response = await responsePromise
-        expect(response.statusCode).toBe(200)
+      const response = await responsePromise
+      expect(response.statusCode).toBe(200)
 
-        const responseBody = await getBody(response)
-        expect(responseBody.toString()).toBe('lorem ipsum dolor sit amet')
-      } finally {
-        await flakyServer.close()
-      }
+      const responseBody = await getBody(response)
+      expect(responseBody.toString()).toBe('lorem ipsum dolor sit amet')
     })
 
     it('accepts absolute URLs', async () => {
-      expect.assertions(2)
-
       // Given I have a server
-      const mathServer = createMathServer()
-      const originPort = await getPort()
-      await mathServer.listen(originPort)
+      await using mathServer = createMathServer()
+      await mathServer.listen()
 
       // And a mocker server proxying it
 
       // When I make a request to the mocker server using an absolute URL
-      const origin = new Origin({ host: `http://localhost:${originPort}` })
-      const [request, responsePromise] = await origin.request({
-        url: `http://localhost:${originPort}?a=1&b=2&operation=sum`,
+      const origin = createOrigin({
+        host: /** @type {HttpUrl} */ (`http://localhost:${mathServer.port}`),
       })
+      const result = await origin.request({
+        url: `http://localhost:${mathServer.port}?a=1&b=2&operation=sum`,
+      })
+      expect(result.ok).toBe(true)
+      if (!result.ok) throw result.error
+      const [request, responsePromise] = result.value
       request.end()
 
       // Then it should work as it does for relative URLs
-      try {
-        const response = await responsePromise
-        expect(response.statusCode).toBe(200)
+      const response = await responsePromise
+      expect(response.statusCode).toBe(200)
 
-        const responseBody = await getBody(response)
-        expect(responseBody.toString()).toBe('3')
-      } finally {
-        await mathServer.close()
-      }
+      const responseBody = await getBody(response)
+      expect(responseBody.toString()).toBe('3')
     })
   })
 })

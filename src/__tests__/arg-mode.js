@@ -1,485 +1,487 @@
-const getPort = require('get-port')
-const { createMocker, createMemFs } = require('./helpers/mocker')
-const { closeServer, createServer } = require('./helpers/async-http-server')
-const { createServer: createMathServer } = require('../../tools/math-server')
-const { createServer: createTimeServer } = require('../../tools/time-server')
-const { createRequest, getBody } = require('../shared/http')
+import { describe, it, expect } from '@jest/globals'
+import { createMocker, createMemFs } from './helpers/mocker.js'
+import { createServer } from './helpers/async-http-server.js'
+import { createServer as createMathServer } from '../../tools/math-server/index.js'
+import { createServer as createTimeServer } from '../../tools/time-server/index.js'
+import { createRequest, getBody } from '../shared/http/index.js'
+import { parse as parseAbsoluteHttpUrl } from '../shared/absolute-http-url/index.js'
 
 describe(`mode = 'pass'`, () => {
   it('works as a pass-through proxy', async () => {
-    expect.assertions(1)
+    await using mathServer = createMathServer()
+    await mathServer.listen()
 
-    const originPort = await getPort()
-    const mathServer = createMathServer()
-    await mathServer.listen(originPort)
-
-    const mockerPort = await getPort()
-    const mocker = await createMocker({
-      port: mockerPort,
-      origin: `http://localhost:${originPort}`,
+    await using mocker = await createMocker({
+      origin: `http://localhost:${mathServer.port}`,
       mode: 'pass',
     })
     await mocker.listen()
 
-    try {
-      const [request, responsePromise] = await createRequest({
-        url: `http://localhost:${mockerPort}/?a=1&b=3&operation=sum`,
-      })
-      request.end()
-      const response = await responsePromise
-      const responseBody = (await getBody(response)).toString()
+    const parsed1 = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/?a=1&b=3&operation=sum`,
+    )
+    if (!parsed1.ok) throw parsed1.error
+    const requestResult = await createRequest({
+      url: parsed1.value,
+    })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
+    request.end()
+    const response = await responsePromise
+    const responseBody = (await getBody(response)).toString()
 
-      expect(responseBody).toBe('4')
-    } finally {
-      await closeServer(mocker)
-      await closeServer(mathServer)
-    }
+    expect(responseBody).toBe('4')
   })
 })
 
 describe(`mode = 'read-pass`, () => {
   it('returns a mocked response when `mode === "read-pass"` and there is a saved response for the request', async () => {
-    expect.assertions(2)
+    await using mathServer = createMathServer()
+    await mathServer.listen()
 
-    const originPort = await getPort()
-    const mathServer = createMathServer()
-    await mathServer.listen(originPort)
-
-    const mockerPort = await getPort()
-    const mocker = await createMocker({
-      port: mockerPort,
-      origin: `http://localhost:${originPort}`,
+    await using mocker = await createMocker({
+      origin: `http://localhost:${mathServer.port}`,
       mode: 'read-pass',
     })
     await mocker.listen()
 
-    try {
-      //
-      // Normal flow: client <-> proxy <-> origin
-      //
+    //
+    // Normal flow: client <-> proxy <-> origin
+    //
 
-      const [request1, response1Promise] = await createRequest({
-        url: `http://localhost:${mockerPort}/?a=5&b=9&operation=sum`,
-      })
-      request1.end()
-      const response1 = await response1Promise
-      const response1Body = (await getBody(response1)).toString()
+    const parsed2 = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/?a=5&b=9&operation=sum`,
+    )
+    if (!parsed2.ok) throw parsed2.error
+    const requestResult1 = await createRequest({
+      url: parsed2.value,
+    })
+    if (!requestResult1.ok) throw requestResult1.error
+    const [request1, response1Promise] = requestResult1.value
+    request1.end()
+    const response1 = await response1Promise
+    const response1Body = (await getBody(response1)).toString()
 
-      expect(response1Body).toBe('14')
+    expect(response1Body).toBe('14')
 
-      //
-      // Mocked response: client <-> proxy
-      //
+    //
+    // Mocked response: client <-> proxy
+    //
 
-      const [request2, response2Promise] = await createRequest({
-        url: `http://localhost:${mockerPort}/?a=5&b=9&operation=sum`,
-      })
-      request2.end()
-      const response2 = await response2Promise
-      const response2Body = (await getBody(response2)).toString()
+    const parsed3 = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/?a=5&b=9&operation=sum`,
+    )
+    if (!parsed3.ok) throw parsed3.error
+    const requestResult2 = await createRequest({
+      url: parsed3.value,
+    })
+    if (!requestResult2.ok) throw requestResult2.error
+    const [request2, response2Promise] = requestResult2.value
+    request2.end()
+    const response2 = await response2Promise
+    const response2Body = (await getBody(response2)).toString()
 
-      expect(response2Body).toBe('14')
-    } finally {
-      await closeServer(mocker)
-      await closeServer(mathServer)
-    }
+    expect(response2Body).toBe('14')
   })
 
   it('works as a pass-through proxy if `mode === "read-pass" and there is no saved response for the request`', async () => {
-    expect.assertions(1)
+    await using mathServer = createMathServer()
+    await mathServer.listen()
 
-    const originPort = await getPort()
-    const mathServer = createMathServer()
-    await mathServer.listen(originPort)
-
-    const mockerPort = await getPort()
-    const mocker = await createMocker({
-      port: mockerPort,
-      origin: `http://localhost:${originPort}`,
+    await using mocker = await createMocker({
+      origin: `http://localhost:${mathServer.port}`,
       mode: 'read-pass',
     })
     await mocker.listen()
 
-    try {
-      const [request, responsePromise] = await createRequest({
-        url: `http://localhost:${mockerPort}/?a=1&b=3&operation=sum`,
-      })
-      request.end()
-      const response = await responsePromise
-      const responseBody = (await getBody(response)).toString()
+    const parsed4 = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/?a=1&b=3&operation=sum`,
+    )
+    if (!parsed4.ok) throw parsed4.error
+    const requestResult = await createRequest({
+      url: parsed4.value,
+    })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
+    request.end()
+    const response = await responsePromise
+    const responseBody = (await getBody(response)).toString()
 
-      expect(responseBody).toBe('4')
-    } finally {
-      await closeServer(mocker)
-      await closeServer(mathServer)
-    }
+    expect(responseBody).toBe('4')
   })
 })
 
 describe(`mode = 'read-write`, () => {
   it('saves and returns a mocked response when `mode === "read-write"`', async () => {
-    expect.assertions(2)
+    await using mathServer = createMathServer()
+    await mathServer.listen()
 
-    const originPort = await getPort()
-    const mathServer = createMathServer()
-    await mathServer.listen(originPort)
-
-    const mockerPort = await getPort()
-    const mocker = await createMocker({
-      port: mockerPort,
-      origin: `http://localhost:${originPort}`,
+    await using mocker = await createMocker({
+      origin: `http://localhost:${mathServer.port}`,
       mode: 'read-write',
     })
     await mocker.listen()
 
-    try {
-      //
-      // Normal flow: client <-> proxy <-> origin
-      //
+    //
+    // Normal flow: client <-> proxy <-> origin
+    //
 
-      const [request1, response1Promise] = await createRequest({
-        url: `http://localhost:${mockerPort}/?a=2&b=5&operation=multiply`,
-      })
-      request1.end()
+    const parsed5 = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/?a=2&b=5&operation=multiply`,
+    )
+    if (!parsed5.ok) throw parsed5.error
+    const requestResult1 = await createRequest({
+      url: parsed5.value,
+    })
+    if (!requestResult1.ok) throw requestResult1.error
+    const [request1, response1Promise] = requestResult1.value
+    request1.end()
 
-      const response1 = await response1Promise
+    const response1 = await response1Promise
 
-      const response1Body = (await getBody(response1)).toString()
+    const response1Body = (await getBody(response1)).toString()
 
-      expect(response1Body).toBe('10')
+    expect(response1Body).toBe('10')
 
-      // Turning off origin server to make sure proxy is returning a mocked response
-      await mathServer.close()
+    // Turning off origin server to make sure proxy is returning a mocked response
+    await mathServer.close()
 
-      //
-      // Mocked response: client <-> proxy
-      //
+    //
+    // Mocked response: client <-> proxy
+    //
 
-      const [request2, response2Promise] = await createRequest({
-        url: `http://localhost:${mockerPort}/?a=2&b=5&operation=multiply`,
-      })
-      request2.end()
-      const response2 = await response2Promise
-      const response2Body = (await getBody(response2)).toString()
+    const parsed6 = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/?a=2&b=5&operation=multiply`,
+    )
+    if (!parsed6.ok) throw parsed6.error
+    const requestResult2 = await createRequest({
+      url: parsed6.value,
+    })
+    if (!requestResult2.ok) throw requestResult2.error
+    const [request2, response2Promise] = requestResult2.value
+    request2.end()
+    const response2 = await response2Promise
+    const response2Body = (await getBody(response2)).toString()
 
-      expect(response2Body).toBe('10')
-    } finally {
-      await closeServer(mocker)
-      await closeServer(mathServer)
-    }
+    expect(response2Body).toBe('10')
   })
 
   it('returns a mocked response when there is a saved response for the request', async () => {
-    expect.assertions(2)
+    await using mathServer = createMathServer()
+    await mathServer.listen()
 
-    const originPort = await getPort()
-    const mathServer = createMathServer()
-    await mathServer.listen(originPort)
-
-    const mockerPort = await getPort()
-    const mocker = await createMocker({
-      port: mockerPort,
-      origin: `http://localhost:${originPort}`,
+    await using mocker = await createMocker({
+      origin: `http://localhost:${mathServer.port}`,
       mode: 'read-write',
     })
     await mocker.listen()
 
-    try {
-      //
-      // Normal flow: client <-> proxy <-> origin
-      //
+    //
+    // Normal flow: client <-> proxy <-> origin
+    //
 
-      const [request1, response1Promise] = await createRequest({
-        url: `http://localhost:${mockerPort}/?a=5&b=9&operation=sum`,
-      })
-      request1.end()
-      const response1 = await response1Promise
-      const response1Body = (await getBody(response1)).toString()
+    const parsed7 = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/?a=5&b=9&operation=sum`,
+    )
+    if (!parsed7.ok) throw parsed7.error
+    const requestResult1 = await createRequest({
+      url: parsed7.value,
+    })
+    if (!requestResult1.ok) throw requestResult1.error
+    const [request1, response1Promise] = requestResult1.value
+    request1.end()
+    const response1 = await response1Promise
+    const response1Body = (await getBody(response1)).toString()
 
-      expect(response1Body).toBe('14')
+    expect(response1Body).toBe('14')
 
-      //
-      // Mocked response: client <-> proxy
-      //
+    //
+    // Mocked response: client <-> proxy
+    //
 
-      const [request2, response2Promise] = await createRequest({
-        url: `http://localhost:${mockerPort}/?a=5&b=9&operation=sum`,
-      })
-      request2.end()
-      const response2 = await response2Promise
-      const response2Body = (await getBody(response2)).toString()
+    const parsed8 = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/?a=5&b=9&operation=sum`,
+    )
+    if (!parsed8.ok) throw parsed8.error
+    const requestResult2 = await createRequest({
+      url: parsed8.value,
+    })
+    if (!requestResult2.ok) throw requestResult2.error
+    const [request2, response2Promise] = requestResult2.value
+    request2.end()
+    const response2 = await response2Promise
+    const response2Body = (await getBody(response2)).toString()
 
-      expect(response2Body).toBe('14')
-    } finally {
-      await closeServer(mocker)
-      await closeServer(mathServer)
-    }
+    expect(response2Body).toBe('14')
   })
 })
 
 describe(`mode = 'read'`, () => {
   it('returns 404 when there is no saved response for the request', async () => {
-    expect.assertions(1)
+    await using mathServer = createMathServer()
+    await mathServer.listen()
 
-    const originPort = await getPort()
-    const mathServer = createMathServer()
-    await mathServer.listen(originPort)
-
-    const mockerPort = await getPort()
-    const mocker = await createMocker({
-      port: mockerPort,
-      origin: `http://localhost:${originPort}`,
+    await using mocker = await createMocker({
+      origin: `http://localhost:${mathServer.port}`,
       mode: 'read',
     })
     await mocker.listen()
 
-    try {
-      const [request, responsePromise] = await createRequest({
-        url: `http://localhost:${mockerPort}/?a=34&b=35&operation=sum`,
-        method: 'GET',
-      })
-      request.end()
-      const response = await responsePromise
+    const parsed9 = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/?a=34&b=35&operation=sum`,
+    )
+    if (!parsed9.ok) throw parsed9.error
+    const requestResult = await createRequest({
+      url: parsed9.value,
+      method: 'GET',
+    })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
+    request.end()
+    const response = await responsePromise
 
-      expect(response.statusCode).toBe(404)
-    } finally {
-      await closeServer(mocker)
-      await closeServer(mathServer)
-    }
+    expect(response.statusCode).toBe(404)
   })
 })
 
 describe(`mode = 'pass-read'`, () => {
   it('fetches from origin first', async () => {
-    expect.assertions(3)
-
     // Creates and starts origin server
-    const originPort = await getPort()
-    const originServer = await createTimeServer()
-    await originServer.listen(originPort)
+    await using originServer = createTimeServer()
+    await originServer.listen()
 
     // Creates and starts mocker server
-    const mockerPort = await getPort()
-    const mocker = await createMocker({
-      port: mockerPort,
-      origin: `http://localhost:${originPort}`,
+    await using mocker = await createMocker({
+      origin: `http://localhost:${originServer.port}`,
       mode: 'pass-read',
     })
     await mocker.listen()
 
-    try {
-      // All responses should come from origin as long as origin is available
-      for (let i = 0; i < 3; i += 1) {
-        const [request1, response1Promise] = await createRequest({
-          url: `http://localhost:${mockerPort}/`,
-          method: 'GET',
-        })
-        request1.end()
-        const response1 = await response1Promise
+    // All responses should come from origin as long as origin is available
+    for (let i = 0; i < 3; i += 1) {
+      const parsed10 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
+      if (!parsed10.ok) throw parsed10.error
+      const requestResult = await createRequest({
+        url: parsed10.value,
+        method: 'GET',
+      })
+      if (!requestResult.ok) throw requestResult.error
+      const [request1, response1Promise] = requestResult.value
+      request1.end()
+      const response1 = await response1Promise
 
-        expect(`${i} ${response1.headers['x-mocker-response-from']}`).toBe(
-          `${i} Origin`
-        )
-      }
-    } finally {
-      await closeServer(mocker)
-      await closeServer(originServer)
+      expect(`${i} ${response1.headers['x-mocker-response-from']}`).toBe(
+        `${i} Origin`,
+      )
     }
   })
 
   it('reads from a mocked response if origin is not available', async () => {
-    expect.assertions(3)
-
     // Creates and starts origin server
-    const originPort = await getPort()
-    const originServer = await createTimeServer()
-    await originServer.listen(originPort)
+    await using originServer = createTimeServer()
+    await originServer.listen()
 
-    // Creates a shared `responsesDir` and `fs`. We will first populate `fs`
+    // Creates a shared `mocksDir` and `fs`. We will first populate `fs`
     // in a mocker instance with `mode: 'write'` and then reuse the same `fs`
     // in another instance with `mode: 'pass-read'`
-    const { responsesDir, fs } = await createMemFs()
+    const { mocksDir, fs } = await createMemFs()
 
     // Creates and starts mocker server with `mode: 'write'` to populate
     // `fs` with a mocked response
-    const mocker1Port = await getPort()
-    const mocker1 = await createMocker({
-      port: mocker1Port,
-      origin: `http://localhost:${originPort}`,
+    await using mocker1 = await createMocker({
+      origin: `http://localhost:${originServer.port}`,
       mode: 'write',
-      responsesDir,
+      mocksDir,
       fs,
     })
     await mocker1.listen()
 
     // Creates and starts mocker server with `mode: 'pass-read'` using an
     // already populated `fs`
-    const mocker2Port = await getPort()
-    const mocker2 = await createMocker({
-      port: mocker2Port,
-      origin: `http://localhost:${originPort}`,
+    await using mocker2 = await createMocker({
+      origin: `http://localhost:${originServer.port}`,
       mode: 'pass-read',
-      responsesDir,
+      mocksDir,
       fs,
     })
     await mocker2.listen()
 
-    try {
-      // Fires request to `mocker1` in order to populate `fs` with a mocked response
-      const [request1, response1Promise] = await createRequest({
-        url: `http://localhost:${mocker1Port}/`,
-        method: 'GET',
-      })
-      request1.end()
-      const response1 = await response1Promise
+    // Fires request to `mocker1` in order to populate `fs` with a mocked response
+    const parsed11 = parseAbsoluteHttpUrl(`http://localhost:${mocker1.port}/`)
+    if (!parsed11.ok) throw parsed11.error
+    const requestResult1 = await createRequest({
+      url: parsed11.value,
+      method: 'GET',
+    })
+    if (!requestResult1.ok) throw requestResult1.error
+    const [request1, response1Promise] = requestResult1.value
+    request1.end()
+    const response1 = await response1Promise
 
-      expect(response1.headers['x-mocker-response-from']).toBe(`Origin`)
+    expect(response1.headers['x-mocker-response-from']).toBe(`Origin`)
 
-      // Now we fire a request to `mocker2` with `mode: 'pass-read` to confirm
-      // it is getting a response from origin
-      const [request2, response2Promise] = await createRequest({
-        url: `http://localhost:${mocker2Port}/`,
-        method: 'GET',
-      })
-      request2.end()
-      const response2 = await response2Promise
+    // Now we fire a request to `mocker2` with `mode: 'pass-read` to confirm
+    // it is getting a response from origin
+    const parsed12 = parseAbsoluteHttpUrl(`http://localhost:${mocker2.port}/`)
+    if (!parsed12.ok) throw parsed12.error
+    const requestResult2 = await createRequest({
+      url: parsed12.value,
+      method: 'GET',
+    })
+    if (!requestResult2.ok) throw requestResult2.error
+    const [request2, response2Promise] = requestResult2.value
+    request2.end()
+    const response2 = await response2Promise
 
-      expect(response2.headers['x-mocker-response-from']).toBe(`Origin`)
+    expect(response2.headers['x-mocker-response-from']).toBe(`Origin`)
 
-      // Turning off the origin server to test a request without origin being available
-      await closeServer(originServer)
+    // Turning off the origin server to test a request without origin being available
+    await originServer.close()
 
-      // Fires a request to `mocker2` with origin not available. It should
-      // return a mocked response.
-      const [request3, response3Promise] = await createRequest({
-        url: `http://localhost:${mocker2Port}/`,
-        method: 'GET',
-      })
-      request3.end()
-      const response3 = await response3Promise
+    // Fires a request to `mocker2` with origin not available. It should
+    // return a mocked response.
+    const parsed13 = parseAbsoluteHttpUrl(`http://localhost:${mocker2.port}/`)
+    if (!parsed13.ok) throw parsed13.error
+    const requestResult3 = await createRequest({
+      url: parsed13.value,
+      method: 'GET',
+    })
+    if (!requestResult3.ok) throw requestResult3.error
+    const [request3, response3Promise] = requestResult3.value
+    request3.end()
+    const response3 = await response3Promise
 
-      expect(response3.headers['x-mocker-response-from']).toBe(`Mock`)
-    } finally {
-      await closeServer(mocker1)
-      await closeServer(mocker2)
-      await closeServer(originServer)
-    }
+    expect(response3.headers['x-mocker-response-from']).toBe(`Mock`)
   })
 
   it('reads from a mocked response if origin returns a 500', async () => {
-    expect.assertions(3)
-
     // Creates and starts origin server
-    const originPort = await getPort()
     let shouldOriginReturn500 = false
-    const originServer = createServer(async (req, res) => {
-      // eslint-disable-next-line jest/no-conditional-in-test
+    await using originServer = createServer(async (req, res) => {
       const statusCode = shouldOriginReturn500 ? 500 : 200
       res.writeHead(statusCode, {})
       res.end()
     })
-    await originServer.listen(originPort)
+    await originServer.listen()
 
-    // Creates a shared `responsesDir` and `fs`. We will first populate `fs`
+    // Creates a shared `mocksDir` and `fs`. We will first populate `fs`
     // in a mocker instance with `mode: 'write'` and then reuse the same `fs`
     // in another instance with `mode: 'pass-read'`
-    const { responsesDir, fs } = await createMemFs()
+    const { mocksDir, fs } = await createMemFs()
 
     // Creates and starts mocker server with `mode: 'write'` to populate
     // `fs` with a mocked response
-    const mocker1Port = await getPort()
-    const mocker1 = await createMocker({
-      port: mocker1Port,
-      origin: `http://localhost:${originPort}`,
+    await using mocker1 = await createMocker({
+      origin: `http://localhost:${originServer.port}`,
       mode: 'write',
-      responsesDir,
+      mocksDir,
       fs,
     })
     await mocker1.listen()
 
     // Creates and starts mocker server with `mode: 'pass-read'` using an
     // already populated `fs`
-    const mocker2Port = await getPort()
-    const mocker2 = await createMocker({
-      port: mocker2Port,
-      origin: `http://localhost:${originPort}`,
+    await using mocker2 = await createMocker({
+      origin: `http://localhost:${originServer.port}`,
       mode: 'pass-read',
-      responsesDir,
+      mocksDir,
       fs,
     })
     await mocker2.listen()
 
-    try {
-      // Fires request to `mocker1` in order to populate `fs` with a mocked response
-      const [request1, response1Promise] = await createRequest({
-        url: `http://localhost:${mocker1Port}/`,
-        method: 'GET',
-      })
-      request1.end()
-      const response1 = await response1Promise
+    // Fires request to `mocker1` in order to populate `fs` with a mocked response
+    const parsed14 = parseAbsoluteHttpUrl(`http://localhost:${mocker1.port}/`)
+    if (!parsed14.ok) throw parsed14.error
+    const requestResult1 = await createRequest({
+      url: parsed14.value,
+      method: 'GET',
+    })
+    if (!requestResult1.ok) throw requestResult1.error
+    const [request1, response1Promise] = requestResult1.value
+    request1.end()
+    const response1 = await response1Promise
 
-      expect(response1.headers['x-mocker-response-from']).toBe(`Origin`)
+    expect(response1.headers['x-mocker-response-from']).toBe(`Origin`)
 
-      // Now we fire a request to `mocker2` with `mode: 'pass-read` to confirm
-      // it is getting a response from origin
-      const [request2, response2Promise] = await createRequest({
-        url: `http://localhost:${mocker2Port}/`,
-        method: 'GET',
-      })
-      request2.end()
-      const response2 = await response2Promise
+    // Now we fire a request to `mocker2` with `mode: 'pass-read` to confirm
+    // it is getting a response from origin
+    const parsed15 = parseAbsoluteHttpUrl(`http://localhost:${mocker2.port}/`)
+    if (!parsed15.ok) throw parsed15.error
+    const requestResult2 = await createRequest({
+      url: parsed15.value,
+      method: 'GET',
+    })
+    if (!requestResult2.ok) throw requestResult2.error
+    const [request2, response2Promise] = requestResult2.value
+    request2.end()
+    const response2 = await response2Promise
 
-      expect(response2.headers['x-mocker-response-from']).toBe(`Origin`)
+    expect(response2.headers['x-mocker-response-from']).toBe(`Origin`)
 
-      // Forcing origin to return 500
-      shouldOriginReturn500 = true
+    // Forcing origin to return 500
+    shouldOriginReturn500 = true
 
-      // Fires a request to `mocker2` with origin returning 500. It should
-      // return a mocked response.
-      const [request3, response3Promise] = await createRequest({
-        url: `http://localhost:${mocker2Port}/`,
-        method: 'GET',
-      })
-      request3.end()
-      const response3 = await response3Promise
+    // Fires a request to `mocker2` with origin returning 500. It should
+    // return a mocked response.
+    const parsed16 = parseAbsoluteHttpUrl(`http://localhost:${mocker2.port}/`)
+    if (!parsed16.ok) throw parsed16.error
+    const requestResult3 = await createRequest({
+      url: parsed16.value,
+      method: 'GET',
+    })
+    if (!requestResult3.ok) throw requestResult3.error
+    const [request3, response3Promise] = requestResult3.value
+    request3.end()
+    const response3 = await response3Promise
 
-      expect(response3.headers['x-mocker-response-from']).toBe(`Mock`)
-    } finally {
-      await closeServer(mocker1)
-      await closeServer(mocker2)
-      await closeServer(originServer)
-    }
+    expect(response3.headers['x-mocker-response-from']).toBe(`Mock`)
   })
 
   it('returns 404 if origin is not available and there is no mocked response for the request', async () => {
-    expect.assertions(2)
-
-    // We reserve a port for origin, but we don't listen for anything on this port.
-    const originPort = await getPort()
-
-    // Creates and starts a mocker instance
-    const mockerPort = await getPort()
-    const mocker = await createMocker({
-      port: mockerPort,
-      origin: `http://localhost:${originPort}`,
+    // We use a port where nothing is listening to simulate an unavailable origin.
+    // Port 1 is virtually guaranteed to be unavailable.
+    await using mocker = await createMocker({
+      origin: `http://localhost:1`,
       mode: 'pass-read',
     })
     await mocker.listen()
 
-    try {
-      // Fires a request to a mocker instance without an available origin and
-      // without mocks
-      const [request, responsePromise] = await createRequest({
-        url: `http://localhost:${mockerPort}/`,
-        method: 'GET',
-      })
-      request.end()
-      const response = await responsePromise
+    // Fires a request to a mocker instance without an available origin and
+    // without mocks
+    const parsed17 = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
+    if (!parsed17.ok) throw parsed17.error
+    const requestResult = await createRequest({
+      url: parsed17.value,
+      method: 'GET',
+    })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
+    request.end()
+    const response = await responsePromise
 
-      expect(response.statusCode).toBe(404)
-      expect(response.headers['x-mocker-mock-path']).toBe(`Not Found`)
-    } finally {
-      await closeServer(mocker)
-    }
+    expect(response.statusCode).toBe(404)
+    expect(response.headers['x-mocker-mock-path']).toBe(`Not Found`)
+  })
+
+  it('falls back to mock on DNS failure (ENOTFOUND)', async () => {
+    await using mocker = await createMocker({
+      origin: 'http://this-domain-does-not-exist-mocker-test.invalid',
+      mode: 'pass-read',
+    })
+    await mocker.listen()
+
+    const parsed = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/`)
+    if (!parsed.ok) throw parsed.error
+    const requestResult = await createRequest({
+      url: parsed.value,
+      method: 'GET',
+    })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
+    request.end()
+    const response = await responsePromise
+
+    // Should fall back to mock (404 since no mock exists), not 500
+    expect(response.statusCode).toBe(404)
   })
 })

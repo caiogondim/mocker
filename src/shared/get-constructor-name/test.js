@@ -1,9 +1,8 @@
-const getConstructorName = require('.')
+import { describe, it, expect } from '@jest/globals'
+import getConstructorName from './index.js'
 
 describe('getConstructorName', () => {
   it(`returns the constructor's name as a string`, () => {
-    expect.assertions(23)
-
     // Object
     expect(getConstructorName({})).toBe('Object')
     expect(getConstructorName(new Object())).toBe('Object')

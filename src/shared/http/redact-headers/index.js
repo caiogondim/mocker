@@ -1,4 +1,5 @@
-/** @typedef {import('../types').Headers} Headers */
+/** @typedef {import('../types.js').Headers} Headers */
+/** @import { Result } from '../../types.js' */
 
 class SecretNotFoundError extends Error {
   /** @param {string} message */
@@ -14,7 +15,7 @@ class SecretNotFoundError extends Error {
  * @returns {Headers}
  */
 function redactHeaders(headers, redactedHeaders) {
-  const headersClone = global.structuredClone(headers)
+  const headersClone = structuredClone(headers)
 
   for (const key of Object.keys(redactedHeaders)) {
     if (key in headers) {
@@ -28,26 +29,27 @@ function redactHeaders(headers, redactedHeaders) {
 /**
  * @param {Headers} headers
  * @param {Headers} redactedHeaders
- * @returns {Headers}
+ * @returns {Result<Headers, SecretNotFoundError>}
  */
 function unredactHeaders(headers, redactedHeaders) {
-  const headersClone = global.structuredClone(headers)
+  const headersClone = structuredClone(headers)
 
   for (const [key, value] of Object.entries(headersClone)) {
     if (value !== '[REDACTED]') continue
 
     if (!(key in redactedHeaders)) {
-      throw new SecretNotFoundError(`missing key \`${key}\` in redactedHeaders`)
+      return {
+        ok: false,
+        error: new SecretNotFoundError(
+          `missing key \`${key}\` in redactedHeaders`,
+        ),
+      }
     }
 
     headersClone[key] = redactedHeaders[key]
   }
 
-  return headersClone
+  return { ok: true, value: headersClone }
 }
 
-module.exports = {
-  redactHeaders,
-  unredactHeaders,
-  SecretNotFoundError,
-}
+export { redactHeaders, unredactHeaders, SecretNotFoundError }

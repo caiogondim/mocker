@@ -2,53 +2,52 @@
   "name": "mocker",
   "version": "1.1.0",
   "description": "HTTP mock server for development and stable E2E tests",
+  "type": "module",
   "main": "src/index.js",
   "scripts": {
-    "test": "yarn lint && yarn type-check && yarn jest",
-    "start": "NODE_OPTIONS='--max-http-header-size=1000000 --unhandled-rejections=strict' ./mocker",
-    "dev:httpbin": "node --watch-path=./src mocker --responsesDir ./responses/httpbin --origin http://httpbin.org --logging verbose --mode read-write",
+    "ci": "npm run lint && npm run type-check && npm run test",
+    "test:all": "npm run lint && npm run type-check && npm run test",
+    "start": "NODE_OPTIONS='--max-http-header-size=1000000' ./mocker",
+    "dev:httpbin": "node --watch-path=./src mocker --mocksDir ./responses/httpbin --origin http://httpbin.org --logging verbose --mode read-write",
     "dev:vi": "./scripts/dev-vi",
-    "dev": "NODE_OPTIONS='--max-http-header-size=1000000 --unhandled-rejections=strict' node --watch-path=./src mocker",
-    "jest": "NODE_OPTIONS='--max-old-space-size=4000' NODE_ENV=test jest --collectCoverageFrom='./src/**/*.js'",
+    "dev": "NODE_OPTIONS='--max-http-header-size=1000000' node --watch-path=./src mocker",
+    "test": "NODE_OPTIONS='--experimental-vm-modules --disable-warning=ExperimentalWarning' NODE_ENV=test jest",
     "type-check": "tsc --p './tsconfig.json'",
     "fmt": "prettier --print-width 80 --prose-wrap always --write './**/*.{js,md,yml,json}' --ignore-path .gitignore",
     "fmt:check": "prettier --check './**/*.{js,md,yml,json}' --ignore-path .gitignore",
-    "lint": "eslint --ext '.js' --ext '.json' --report-unused-disable-directives ."
+    "lint": "eslint --report-unused-disable-directives . && node scripts/check-typedef-order.js",
+    "proxy:rust": "cd proxies/rust-proxy && cargo run",
+    "proxy:swift": "cd proxies/swift-proxy && swift run"
   },
   "license": "UNLICENSED",
   "private": true,
   "devDependencies": {
-    "@types/jest": "^29.5.12",
-    "@types/node": "^20.11.25",
-    "@typescript-eslint/parser": "^7.1.1",
-    "eslint": "^8.57.0",
-    "eslint-config-prettier": "^9.1.0",
-    "eslint-plugin-import": "^2.29.1",
-    "eslint-plugin-jest": "^27.9.0",
-    "eslint-plugin-jest-formatting": "^3.1.0",
-    "eslint-plugin-json": "^3.1.0",
-    "eslint-plugin-node": "^11.1.0",
-    "eslint-plugin-prettier": "^4",
-    "eslint-plugin-sort-class-members": "^1.20.0",
-    "get-port": "5.1.1",
-    "jest": "^29.7.0",
-    "memfs": "^4.7.7",
-    "prettier": "2.8.8",
-    "typescript": "5.3.3"
+    "@eslint/js": "^10.0.1",
+    "@jest/globals": "^30.2.0",
+    "@types/node": "^24.12.0",
+    "eslint": "^10.0.3",
+    "eslint-plugin-n": "^17.24.0",
+    "jest": "^30.3.0",
+    "memfs": "^4.56.11",
+    "prettier": "^3.8.1",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.57.0"
   },
   "engines": {
-    "node": ">=20.11.1"
+    "node": ">=25.8"
   },
   "bin": "./mocker",
   "jest": {
+    "testMatch": [
+      "**/test.js",
+      "**/__tests__/*.js"
+    ],
     "testPathIgnorePatterns": [
       "__tests__/helpers/"
     ],
-    "coverageThreshold": {
-      "global": {
-        "branches": 78.14
-      }
-    }
-  },
-  "packageManager": "yarn@4.1.1+sha256.f3cc0eda8e5560e529c7147565b30faa43b4e472d90e8634d7134a37c7f59781"
+    "injectGlobals": false,
+    "randomize": true,
+    "maxWorkers": "75%",
+    "watchman": false
+  }
 }

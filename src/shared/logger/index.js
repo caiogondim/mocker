@@ -1,138 +1,127 @@
-/**
- * @callback ConsoleMethod
- * @param {{ (...data: any[]): void; (message?: any, ...optionalParams: any[]): void; }} [args]
- * @returns {void}
- */
+/** @typedef {(...args: unknown[]) => void} ConsoleMethod */
 /** @typedef {{ log: ConsoleMethod; error: ConsoleMethod; warn: ConsoleMethod }} Console */
 /** @typedef {'silent' | 'error' | 'warn' | 'verbose'} LoggerLevels */
 
-const { red, blue, yellow, green } = require('./format')
-const { isPrettyError } = require('./pretty-error')
+import { red, blue, yellow, green } from './format/index.js'
+import { isPrettyError } from './pretty-error/index.js'
 
 /**
- * Simple wrapper around `console` to consolidate the decision about when a
- * given `console` method should print or not.
+ * @type {LoggerLevels[]}
+ *
+ * @readonly
  */
-class Logger {
+export const validLevels = ['silent', 'error', 'warn', 'verbose']
+
+/** @type {LoggerLevels} */
+let level = 'silent'
+
+/** @returns {LoggerLevels} */
+export function getLevel() {
+  return level
+}
+
+/** @param {LoggerLevels} newLevel */
+export function setLevel(newLevel) {
+  level = newLevel
+}
+
+/**
+ * @param {Object} [options]
+ * @param {Console} [options.console]
+ * @param {boolean} [options.forceLog]
+ */
+function createLogger({
+  console: _console = global.console,
+  forceLog = false,
+} = {}) {
   /**
-   * @type {LoggerLevels[]}
-   *
-   * @readonly
+   * @param {LoggerLevels} method
+   * @returns {boolean}
    */
-  static validLevels = ['silent', 'error', 'warn', 'verbose']
+  function _shouldLog(method) {
+    if (forceLog) return true
 
-  /** @type {LoggerLevels} */
-  static level = 'silent'
-
-  /**
-   * @param {Object} options
-   * @param {Console} [options.console]
-   * @param {boolean} [options.forceLog]
-   */
-  constructor({ console = global.console, forceLog = false } = {}) {
-    /**
-     * @private
-     * @readonly
-     */
-    this._console = console
-
-    this.forceLog = forceLog
+    return validLevels.indexOf(method) <= validLevels.indexOf(getLevel())
   }
 
   /**
-   * @param {any[]} args
-   * @returns {Boolean}
+   * @param {unknown[]} args
+   * @returns {boolean}
    */
-  log(...args) {
-    if (!this._shouldLog('verbose')) {
+  function log(...args) {
+    if (!_shouldLog('verbose')) {
       return false
     }
 
-    this._console.log(...args)
+    _console.log(...args)
 
     return true
   }
 
   /**
-   * @param {any[]} args
-   * @returns {Boolean}
+   * @param {unknown[]} args
+   * @returns {boolean}
    */
-  warn(...args) {
-    if (!this._shouldLog('warn')) {
+  function warn(...args) {
+    if (!_shouldLog('warn')) {
       return false
     }
 
-    // @ts-expect-error
-    this._console.warn(yellow('warn'), ...args)
+    _console.warn(yellow('warn'), ...args)
 
     return true
   }
 
   /**
-   * @param {any[]} args
-   * @returns {Boolean}
+   * @param {unknown[]} args
+   * @returns {boolean}
    */
-  error(...args) {
-    if (!this._shouldLog('error')) {
+  function error(...args) {
+    if (!_shouldLog('error')) {
       return false
     }
 
     // In case it's a pretty error object, print its message property since it's
     // already formatted.
     if (isPrettyError(args[0])) {
-      this._console.error(args[0].message)
-      return false
+      _console.error(/** @type {{ message: unknown }} */ (args[0]).message)
+      return true
     }
 
-    // @ts-expect-error
-    this._console.error(red('erro'), ...args)
+    _console.error(red('erro'), ...args)
 
     return true
   }
 
   /**
-   * @param {any[]} args
-   * @returns {Boolean}
+   * @param {unknown[]} args
+   * @returns {boolean}
    */
-  info(...args) {
-    if (!this._shouldLog('warn')) {
+  function info(...args) {
+    if (!_shouldLog('warn')) {
       return false
     }
 
-    // @ts-expect-error
-    this._console.log(blue('info'), ...args)
+    _console.log(blue('info'), ...args)
 
     return true
   }
 
   /**
-   * @param {any[]} args
-   * @returns {Boolean}
+   * @param {unknown[]} args
+   * @returns {boolean}
    */
-  success(...args) {
-    if (!this._shouldLog('warn')) {
+  function success(...args) {
+    if (!_shouldLog('warn')) {
       return false
     }
 
-    // @ts-expect-error
-    this._console.log(green('succ'), ...args)
+    _console.log(green('succ'), ...args)
 
     return true
   }
 
-  /**
-   * @private
-   * @param {LoggerLevels} method
-   * @returns {Boolean}
-   */
-  _shouldLog(method) {
-    if (this.forceLog) return true
-
-    return (
-      Logger.validLevels.indexOf(method) <=
-      Logger.validLevels.indexOf(Logger.level)
-    )
-  }
+  return { log, warn, error, info, success }
 }
 
-module.exports = Logger
+export default createLogger

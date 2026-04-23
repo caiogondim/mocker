@@ -44,7 +44,7 @@ a string. Otherwise the `body` is saved as a string.
 
 ## How do I create a mock response from scratch?
 
-The easiets way is to run mocker in `writer` mode (`--mode writer`), fire the
+The easiest way is to run mocker in `write` mode (`--mode write`), fire the
 response, and then edit the mocked response file.
 
 For creating a mocked response from scratch it's a bit more involved.

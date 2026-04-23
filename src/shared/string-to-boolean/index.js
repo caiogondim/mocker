@@ -1,6 +1,6 @@
 /**
  * @param {string} str
- * @returns {Boolean}
+ * @returns {boolean}
  */
 function stringToBoolean(str) {
   return (
@@ -8,4 +8,4 @@ function stringToBoolean(str) {
   )
 }
 
-module.exports = stringToBoolean
+export default stringToBoolean

@@ -38,8 +38,8 @@ us an id that represents that request.
 const filename = `${hash(`${url} ${method} ${body}`)}.json`
 ```
 
-If a file with a filename equals to `filename` exists on `--responsesDir`, we
-use that file as a mocked response.
+If a file with a filename equals to `filename` exists on `--mocksDir`, we use
+that file as a mocked response.
 
 ### Has mocked response for the request
 
@@ -56,43 +56,23 @@ used as a mocked response for future requests.
 
 <img src="./img/architecture/no-mock.png" />
 
-## Cluster mode and Error handling
+## Error handling
 
-Mocker runs in [cluster mode](https://nodejs.org/api/cluster.html). There is a
-main process that sits in front of all workers acting as a load balancer. The
-number of workers is determinded by the flag `--workers`.
+Mocker runs as a single process. It responds to termination signals (SIGHUP,
+SIGINT, SIGTERM) and performs graceful shutdown.
 
-> 💡**Tip**
->
-> Use `--workers` equal to the number of CPU cores in the host machine to better
-> use the machine hardware.
+## Automatic retries for improved network resilience
 
-The main process also works as a supervisor, respawning a new worker if one
-dies. That is possible because all mocker workers are stateless, since state is
-saved in files on disk (the mocked responses).
-
-<img src="./img/architecture/cluster-mode.png" />
-
-By removing the state from the workers and having a supervisor it's possible to
-use error handling in a similar fashion as it's done in Erlang:
-[Let It Crash](http://stratus3d.com/blog/2020/01/20/applying-the-let-it-crash-philosophy-outside-erlang/#:~:text=One%20of%20the%20ideas%20at,certain%20faults%20to%20go%20unhandled.).
-Mocker will not try to recover from errors. It will instead just let the process
-die, log it, and respawn a new one. That greatly simplifies error handling and
-improves the reliability of the application.
-
-## Automatic retries for improved resilience on network
-
-It's possible to start mocker with `--retry N` for it to work as a network
-resiliency layer. Specially useful in conjunction with `--mode pass`.
+It's possible to start mocker with `--retries N` for it to work as a network
+resilience layer. Especially useful in conjunction with `--mode pass`.
 
 <img src="./img/architecture/automatic-retry.png" />
 
-## Secrets hidding
+## Secrets hiding
 
-It's possible to redact tokens and secrets from the request and response headers
-before saving them to the response mocks or logging them on screen using the
-param `--redactedHeaders`. The redacted headers will be replaced by
-`'[REDACTED]'`;
+It's possible to redact tokens and secrets from request and response headers
+before saving them to mock files or logging them on screen using the param
+`--redactedHeaders`. The redacted headers will be replaced by `'[REDACTED]'`;
 
 ## Folder structure
 
@@ -111,20 +91,18 @@ Library entry point.
 
 ### `src/mock-manager`
 
-`MockManager` is responsible to...manage the mocks we have saved on disk. It
-implements a subset of the
-[Map](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map#Instance_methods)
-API.
+`MockManager` is responsible for managing mocks saved on disk. It implements the
+following API:
 
-- `has()`
-- `set`
 - `get`
-- `delete`
+- `set`
 - `clear`
+- `getAll`
+- `size`
 
 ### `src/origin`
 
-Logic related with fetching responses from origin.
+Logic related to fetching responses from origin.
 
 ### `src/args`
 

@@ -1,13 +1,6 @@
-const delay = require('./delay')
-const passAndSave = require('./pass-and-save')
-const pipeline = require('./pipeline')
-const throttle = require('./throttle')
-const rewindable = require('./rewindable')
+import delay from './delay/index.js'
+import pipeline from './pipeline/index.js'
+import throttle from './throttle/index.js'
+import rewindable from './rewindable/index.js'
 
-module.exports = {
-  delay,
-  passAndSave,
-  pipeline,
-  throttle,
-  rewindable,
-}
+export { delay, pipeline, throttle, rewindable }

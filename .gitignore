@@ -21,3 +21,13 @@ coverage/
 Icon?
 notes.md
 responses/httpbin
+
+# Rust
+target/
+proxies/rust-proxy/target/
+**/*.rs.bk
+*.pdb
+
+# Swift
+proxies/swift-proxy/.build/
+.overnight-review.md

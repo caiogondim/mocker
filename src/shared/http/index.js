@@ -1,28 +1,27 @@
-/** @typedef {import('stream').Readable} Readable */
-/** @typedef {import('./types').Stream} Stream */
-/** @typedef {import('./types').RequestWrite} RequestWrite */
-/** @typedef {import('../../mock-manager/mocked-request')} MockedRequest */
-/** @typedef {import('../../mock-manager/mocked-response')} MockedResponse */
-/** @typedef {import('../types').HttpIncomingMessage} HttpIncomingMessage */
-/** @typedef {import('../types').HttpServerResponse} HttpServerResponse */
-/** @typedef {import('./types').Headers} Headers */
+/** @typedef {import('node:stream').Readable} Readable */
+/** @typedef {import('./types.js').RequestWrite} RequestWrite */
+/** @typedef {InstanceType<import('../../mock-manager/mocked-request.js')["default"]>} MockedRequest */
+/** @typedef {InstanceType<import('../../mock-manager/mocked-response.js')["default"]>} MockedResponse */
+/** @typedef {import('../types.js').HttpIncomingMessage} HttpIncomingMessage */
+/** @typedef {import('../types.js').HttpServerResponse} HttpServerResponse */
+/** @typedef {import('./types.js').Headers} Headers */
+/** @import { Result } from '../types.js' */
 
-const getConstructorName = require('../get-constructor-name')
-const createRequest = require('./request')
-const {
+import getConstructorName from '../get-constructor-name/index.js'
+import createRequest from './request/index.js'
+import {
   redactHeaders,
   unredactHeaders,
   SecretNotFoundError,
-} = require('./redact-headers')
-const values = require('../stream/values')
+} from './redact-headers/index.js'
+import { buffer as streamBuffer } from 'node:stream/consumers'
 
 /**
  * @param {Readable} req
  * @returns {Promise<Buffer>}
  */
 async function getBody(req) {
-  const streamValues = await values(req)
-  return Buffer.concat(streamValues)
+  return streamBuffer(req)
 }
 
 /**
@@ -33,44 +32,60 @@ async function getBody(req) {
  * @returns {Headers}
  */
 function getHeaders(reqOrRes) {
+  /** @type {Record<string, unknown>} */
+  let raw = {}
+
   if ('headers' in reqOrRes) {
-    return global.structuredClone(reqOrRes.headers)
+    raw = /** @type {Record<string, unknown>} */ (
+      structuredClone(reqOrRes.headers)
+    )
+  } else if (
+    'getHeaders' in reqOrRes &&
+    typeof reqOrRes.getHeaders === 'function'
+  ) {
+    raw = /** @type {Record<string, unknown>} */ (
+      structuredClone(reqOrRes.getHeaders())
+    )
   }
 
-  if ('getHeaders' in reqOrRes && typeof reqOrRes.getHeaders === 'function') {
-    return global.structuredClone(reqOrRes.getHeaders())
+  /** @type {Headers} */
+  const headers = {}
+  for (const [key, value] of Object.entries(raw)) {
+    if (value !== undefined) {
+      headers[key] = /** @type {string | string[] | number | null} */ (value)
+    }
   }
 
-  return {}
+  return headers
 }
 
 /**
- * @param {any} x
- * @returns {x is Headers}
+ * @param {unknown} value
+ * @returns {value is Headers}
  */
-function isHeaders(x) {
+function isHeaders(value) {
   // Must be an object at the root level
-  if (getConstructorName(x) !== 'Object') {
+  if (getConstructorName(value) !== 'Object') {
     return false
   }
 
-  for (const value of Object.values(x)) {
-    const valueConstructorName = getConstructorName(value)
+  for (const headerValue of Object.values(/** @type {object} */ (value))) {
+    const valueConstructorName = getConstructorName(headerValue)
     if (
-      ['String', 'Number', 'Undefined', 'Null', 'Boolean'].includes(
-        valueConstructorName
-      )
+      ['String', 'Number', 'Undefined', 'Null'].includes(valueConstructorName)
     ) {
       continue
     }
 
     // `Array.isArray` To make TypeScript happy
-    if (valueConstructorName !== 'Array' || !Array.isArray(value)) {
+    if (valueConstructorName !== 'Array' || !Array.isArray(headerValue)) {
       return false
     }
 
     // In case a value is an Array, all values inside it must be a string
-    if (value.every((arrValue) => getConstructorName(arrValue) === 'String')) {
+    if (
+      headerValue.every((arrValue) => getConstructorName(arrValue) === 'String')
+    ) {
       continue
     }
 
@@ -80,7 +95,72 @@ function isHeaders(x) {
   return true
 }
 
-module.exports = {
+/**
+ * @param {unknown} value
+ * @returns {Result<Headers>}
+ */
+function parseHeaders(value) {
+  if (!isHeaders(value)) {
+    return {
+      ok: false,
+      error: new TypeError('Expected a valid Headers object'),
+    }
+  }
+  return { ok: true, value }
+}
+
+/**
+ * RFC 9110 §7.6.1 — hop-by-hop headers that MUST NOT be forwarded by
+ * an intermediary.
+ */
+const HOP_BY_HOP_HEADERS = new Set([
+  'connection',
+  'keep-alive',
+  'proxy-authenticate',
+  'proxy-authorization',
+  'te',
+  'trailer',
+  'transfer-encoding',
+  'upgrade',
+])
+
+/**
+ * Removes hop-by-hop headers from a headers object.
+ * Also removes any headers listed in the Connection header value
+ * (RFC 9110 §7.6.1).
+ *
+ * @param {Headers} headers
+ * @returns {Headers}
+ */
+function stripHopByHopHeaders(headers) {
+  /** @type {Headers} */
+  const output = {}
+
+  // Parse Connection header to find additional headers to strip
+  const connectionValue = headers['connection']
+  /** @type {Set<string>} */
+  const connectionTokens = new Set()
+  if (typeof connectionValue === 'string') {
+    for (const token of connectionValue.split(',')) {
+      const trimmed = token.trim().toLowerCase()
+      if (trimmed) {
+        connectionTokens.add(trimmed)
+      }
+    }
+  }
+
+  for (const [key, value] of Object.entries(headers)) {
+    const lowerKey = key.toLowerCase()
+    if (HOP_BY_HOP_HEADERS.has(lowerKey) || connectionTokens.has(lowerKey)) {
+      continue
+    }
+    output[key] = value
+  }
+
+  return output
+}
+
+export {
   getBody,
   createRequest,
   getHeaders,
@@ -88,4 +168,6 @@ module.exports = {
   unredactHeaders,
   SecretNotFoundError,
   isHeaders,
+  parseHeaders,
+  stripHopByHopHeaders,
 }

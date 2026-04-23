@@ -1,113 +1,105 @@
-const getPort = require('get-port')
-const { createMocker } = require('./helpers/mocker')
-const { createRequest, getBody } = require('../shared/http')
-const { closeServer } = require('./helpers/async-http-server')
-const { createServer: createTimeServer } = require('../../tools/time-server')
+import { describe, it, expect } from '@jest/globals'
+import { createMocker } from './helpers/mocker.js'
+import { createRequest, getBody } from '../shared/http/index.js'
+import { createServer as createTimeServer } from '../../tools/time-server/index.js'
+import { parse as parseAbsoluteHttpUrl } from '../shared/absolute-http-url/index.js'
 
 describe('health checks endpoints', () => {
   it('implements /.well-known/live endpoint for live health check', async () => {
-    expect.assertions(2)
-
     // Given a mocker instance pointing to an origin that doesn't exist
     const origin =
       'https://non-existent-url-7bb5346fa5452600a876d24b98695404fa0c46ae.example.com'
-    const port = await getPort()
-    const mocker = await createMocker({
-      port,
+    await using mocker = await createMocker({
       mode: 'pass',
       origin,
     })
     await mocker.listen()
 
     // When I fire a request to /.well-known/live
-    const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${port}/.well-known/live`,
+    const parsed1 = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/.well-known/live`,
+    )
+    if (!parsed1.ok) throw parsed1.error
+    const requestResult = await createRequest({
+      url: parsed1.value,
       method: 'GET',
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
     request.end()
     const response = await responsePromise
     const responseBody = `${await getBody(response)}`
 
-    try {
-      // Then it should return HTTP 200
-      expect(response.statusCode).toBe(200)
-      // And an empty body
-      expect(responseBody).toBe('')
-    } finally {
-      await closeServer(mocker)
-    }
+    // Then it should return HTTP 200
+    expect(response.statusCode).toBe(200)
+    // And an empty body
+    expect(responseBody).toBe('')
   })
 
   it('implements /.well-known/ready endpoint for ready health check', async () => {
-    expect.assertions(2)
-
     // Given a mocker instance pointing to an origin that doesn't exist
     const origin =
       'https://non-existent-url-7bb5346fa5452600a876d24b98695404fa0c46ae.example.com'
-    const port = await getPort()
-    const mocker = await createMocker({
-      port,
+    await using mocker = await createMocker({
       mode: 'pass',
       origin,
     })
     await mocker.listen()
 
     // When I fire a request to /.well-known/ready
-    const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${port}/.well-known/ready`,
+    const parsed2 = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/.well-known/ready`,
+    )
+    if (!parsed2.ok) throw parsed2.error
+    const requestResult = await createRequest({
+      url: parsed2.value,
       method: 'GET',
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
     request.end()
     const response = await responsePromise
     const responseBody = `${await getBody(response)}`
 
-    try {
-      // Then it should return HTTP 200
-      expect(response.statusCode).toBe(200)
-      // And an empty body
-      expect(responseBody).toBe('')
-    } finally {
-      await closeServer(mocker)
-    }
+    // Then it should return HTTP 200
+    expect(response.statusCode).toBe(200)
+    // And an empty body
+    expect(responseBody).toBe('')
   })
 
   it('proxies other requests to /.well-known as a normal request', async () => {
-    expect.assertions(2)
-
     // Given a simple HTTP server
-    const originPort = await getPort()
-    const origin = await createTimeServer()
-    await origin.listen(originPort)
+    await using origin = createTimeServer()
+    await origin.listen()
 
     // And a mocker instance pointing to it as origin
-    const mockerPort = await getPort()
-    const mocker = await createMocker({
-      port: mockerPort,
+    await using mocker = await createMocker({
       mode: 'pass',
-      origin: `http://localhost:${originPort}`,
+      origin: `http://localhost:${origin.port}`,
     })
     await mocker.listen()
 
     // When I fire a request to any '/.well-known' URL
     // besides '/.well-known/live' or '/.well-known/ready'
-    const [request, responsePromise] = await createRequest({
-      url: `http://localhost:${mockerPort}/.well-known/availability`,
+    const parsed3 = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/.well-known/availability`,
+    )
+    if (!parsed3.ok) throw parsed3.error
+    const requestResult = await createRequest({
+      url: parsed3.value,
       method: 'GET',
     })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
     request.end()
     const response = await responsePromise
     const responseBody = `${await getBody(response)}`
 
-    try {
-      // Then it should behave normally proxying the request to origin.
-      expect(response.statusCode).toBe(200)
+    // Then it should behave normally proxying the request to origin.
+    expect(response.statusCode).toBe(200)
 
-      // And it should not have an empty response body, since the response comes
-      // from origin.
-      expect(responseBody).not.toBe('')
-    } finally {
-      await closeServer(mocker)
-      await closeServer(origin)
-    }
+    // And it should not have an empty response body, since the response comes
+    // from origin.
+    expect(responseBody).not.toBe('')
   })
 })

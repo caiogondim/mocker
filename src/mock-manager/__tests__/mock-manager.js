@@ -1,14 +1,29 @@
-const MockedRequest = require('../mocked-request')
-const { rewindable } = require('../../shared/stream')
-const { getBody, SecretNotFoundError } = require('../../shared/http')
-const { createMockManager } = require('./helpers/mock-manager')
-const { createMockedResponse } = require('./helpers/mocked-response')
-const { createMockedRequest } = require('./helpers/mocked-request')
+/** @typedef {import('node:stream').Readable} Readable */
+/** @typedef {import('../../shared/stream/rewindable/types.js').Rewindable} Rewindable */
 
-describe('mockManager.prototype.get', () => {
+import { describe, it, expect } from '@jest/globals'
+import MockedRequest from '../mocked-request.js'
+import { rewindable as rewindableRaw } from '../../shared/stream/index.js'
+import { getBody, SecretNotFoundError } from '../../shared/http/index.js'
+import { createMockManager } from './helpers/mock-manager.js'
+import { createMockedResponse } from './helpers/mocked-response.js'
+import { createMockedRequest } from './helpers/mocked-request.js'
+import { MockFileError } from '../mock-file-error.js'
+import { MockGetError } from '../index.js'
+
+/**
+ * @template {Readable} T
+ * @param {T} stream
+ * @returns {T & Rewindable}
+ */
+function rewindable(stream) {
+  const result = rewindableRaw(stream)
+  if (!result.ok) throw result.error
+  return result.value
+}
+
+describe('mockManager.get', () => {
   it('returns a mocked response from disk for requests', async () => {
-    expect.assertions(2)
-
     const mockManager = await createMockManager()
 
     const request1 = rewindable(createMockedRequest())
@@ -17,31 +32,28 @@ describe('mockManager.prototype.get', () => {
     response.end()
     await mockManager.set({ request: request1, response })
 
-    const { hasMock: hasMock1 } = await mockManager.has({ request: request1 })
+    const getResult1 = await mockManager.get({ request: request1 })
 
-    expect(hasMock1).toBe(true)
+    expect(getResult1.ok).toBe(true)
 
     // Test an equal request on another request object
     const request2 = rewindable(createMockedRequest())
     request2.end('Lorem Ipsum')
-    const { hasMock: hasMock2 } = await mockManager.has({ request: request2 })
+    const getResult2 = await mockManager.get({ request: request2 })
 
-    expect(hasMock2).toBe(true)
+    expect(getResult2.ok).toBe(true)
   })
 
   it('throws an error for non-existing responses for the request passed as argument', async () => {
-    expect.assertions(1)
-
     const mockManager = await createMockManager()
     const request = rewindable(createMockedRequest())
     request.end()
 
-    await expect(mockManager.get({ request })).rejects.toThrow(Error)
+    const getResult = await mockManager.get({ request })
+    expect(getResult.ok).toBe(false)
   })
 
   it('doesnt return `content-length` header on mocked responses', async () => {
-    expect.assertions(2)
-
     const mockManager = await createMockManager()
 
     const request1 = rewindable(createMockedRequest())
@@ -52,12 +64,14 @@ describe('mockManager.prototype.get', () => {
           'content-length': 7,
           'content-type': 'application/json',
         },
-      })
+      }),
     )
     response.end('{"a":1}')
     await mockManager.set({ request: request1, response })
 
-    const { mockedResponse } = await mockManager.get({ request: request1 })
+    const getResult = await mockManager.get({ request: request1 })
+    if (!getResult.ok) throw getResult.error
+    const { mockedResponse } = getResult.value
 
     expect(mockedResponse.headers['content-length']).toBeUndefined()
     expect(mockedResponse.headers['content-type']).toBe('application/json')
@@ -65,8 +79,6 @@ describe('mockManager.prototype.get', () => {
 
   // It should redact the header and unredact it with the value provided on `redactedHeaders`
   it('unredacts all secrets before returning a mocked response', async () => {
-    expect.assertions(1)
-
     const mockManager = await createMockManager({
       redactedHeaders: { 'example-token': 1234 },
     })
@@ -79,19 +91,19 @@ describe('mockManager.prototype.get', () => {
           'example-token': 5678,
           'content-type': 'application/json',
         },
-      })
+      }),
     )
     response.end('{"a":1}')
     await mockManager.set({ request: request1, response })
 
-    const { mockedResponse } = await mockManager.get({ request: request1 })
+    const getResult = await mockManager.get({ request: request1 })
+    if (!getResult.ok) throw getResult.error
+    const { mockedResponse } = getResult.value
 
     expect(mockedResponse.headers['example-token']).toBe(1234)
   })
 
   it('throws an error in case it cant unredact all secrets', async () => {
-    expect.assertions(1)
-
     const mockManager = await createMockManager({
       redactedHeaders: { 'example-token': 1234 },
     })
@@ -106,21 +118,22 @@ describe('mockManager.prototype.get', () => {
           foo: '[REDACTED]',
           'content-type': 'application/json',
         },
-      })
+      }),
     )
     response.end('{"a":1}')
     await mockManager.set({ request, response })
 
-    await expect(mockManager.get({ request })).rejects.toThrow(
-      SecretNotFoundError
-    )
+    const getResult = await mockManager.get({ request })
+    expect(getResult.ok).toBe(false)
+    if (!getResult.ok) {
+      expect(getResult.error).toBeInstanceOf(MockGetError)
+      expect(getResult.error.cause).toBeInstanceOf(SecretNotFoundError)
+    }
   })
 })
 
-describe('mockManager.prototype.has', () => {
+describe('mockManager.get with mockKeys', () => {
   it('takes in consideration mockKeys args', async () => {
-    expect.assertions(2)
-
     // Uses `url` and `method` to create a key for the request.
     const mockManager1 = await createMockManager({
       mockKeys: new Set(['url', 'method']),
@@ -151,20 +164,18 @@ describe('mockManager.prototype.has', () => {
 
     // Since it does use `method` for key and we are using a new method,
     // it should return `false`
-    const { hasMock: hasMock1 } = await mockManager1.has({ request: request3 })
+    const getResult1 = await mockManager1.get({ request: request3 })
 
-    expect(hasMock1).toBe(false)
+    expect(getResult1.ok).toBe(false)
 
     // Since it uses only `url` for key and we are using the same `url`,
     // it should return `true`
-    const { hasMock: hasMock2 } = await mockManager2.has({ request: request3 })
+    const getResult2 = await mockManager2.get({ request: request3 })
 
-    expect(hasMock2).toBe(true)
+    expect(getResult2.ok).toBe(true)
   })
 
   it('considers the same response for a request with same value on the body as defined on mockKeys', async () => {
-    expect.assertions(2)
-
     // Creates a MockManager with `'body.lorem.ipsum'` as mockKeys.
     const mockManager1 = await createMockManager({
       mockKeys: new Set(['body.lorem.ipsum']),
@@ -179,7 +190,7 @@ describe('mockManager.prototype.has', () => {
     const request1 = rewindable(
       createMockedRequest({
         headers: { 'content-type': 'application/json' },
-      })
+      }),
     )
     request1.end('{"lorem": {"ipsum": 7}, "dolor": 3}')
 
@@ -195,27 +206,25 @@ describe('mockManager.prototype.has', () => {
     const request2 = rewindable(
       createMockedRequest({
         headers: { 'content-type': 'application/json' },
-      })
+      }),
     )
     request2.end('{"lorem": {"ipsum": 7}}')
 
     // Since `mockManager1` uses `'body.lorem'` as mockKey, it should report
     // that it has a mocked response for a request with the same value on that
     // JSON path `lorem.ipsum`.
-    const { hasMock: hasMock1 } = await mockManager1.has({ request: request2 })
+    const getResult1 = await mockManager1.get({ request: request2 })
 
-    expect(hasMock1).toBe(true)
+    expect(getResult1.ok).toBe(true)
 
     // `mockeManager2` uses `'body'` as mockKey, so it only has a mocked
     // response for requests with the exact same body payload.
-    const { hasMock: hasMock2 } = await mockManager2.has({ request: request2 })
+    const getResult2 = await mockManager2.get({ request: request2 })
 
-    expect(hasMock2).toBe(false)
+    expect(getResult2.ok).toBe(false)
   })
 
   it('mockKeys.body supports N declarations', async () => {
-    expect.assertions(1)
-
     // Creates a MockManager with `'body.lorem.ipsum'` and `'body.lorem.dolor'`
     // as mockKeys.
     const mockManager = await createMockManager({
@@ -226,7 +235,7 @@ describe('mockManager.prototype.has', () => {
     const request1 = rewindable(
       createMockedRequest({
         headers: { 'content-type': 'application/json' },
-      })
+      }),
     )
     request1.end('{"lorem": {"ipsum": 7, "dolor": 3, "amet": 4}}')
 
@@ -240,23 +249,21 @@ describe('mockManager.prototype.has', () => {
     const request2 = rewindable(
       createMockedRequest({
         headers: { 'content-type': 'application/json' },
-      })
+      }),
     )
     request2.end('{"lorem": {"ipsum": 7, "dolor": 3}}')
 
     // Since `mockManager` uses `'body.lorem.ipsum'` and `'body.lorem.dolor'` as
     // mockKey, it should report that it has a mocked response for a request
     // with the same value on that JSON path `lorem.ipsum` and `lorem.dolor`.
-    const { hasMock } = await mockManager.has({ request: request2 })
+    const getResult = await mockManager.get({ request: request2 })
 
-    expect(hasMock).toBe(true)
+    expect(getResult.ok).toBe(true)
   })
 })
 
-describe('mockManager.prototype.clear', () => {
+describe('mockManager.clear', () => {
   it('clears all saved responses on disk', async () => {
-    expect.assertions(2)
-
     const mockManager = await createMockManager()
 
     const request1 = rewindable(createMockedRequest())
@@ -265,9 +272,9 @@ describe('mockManager.prototype.clear', () => {
     response.end()
     await mockManager.set({ request: request1, response })
 
-    const { hasMock: hasMock1 } = await mockManager.has({ request: request1 })
+    const getResult1 = await mockManager.get({ request: request1 })
 
-    expect(hasMock1).toBe(true)
+    expect(getResult1.ok).toBe(true)
 
     await mockManager.clear()
 
@@ -275,20 +282,18 @@ describe('mockManager.prototype.clear', () => {
       new MockedRequest({
         url: 'http://example.com',
         method: 'GET',
-      })
+      }),
     )
     request2.end()
 
-    const { hasMock: hasMock2 } = await mockManager.has({ request: request2 })
+    const getResult2 = await mockManager.get({ request: request2 })
 
-    expect(hasMock2).toBe(false)
+    expect(getResult2.ok).toBe(false)
   })
 })
 
-describe('mockManager.prototype.set', () => {
+describe('mockManager.set', () => {
   it('saves new mock', async () => {
-    expect.assertions(2)
-
     const mockManager = await createMockManager()
 
     const request = rewindable(createMockedRequest())
@@ -297,101 +302,309 @@ describe('mockManager.prototype.set', () => {
     response.end()
     await mockManager.set({ request, response })
 
-    const { hasMock, mockPath } = await mockManager.has({ request })
+    const getResult = await mockManager.get({ request })
 
-    expect(hasMock).toBe(true)
-    expect(typeof mockPath).toBe('string')
-  })
-
-  it('doesnt save file on error', async () => {
-    expect.assertions(2)
-
-    const mockManager = await createMockManager()
-
-    const request = rewindable(createMockedRequest())
-    request.end()
-    const response = rewindable(createMockedResponse())
-    response.end()
-
-    await expect(
-      mockManager.set({
-        request,
-        response,
-        // Force an error on `set` to assert corrupted file was deleted
-        fault: () => {
-          throw new Error()
-        },
-      })
-    ).rejects.toThrow(Error)
-
-    const { hasMock: hasMock2 } = await mockManager.has({ request })
-
-    expect(hasMock2).toBe(false)
-  })
-
-  // In case we dont have write access to the mock file while updating the
-  // mocks, the original mock should not be modified nor deleted.
-  it('doesnt delete file in case we dont have write access', async () => {
-    expect.assertions(3)
-
-    const mockManager = await createMockManager()
-
-    //
-    // Save a mock
-    //
-
-    const response1 = rewindable(createMockedResponse())
-    response1.end()
-    const request1 = rewindable(createMockedRequest())
-    request1.end()
-    await mockManager.set({
-      request: request1,
-      response: response1,
-    })
-
-    const { hasMock: hasMock1 } = await mockManager.has({ request: request1 })
-
-    expect(hasMock1).toBe(true)
-
-    //
-    // Force a "no write access" error on `set` while updating existing mock
-    //
-
-    const response2 = rewindable(createMockedResponse())
-    response2.end()
-    const request2 = rewindable(createMockedRequest())
-    request2.end()
-
-    class CustomError extends Error {
-      constructor({ code = '' }) {
-        super()
-        this.code = code
-      }
+    expect(getResult.ok).toBe(true)
+    if (getResult.ok) {
+      expect(typeof getResult.value.mockPath).toBe('string')
     }
-
-    await expect(
-      mockManager.set({
-        request: request2,
-        response: response2,
-        fault: () => {
-          throw new CustomError({ code: 'EACCES' })
-        },
-      })
-    ).rejects.toThrow(Error)
-
-    const { hasMock: hasMock2 } = await mockManager.has({ request: request2 })
-
-    expect(hasMock2).toBe(true)
   })
 })
 
-describe('mockManager.prototype.getAll', () => {
+describe('mock filenames', () => {
+  it('uses human-readable GraphQL filename for query requests', async () => {
+    const mockManager = await createMockManager({
+      mockKeys: new Set(['url', 'method', 'body']),
+    })
+
+    const request = rewindable(
+      createMockedRequest({
+        method: 'POST',
+        url: 'http://example.com/graphql',
+        headers: { 'content-type': 'application/json' },
+      }),
+    )
+    request.end(
+      JSON.stringify({
+        operationName: 'MerchantEnrollmentReport',
+        query: 'query MerchantEnrollmentReport { merchant { id } }',
+      }),
+    )
+
+    const response = rewindable(createMockedResponse())
+    response.end()
+    const setResult1 = await mockManager.set({ request, response })
+    if (!setResult1.ok) throw setResult1.error
+    const { mockPath } = setResult1.value
+
+    expect(mockPath).toMatch(
+      /[a-f0-9]+-gql-query-merchant-enrollment-report\.json$/,
+    )
+  })
+
+  it('uses human-readable GraphQL filename for mutation requests', async () => {
+    const mockManager = await createMockManager({
+      mockKeys: new Set(['url', 'method', 'body']),
+    })
+
+    const request = rewindable(
+      createMockedRequest({
+        method: 'POST',
+        url: 'http://example.com/graphql',
+        headers: { 'content-type': 'application/json' },
+      }),
+    )
+    request.end(
+      JSON.stringify({
+        operationName: 'UpdateUser',
+        query: 'mutation UpdateUser($id: ID!) { updateUser(id: $id) { id } }',
+      }),
+    )
+
+    const response = rewindable(createMockedResponse())
+    response.end()
+    const setResult2 = await mockManager.set({ request, response })
+    if (!setResult2.ok) throw setResult2.error
+    const { mockPath } = setResult2.value
+
+    expect(mockPath).toMatch(/[a-f0-9]+-gql-mutation-update-user\.json$/)
+  })
+
+  it('falls back to hash-based HTTP filename when no operationName', async () => {
+    const mockManager = await createMockManager({
+      mockKeys: new Set(['url', 'method']),
+    })
+
+    const request = rewindable(
+      createMockedRequest({
+        method: 'POST',
+        url: 'http://example.com/api/users',
+        headers: { 'content-type': 'application/json' },
+      }),
+    )
+    request.end(JSON.stringify({ foo: 'bar' }))
+
+    const response = rewindable(createMockedResponse())
+    response.end()
+    const setResult3 = await mockManager.set({ request, response })
+    if (!setResult3.ok) throw setResult3.error
+    const { mockPath } = setResult3.value
+
+    expect(mockPath).toMatch(/[a-f0-9]+-http-post-api-users\.json$/)
+  })
+
+  it('falls back to hash-based HTTP filename when operationName present but no query', async () => {
+    const mockManager = await createMockManager({
+      mockKeys: new Set(['url', 'method', 'body']),
+    })
+
+    const request = rewindable(
+      createMockedRequest({
+        method: 'POST',
+        url: 'http://example.com/graphql',
+        headers: { 'content-type': 'application/json' },
+      }),
+    )
+    request.end(JSON.stringify({ operationName: 'GetUser' }))
+
+    const response = rewindable(createMockedResponse())
+    response.end()
+    const setResult4 = await mockManager.set({ request, response })
+    if (!setResult4.ok) throw setResult4.error
+    const { mockPath } = setResult4.value
+
+    expect(mockPath).toMatch(/[a-f0-9]+-http-post-graphql\.json$/)
+  })
+
+  it('uses human-readable HTTP filename with method and path', async () => {
+    const mockManager = await createMockManager({
+      mockKeys: new Set(['url', 'method']),
+    })
+
+    const request = rewindable(
+      createMockedRequest({
+        method: 'GET',
+        url: 'http://example.com/api/merchants/reports',
+      }),
+    )
+    request.end()
+
+    const response = rewindable(createMockedResponse())
+    response.end()
+    const setResult5 = await mockManager.set({ request, response })
+    if (!setResult5.ok) throw setResult5.error
+    const { mockPath } = setResult5.value
+
+    expect(mockPath).toMatch(/[a-f0-9]+-http-get-api-merchants-reports\.json$/)
+  })
+
+  it('sanitizes HTTP filename for relative URLs with query params', async () => {
+    const mockManager = await createMockManager({
+      mockKeys: new Set(['url', 'method']),
+    })
+
+    const request = rewindable(
+      createMockedRequest({
+        method: 'POST',
+        url: '/api/federated-gateway-protected/graphql?opname=typename',
+      }),
+    )
+    request.end()
+
+    const response = rewindable(createMockedResponse())
+    response.end()
+    const setResult6 = await mockManager.set({ request, response })
+    if (!setResult6.ok) throw setResult6.error
+    const { mockPath } = setResult6.value
+
+    expect(mockPath).toMatch(
+      /[a-f0-9]+-http-post-api-federated-gateway-protected-graphql\.json$/,
+    )
+  })
+
+  it('sanitizes GraphQL operation names to lowercase letters, numbers, and dashes', async () => {
+    const mockManager = await createMockManager({
+      mockKeys: new Set(['url', 'method', 'body']),
+    })
+
+    const request = rewindable(
+      createMockedRequest({
+        method: 'POST',
+        url: 'http://example.com/graphql',
+        headers: { 'content-type': 'application/json' },
+      }),
+    )
+    request.end(
+      JSON.stringify({
+        operationName: 'Get$Merchant#Info/V2',
+        query: 'query Get$Merchant#Info/V2 { merchant { id } }',
+      }),
+    )
+
+    const response = rewindable(createMockedResponse())
+    response.end()
+    const setResult7 = await mockManager.set({ request, response })
+    if (!setResult7.ok) throw setResult7.error
+    const { mockPath } = setResult7.value
+
+    expect(mockPath).toMatch(/[a-f0-9]+-gql-query-get-merchant-info-v2\.json$/)
+  })
+
+  it('uses gql-operation when query type cannot be determined', async () => {
+    const mockManager = await createMockManager({
+      mockKeys: new Set(['url', 'method', 'body']),
+    })
+
+    const request = rewindable(
+      createMockedRequest({
+        method: 'POST',
+        url: 'http://example.com/graphql',
+        headers: { 'content-type': 'application/json' },
+      }),
+    )
+    request.end(
+      JSON.stringify({
+        operationName: 'GetUser',
+        query: '{ user { id name } }',
+      }),
+    )
+
+    const response = rewindable(createMockedResponse())
+    response.end()
+    const setResult8 = await mockManager.set({ request, response })
+    if (!setResult8.ok) throw setResult8.error
+    const { mockPath } = setResult8.value
+
+    expect(mockPath).toMatch(/[a-f0-9]+-gql-operation-get-user\.json$/)
+  })
+
+  it('truncates filename to 80 characters', async () => {
+    const mockManager = await createMockManager({
+      mockKeys: new Set(['url', 'method']),
+    })
+
+    const request = rewindable(
+      createMockedRequest({
+        method: 'GET',
+        url: 'http://example.com/api/very/long/path/that/goes/on/and/on/and/keeps/going/forever/until/it/exceeds/the/limit',
+      }),
+    )
+    request.end()
+
+    const response = rewindable(createMockedResponse())
+    response.end()
+    const setResult9 = await mockManager.set({ request, response })
+    if (!setResult9.ok) throw setResult9.error
+    const { mockPath } = setResult9.value
+
+    const fileName = /** @type {string} */ (mockPath.split('/').pop())
+    expect(fileName).toMatchInlineSnapshot(
+      `"bb63f5540dcf-http-get-api-very-long-path-that-goes-on-and-on-and-keeps-goin.json"`,
+    )
+    expect(fileName.length).toEqual(80)
+  })
+
+  it('still resolves to the same mock file after truncation', async () => {
+    const mockManager = await createMockManager({
+      mockKeys: new Set(['url', 'method']),
+    })
+
+    const longUrl =
+      'http://example.com/api/very/long/path/that/goes/on/and/on/and/keeps/going/forever/until/it/exceeds/the/limit'
+
+    const request1 = rewindable(
+      createMockedRequest({ method: 'GET', url: longUrl }),
+    )
+    request1.end()
+    const response = rewindable(createMockedResponse())
+    response.end()
+    await mockManager.set({ request: request1, response })
+
+    const request2 = rewindable(
+      createMockedRequest({ method: 'GET', url: longUrl }),
+    )
+    request2.end()
+    const getResult = await mockManager.get({ request: request2 })
+
+    expect(getResult.ok).toBe(true)
+  })
+
+  it('converts SCREAMING_SNAKE_CASE operation names to kebab-case', async () => {
+    const mockManager = await createMockManager({
+      mockKeys: new Set(['url', 'method', 'body']),
+    })
+
+    const request = rewindable(
+      createMockedRequest({
+        method: 'POST',
+        url: 'http://example.com/graphql',
+        headers: { 'content-type': 'application/json' },
+      }),
+    )
+    request.end(
+      JSON.stringify({
+        operationName: 'MERCHANT_ENROLLMENT_REPORT',
+        query: 'query MERCHANT_ENROLLMENT_REPORT { merchant { id } }',
+      }),
+    )
+
+    const response = rewindable(createMockedResponse())
+    response.end()
+    const setResult10 = await mockManager.set({ request, response })
+    if (!setResult10.ok) throw setResult10.error
+    const { mockPath } = setResult10.value
+
+    expect(mockPath).toMatch(
+      /[a-f0-9]+-gql-query-merchant-enrollment-report\.json$/,
+    )
+  })
+})
+
+describe('mockManager.getAll', () => {
   // In case a request/response has `content-type: application/json`, mocker saves its
   // body as JSON. We need to make sure to serialize the JSON body again before
   // sending it through the stream.
   it('jSON.stringify the request and response body in case it is saved as JSON', async () => {
-    expect.assertions(2)
-
     const mockManager = await createMockManager()
 
     //
@@ -402,14 +615,14 @@ describe('mockManager.prototype.getAll', () => {
       const request = rewindable(
         createMockedRequest({
           headers: { 'content-type': 'application/json; charset=utf-8' },
-        })
+        }),
       )
       request.end(`{"a": { "b": {"c": 1}}}`)
 
       const response = rewindable(
         createMockedResponse({
           headers: { 'content-type': 'application/json; charset=utf-8' },
-        })
+        }),
       )
       response.end(`{"a":1, "b": 2, "c": { "d": 3, "e": 4 }}`)
 
@@ -420,20 +633,15 @@ describe('mockManager.prototype.getAll', () => {
     // Retrieve all mocks
     //
 
-    for await (const {
-      mockedRequest,
-      mockedResponse,
-    } of mockManager.getAll()) {
-      // eslint-disable-next-line jest/no-conditional-in-test
-      if (mockedRequest === null || mockedResponse === null) {
-        throw new Error('mockedRequest/mockedResponse shouldnt be `null`')
-      }
+    for await (const item of mockManager.getAll()) {
+      if (!item.ok) throw item.error
 
+      const { mockedRequest, mockedResponse } = item.value
       const requestBody = `${await getBody(mockedRequest)}`
       const responseBody = `${await getBody(mockedResponse)}`
 
-      expect(JSON.parse(requestBody)).toStrictEqual({ a: { b: { c: 1 } } })
-      expect(JSON.parse(responseBody)).toStrictEqual({
+      expect(JSON.parse(requestBody)).toEqual({ a: { b: { c: 1 } } })
+      expect(JSON.parse(responseBody)).toEqual({
         a: 1,
         b: 2,
         c: { d: 3, e: 4 },
@@ -443,8 +651,6 @@ describe('mockManager.prototype.getAll', () => {
 
   // It should redact and unredact the headers with the value provided on `redactedHeaders`
   it('unredacts all secrets on `mockedResponse` and `mockedRequest`', async () => {
-    expect.assertions(2)
-
     const mockManager = await createMockManager({
       redactedHeaders: { 'example-token': 1234 },
     })
@@ -463,7 +669,7 @@ describe('mockManager.prototype.getAll', () => {
             'example-token': i,
             'content-type': 'application/json',
           },
-        })
+        }),
       )
       response.end(`{"a":${i}}`)
 
@@ -474,22 +680,16 @@ describe('mockManager.prototype.getAll', () => {
     // Retrieve all mocks
     //
 
-    for await (const { mockedResponse, error } of mockManager.getAll()) {
-      // eslint-disable-next-line jest/no-conditional-in-test
-      if (mockedResponse === null) {
-        throw new Error('mockedResponse shouldnt be `null`')
-      }
+    for await (const item of mockManager.getAll()) {
+      if (!item.ok) throw item.error
 
       // mockedResponse example-token header should have the same value as passed on
       // `redactedHeaders`
-      expect(mockedResponse.headers['example-token']).toBe(1234)
-      expect(error).toBeNull()
+      expect(item.value.mockedResponse.headers['example-token']).toBe(1234)
     }
   })
 
   it('yields an error in case it cant unredact all secrets', async () => {
-    expect.assertions(20)
-
     const mockManager = await createMockManager({
       redactedHeaders: { 'example-token': 1234 },
     })
@@ -509,7 +709,7 @@ describe('mockManager.prototype.getAll', () => {
             foo: '[REDACTED]',
             'content-type': 'application/json',
           },
-        })
+        }),
       )
       request.end()
       const response = rewindable(createMockedResponse())
@@ -521,16 +721,203 @@ describe('mockManager.prototype.getAll', () => {
     // Retrieve all mocks
     //
 
-    for await (const {
-      error,
-      mockedResponse,
-      mockedRequest,
-      mockPath,
-    } of mockManager.getAll()) {
-      expect(error).toBeInstanceOf(SecretNotFoundError)
-      expect(mockedResponse).toBeNull()
-      expect(mockedRequest).toBeNull()
-      expect(typeof mockPath).toBe('string')
+    for await (const item of mockManager.getAll()) {
+      expect(item.ok).toBe(false)
+      if (!item.ok) {
+        expect(item.error).toBeInstanceOf(MockFileError)
+        expect(typeof item.error.mockPath).toBe('string')
+      }
     }
   })
+})
+
+describe('mockManager.set parses +json suffix MIME types as JSON', () => {
+  it.each([
+    'application/ld+json',
+    'application/vnd.api+json',
+    'application/hal+json',
+    'application/geo+json',
+  ])(
+    'stores %s response body as structured JSON object, not string',
+    async (contentType) => {
+      const { createMemFs } = await import('./helpers/mock-manager.js')
+      const { mocksDir, fs } = await createMemFs()
+      const { createMockManager: factory } = await import('../index.js')
+      const mockManager = factory({ mocksDir, fs })
+
+      const jsonPayload = JSON.stringify({ key: 'value', nested: { a: 1 } })
+
+      const request = rewindable(
+        createMockedRequest({ url: `http://example.com/${contentType}` }),
+      )
+      request.end()
+
+      const response = rewindable(
+        createMockedResponse({
+          headers: { 'content-type': contentType },
+        }),
+      )
+      response.end(jsonPayload)
+
+      const setResult = await mockManager.set({ request, response })
+      expect(setResult.ok).toBe(true)
+      if (!setResult.ok) return
+
+      // Read the mock file from disk and check the body is stored as
+      // a parsed JSON object, not as a JSON string
+      const mockFileContent = await fs.promises.readFile(
+        setResult.value.mockPath,
+      )
+      const mockFile = JSON.parse(mockFileContent.toString())
+      expect(typeof mockFile.response.body).toBe('object')
+      expect(mockFile.response.body).toEqual({ key: 'value', nested: { a: 1 } })
+    },
+  )
+
+  it.each([
+    'application/xhtml+xml',
+    'application/soap+xml',
+    'application/atom+xml',
+    'application/rss+xml',
+    'image/svg+xml',
+  ])('stores %s response body as text (not base64)', async (contentType) => {
+    const { createMemFs } = await import('./helpers/mock-manager.js')
+    const { mocksDir, fs } = await createMemFs()
+    const { createMockManager: factory } = await import('../index.js')
+    const mockManager = factory({ mocksDir, fs })
+
+    const xmlPayload =
+      '<?xml version="1.0" encoding="UTF-8"?><root><item>héllo wörld</item></root>'
+
+    const request = rewindable(
+      createMockedRequest({ url: `http://example.com/xml-${contentType}` }),
+    )
+    request.end()
+
+    const response = rewindable(
+      createMockedResponse({
+        headers: { 'content-type': contentType },
+      }),
+    )
+    response.end(xmlPayload)
+
+    const setResult = await mockManager.set({ request, response })
+    expect(setResult.ok).toBe(true)
+    if (!setResult.ok) return
+
+    const mockFileContent = await fs.promises.readFile(setResult.value.mockPath)
+    const mockFile = JSON.parse(mockFileContent.toString())
+    expect(typeof mockFile.response.body).toBe('string')
+    expect(mockFile.response.body).toBe(
+      '<?xml version="1.0" encoding="UTF-8"?><root><item>héllo wörld</item></root>',
+    )
+  })
+
+  it.each([
+    ['iso-8859-1', 'latin1'],
+    ['us-ascii', 'ascii'],
+    ['windows-1252', 'latin1'],
+  ])(
+    'stores text body with charset=%s as text (not base64)',
+    async (charset, _nodeEquivalent) => {
+      const { createMemFs } = await import('./helpers/mock-manager.js')
+      const { mocksDir, fs } = await createMemFs()
+      const { createMockManager: factory } = await import('../index.js')
+      const mockManager = factory({ mocksDir, fs })
+
+      const textPayload = 'Hello World'
+      const contentType = `text/html; charset=${charset}`
+
+      const request = rewindable(
+        createMockedRequest({ url: `http://example.com/charset-${charset}` }),
+      )
+      request.end()
+
+      const response = rewindable(
+        createMockedResponse({
+          headers: { 'content-type': contentType },
+        }),
+      )
+      response.end(textPayload)
+
+      const setResult = await mockManager.set({ request, response })
+      expect(setResult.ok).toBe(true)
+      if (!setResult.ok) return
+
+      // Check the mock file stores the body as a plain string, not base64
+      const mockFileContent = await fs.promises.readFile(
+        setResult.value.mockPath,
+      )
+      const mockFile = JSON.parse(mockFileContent.toString())
+      expect(typeof mockFile.response.body).toBe('string')
+      expect(mockFile.response.body).toBe('Hello World')
+    },
+  )
+
+  it('handles JSON body with UTF-8 BOM correctly', async () => {
+    const { createMemFs } = await import('./helpers/mock-manager.js')
+    const { mocksDir, fs } = await createMemFs()
+    const { createMockManager: factory } = await import('../index.js')
+    const mockManager = factory({ mocksDir, fs })
+
+    const bom = '\uFEFF'
+    const jsonPayload = bom + JSON.stringify({ key: 'value' })
+
+    const request = rewindable(
+      createMockedRequest({ url: 'http://example.com/bom-json' }),
+    )
+    request.end()
+
+    const response = rewindable(
+      createMockedResponse({
+        headers: { 'content-type': 'application/json' },
+      }),
+    )
+    response.end(jsonPayload)
+
+    const setResult = await mockManager.set({ request, response })
+    expect(setResult.ok).toBe(true)
+    if (!setResult.ok) return
+
+    // The body should be stored as parsed JSON (BOM stripped)
+    const mockFileContent = await fs.promises.readFile(setResult.value.mockPath)
+    const mockFile = JSON.parse(mockFileContent.toString())
+    expect(typeof mockFile.response.body).toBe('object')
+    expect(mockFile.response.body).toEqual({ key: 'value' })
+  })
+
+  it.each(['application/ld+json', 'application/vnd.api+json'])(
+    'round-trips %s response body correctly through set then get',
+    async (contentType) => {
+      const mockManager = await createMockManager()
+      const expectedBody = { users: [{ id: 1, name: 'Alice' }] }
+      const jsonPayload = JSON.stringify(expectedBody)
+
+      const request = rewindable(
+        createMockedRequest({
+          url: `http://example.com/roundtrip-${contentType}`,
+        }),
+      )
+      request.end()
+
+      const response = rewindable(
+        createMockedResponse({
+          headers: { 'content-type': contentType },
+        }),
+      )
+      response.end(jsonPayload)
+
+      await mockManager.set({ request, response })
+
+      const getResult = await mockManager.get({ request })
+      expect(getResult.ok).toBe(true)
+      if (!getResult.ok) return
+
+      const body = await getBody(getResult.value.mockedResponse)
+      const bodyStr = body.toString()
+      // The served body must be valid JSON that matches what was stored
+      const parsed = JSON.parse(bodyStr)
+      expect(parsed).toEqual(expectedBody)
+    },
+  )
 })

@@ -1,18 +1,18 @@
-/** @typedef {import('../../args/types').Args} Args */
-/** @typedef {import('../../shared/types').FsLike} FsLike */
+/** @typedef {import('../../args/types.js').Args} Args */
+/** @typedef {import('../../args/types.js').UnbrandedArgs} UnbrandedArgs */
+/** @typedef {import('../../shared/types.js').FsLike} FsLike */
 
-const getPort = require('get-port')
-const { Volume, createFsFromVolume } = require('memfs')
-const Mocker = require('../..')
+import { Volume, createFsFromVolume } from 'memfs'
+import Mocker from '../../index.js'
 
 async function createMemFs() {
-  const responsesDir = '/tmp'
+  const mocksDir = '/tmp'
   const volume = new Volume()
   const fs = createFsFromVolume(volume)
-  await fs.promises.mkdir(responsesDir)
+  await fs.promises.mkdir(mocksDir)
 
   return {
-    responsesDir,
+    mocksDir,
     fs,
   }
 }
@@ -34,16 +34,15 @@ async function getCommonArgs() {
     delay: 0,
     throttle: Infinity,
     retries: 0,
-    workers: 1,
     redactedHeaders: {},
     overwriteResponseHeaders: {},
     overwriteRequestHeaders: {},
-    port: await getPort(),
+    port: 0,
   }
 }
 
 /**
- * @param {Partial<Args & { fs: FsLike }>} args
+ * @param {Partial<UnbrandedArgs & { fs: FsLike }>} args
  * @returns {Promise<Mocker>}
  */
 async function createMocker(args = {}) {
@@ -51,19 +50,19 @@ async function createMocker(args = {}) {
     throw new TypeError('args.origin is missing')
   }
 
-  const { responsesDir, fs } = await createMemFs()
-  return new Mocker({
-    responsesDir,
-    fs,
-    origin: '',
-    mode: 'read-write',
-    cors: false,
-    ...(await getCommonArgs()),
-    ...args,
-  })
+  const { mocksDir, fs } = await createMemFs()
+  return new Mocker(
+    /** @type {Args & { fs: FsLike }} */ ({
+      mocksDir,
+      fs,
+      origin: '',
+      mode: 'read-write',
+      cors: false,
+      proxy: '',
+      ...(await getCommonArgs()),
+      ...args,
+    }),
+  )
 }
 
-module.exports = {
-  createMocker,
-  createMemFs,
-}
+export { createMocker, createMemFs }

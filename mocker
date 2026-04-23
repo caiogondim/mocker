@@ -2,15 +2,14 @@
 
 /* eslint-disable no-process-exit */
 
-const {
+import {
   parseArgv,
-  RESPONSES_DIR_DEFAULT,
+  MOCKS_DIR_DEFAULT,
   PORT_DEFAULT,
   DELAY_DEFAULT,
   THROTTLE_DEFAULT,
   MODE_DEFAULT,
   UPDATE_DEFAULT,
-  WORKERS_DEFAULT,
   MOCK_KEYS_DEFAULT,
   MODE_VALID_VALUES,
   UPDATE_VALID_VALUES,
@@ -20,15 +19,21 @@ const {
   LOGGING_DEFAULT,
   LOGGING_VALID_VALUES,
   OVERWRITE_RESPONSE_HEADERS_DEFAULT,
-} = require('./src/args')
-const Mocker = require('./src')
-const Logger = require('./src/shared/logger')
-const { bold, stripMargin, table, dim, stringify } = require('./src/shared/logger/format')
-const packageJson = require('./package.json')
-
+  PROXY_DEFAULT,
+} from './src/args/index.js'
+import Mocker from './src/index.js'
+import createLogger from './src/shared/logger/index.js'
+import {
+  bold,
+  stripMargin,
+  table,
+  dim,
+  stringify,
+} from './src/shared/logger/format/index.js'
+import packageJson from './package.json' with { type: 'json' }
 const mockKeysDefaultStr = Array.from(MOCK_KEYS_DEFAULT.values()).join(',')
 
-const logger = new Logger({ forceLog: true })
+const logger = createLogger({ forceLog: true })
 
 function printHelp() {
   // Based on docopt http://docopt.org/
@@ -36,101 +41,113 @@ function printHelp() {
     stripMargin(`
       |${bold('mocker')} 🥸 v${packageJson.version}
       |
-      |${bold('ARGS')}`)
+      |${bold('ARGS')}`),
   )
   logger.log(
     table(
-      [`  --origin <URL>`, `Origin base URL ${dim(`[e.g.: "http://example.com"]`)}`],
-      [`  [--responsesDir <path>]`, `Path to mocked responses directory ${dim(`[default: ${stringify(RESPONSES_DIR_DEFAULT)}]`)}`],
+      [
+        `  --origin <URL>`,
+        `Origin base URL ${dim(`[e.g.: "http://example.com"]`)}`,
+      ],
+      [
+        `  [--mocksDir <path>]`,
+        `Path to mocked responses directory ${dim(`[default: ${stringify(MOCKS_DIR_DEFAULT)}]`)}`,
+      ],
       [
         `  [--update <update>]`,
         `One of: ${stringify(UPDATE_VALID_VALUES)} ${dim(
-          `[default: ${stringify(UPDATE_DEFAULT)}]`
+          `[default: ${stringify(UPDATE_DEFAULT)}]`,
         )}`,
       ],
       [
         `  [--mode <mode>]`,
         `One of: ${stringify(MODE_VALID_VALUES)} ${dim(
-          `${dim(`[default: ${stringify(MODE_DEFAULT)}]`)}`
+          `${dim(`[default: ${stringify(MODE_DEFAULT)}]`)}`,
         )}`,
       ],
       [
         `  [--port <n>]`,
         `Port the mocker server will listen to ${dim(
-          `[default: ${stringify(PORT_DEFAULT)}]`
+          `[default: ${stringify(PORT_DEFAULT)}]`,
         )}`,
       ],
       [
         `  [--retries <n>]`,
         `Max number of retries to origin while response is not a 200 ${dim(
-          `[default: ${stringify(RETRIES_DEFAULT)}]`
+          `[default: ${stringify(RETRIES_DEFAULT)}]`,
         )}`,
       ],
       [
         `  [--redactedHeaders <JSON>]`,
         `JSON of header names to redact from mocks and logging ${dim(
-          `[default: ${stringify(REDACTED_HEADERS_DEFAULT)}]`
+          `[default: ${stringify(REDACTED_HEADERS_DEFAULT)}]`,
         )}`,
       ],
       [
         `  [--overwriteRequestHeaders <JSON>]`,
         `JSON of request headers to be overwritten ${dim(
-          `[default: ${stringify({ host: 'example.com' })}]`
+          `[default: ${stringify({ host: 'example.com' })}]`,
         )}`,
       ],
       [
         `  [--overwriteResponseHeaders <JSON>]`,
         `JSON of response headers to be overwritten ${dim(
-          `[default: ${stringify(OVERWRITE_RESPONSE_HEADERS_DEFAULT)}]`
+          `[default: ${stringify(OVERWRITE_RESPONSE_HEADERS_DEFAULT)}]`,
         )}`,
       ],
       [
         `  [--delay <ms>]`,
         `Artificial delay to every request ${dim(
-          `[default: ${stringify(DELAY_DEFAULT)}]`
+          `[default: ${stringify(DELAY_DEFAULT)}]`,
         )}`,
       ],
       [
-        `  [--throttle <kB/s>]`,
+        `  [--throttle <B/s>]`,
         `Artificial throttle to every request ${dim(
-          `[default: ${stringify(THROTTLE_DEFAULT)}]`
+          `[default: ${stringify(THROTTLE_DEFAULT)}]`,
         )}`,
-      ],
-      [
-        `  [--workers <n>]`,
-        `Number of workers ${dim(`[default: ${stringify(WORKERS_DEFAULT)}]`)}`,
       ],
       [
         `  [--logging <logging>]`,
         `One of: ${stringify(LOGGING_VALID_VALUES)} ${dim(
-          `[default: ${stringify(LOGGING_DEFAULT)}]`
+          `[default: ${stringify(LOGGING_DEFAULT)}]`,
         )}`,
       ],
       [
         `  [--mockKeys <val1,val2>]`,
         `Set of: ${stringify([...MOCK_KEYS_VALID_VALUES, 'body.**'])} ${dim(
-          `[default: ${stringify(mockKeysDefaultStr)}]`
+          `[default: ${stringify(mockKeysDefaultStr)}]`,
         )}`,
-      ]
-    )
+      ],
+      [
+        `  [--proxy <proxy>]`,
+        `An HTTP/HTTPS URL ${dim(
+          `[default: ${stringify(PROXY_DEFAULT)}]`,
+        )}`,
+      ],
+    ),
   )
   logger.log(
     stripMargin(`
       |${bold('USAGE')}
-      |  mocker --origin http://example.com --responsesDir /path/to/folder
-      |  mocker --origin http://example.com --responsesDir /path/to/folder --mockKeys url,method,body.variables.id
-      |  mocker --origin http://example.com --responsesDir /path/to/folder --mode read-write --workers 4
-      |  mocker --origin http://example.com --responsesDir /path/to/folder --update startup --workers 4`)
+      |  mocker --origin http://example.com --mocksDir /path/to/folder
+      |  mocker --origin http://example.com --mocksDir /path/to/folder --mockKeys url,method,body.variables.id
+      |  mocker --origin http://example.com --mocksDir /path/to/folder --mode read-write
+      |  mocker --origin http://example.com --mocksDir /path/to/folder --update startup`),
   )
   logger.log(
     stripMargin(`
       |${bold('DOCS')}
-      |  https://github.com/caiogondim/mocker/tree/main/docs`)
+      |  https://github.com/caiogondim/mocker/tree/main/docs`),
   )
 }
 
 async function main() {
-  if (process.argv[2] === '--help' || process.argv[2] === '-h') {
+  if (
+    process.argv[2] === '--help' ||
+    process.argv[2] === '-h' ||
+    process.argv[2] === undefined
+  ) {
     printHelp()
   } else {
     try {

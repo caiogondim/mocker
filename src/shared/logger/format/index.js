@@ -1,70 +1,38 @@
-/** @typedef {import('../../types').Json} Json */
+/** @typedef {import('../../types.js').Json} Json */
 
-// @see https://blog.bitsrc.io/coloring-your-terminal-using-nodejs-eb647d4af2a2
+import { styleText } from 'node:util'
 
-const supportsColor = require('../supports-color')()
-
-const reset = '\x1b[0m'
-
-/**
- * @param {any} str
- * @returns {string}
- */
+/** @param {unknown} str @returns {string} */
 function bold(str) {
-  if (!supportsColor) return str
-  return `\x1b[1m${str}\x1b[22m${reset}`
+  return styleText('bold', String(str))
 }
 
-/**
- * @param {any} str
- * @returns {string}
- */
+/** @param {unknown} str @returns {string} */
 function red(str) {
-  if (!supportsColor) return str
-  return `\x1b[31m${str}\x1b[89m${reset}`
+  return styleText('red', String(str))
 }
 
-/**
- * @param {any} str
- * @returns {string}
- */
+/** @param {unknown} str @returns {string} */
 function blue(str) {
-  if (!supportsColor) return str
-  return `\x1b[34m${str}\x1b[89m${reset}`
+  return styleText('blue', String(str))
 }
 
-/**
- * @param {any} str
- * @returns {string}
- */
+/** @param {unknown} str @returns {string} */
 function yellow(str) {
-  if (!supportsColor) return str
-  return `\x1b[33m${str}\x1b[89m${reset}`
+  return styleText('yellow', String(str))
 }
 
-/**
- * @param {any} str
- * @returns {string}
- */
+/** @param {unknown} str @returns {string} */
 function green(str) {
-  if (!supportsColor) return str
-  return `\x1b[32m${str}\x1b[89m${reset}`
+  return styleText('green', String(str))
 }
 
-/**
- * @param {any} str
- * @returns {string}
- */
+/** @param {unknown} str @returns {string} */
 function dim(str) {
-  if (!supportsColor) return str
-  return `\x1b[2m${str}\x1b[22m${reset}`
+  return styleText('dim', String(str))
 }
 
 /**
- * Based on stripMargin from Scala
- * https://docs.scala-lang.org/overviews/scala-book/two-notes-about-strings.html#multiline-strings.
- *
- *
  * @param {string} str
  * @param {string} [marginChar]
  * @returns {string}
@@ -78,6 +46,9 @@ function stripMargin(str, marginChar = '|') {
   return output.join('\n')
 }
 
+// Matches ANSI terminal escape codes (e.g. \u001b[32m for green text)
+const ANSI_ESCAPE_CODE_REGEX = /\u001b\[[0-9]+m/g // eslint-disable-line no-control-regex
+
 /**
  * @param {string[][]} data
  * @returns {string}
@@ -89,11 +60,13 @@ function table(...data) {
 
   for (const dataLine of data) {
     for (const [i, datum] of dataLine.entries()) {
-      // eslint-disable-next-line no-control-regex
-      const datumWithoutFormatingCode = datum.replace(/\u001b\[[0-9]+m/g, '')
+      const datumWithoutFormattingCode = datum.replace(
+        ANSI_ESCAPE_CODE_REGEX,
+        '',
+      )
       maxWidths[i] = Math.max(
         maxWidths[i] || 0,
-        datumWithoutFormatingCode.length
+        datumWithoutFormattingCode.length,
       )
     }
   }
@@ -101,11 +74,13 @@ function table(...data) {
   for (const dataLine of data) {
     const lineEntries = []
     for (const [i, datum] of dataLine.entries()) {
-      // eslint-disable-next-line no-control-regex
-      const datumWithoutFormatingCode = datum.replace(/\u001b\[[0-9]+m/g, '')
-      const endPadding = datumWithoutFormatingCode
+      const datumWithoutFormattingCode = datum.replace(
+        ANSI_ESCAPE_CODE_REGEX,
+        '',
+      )
+      const endPadding = datumWithoutFormattingCode
         .padEnd(maxWidths[i], ' ')
-        .replace(datumWithoutFormatingCode, '')
+        .replace(datumWithoutFormattingCode, '')
       lineEntries.push(`${datum}${endPadding}`)
     }
     lines.push(lineEntries.join('  '))
@@ -129,7 +104,7 @@ function stringify(x) {
   }
 
   /**
-   * @param {any} x
+   * @param {unknown} x
    * @returns {Json}
    */
   function mapToJsonStringifiableType(x) {
@@ -138,22 +113,12 @@ function stringify(x) {
     if (x && x?.constructor === Set) {
       return Array.from(x)
     }
-    return x
+    return /** @type {Json} */ (x)
   }
 
   return addSpaceBetweenArrayElements(
-    JSON.stringify(mapToJsonStringifiableType(x))
+    JSON.stringify(mapToJsonStringifiableType(x)),
   )
 }
 
-module.exports = {
-  bold,
-  red,
-  blue,
-  yellow,
-  green,
-  stripMargin,
-  table,
-  dim,
-  stringify,
-}
+export { bold, red, blue, yellow, green, stripMargin, table, dim, stringify }

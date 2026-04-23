@@ -1,0 +1,35 @@
+[package]
+name = "mocker"
+version = "1.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1", features = ["net", "time", "signal", "rt-multi-thread", "macros", "fs", "io-util"] }
+hyper = { version = "1", features = ["http1", "server", "client"] }
+hyper-util = { version = "0.1", features = ["http1", "client-legacy", "tokio"] }
+http-body-util = "0.1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+clap = { version = "4", features = ["derive"] }
+sha2 = "0.10"
+flate2 = "1"
+brotli = "7"
+base64 = "0.22"
+thiserror = "2"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+correctness = { level = "deny", priority = -1 }
+suspicious = { level = "deny", priority = -1 }
+module_name_repetitions = { level = "allow" }
+must_use_candidate = { level = "allow" }
+too_many_arguments = { level = "allow" }
+too_many_lines = { level = "allow" }
+implicit_hasher = { level = "allow" }
+ignored_unit_patterns = { level = "allow" }
+missing_errors_doc = { level = "allow" }
+missing_panics_doc = { level = "allow" }
+
+[dev-dependencies]
+tempfile = "3"
