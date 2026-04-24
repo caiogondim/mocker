@@ -20,15 +20,13 @@ brew uninstall mocker
 
 ## Releasing
 
-Releases are created via GitHub Actions. The workflow runs CI checks, creates a
-git tag, and publishes a GitHub Release with your changelog.
+Releases are cut by pushing a `vX.Y.Z` tag. The `Release` workflow runs CI
+(lint, types, tests, fmt) and publishes a GitHub Release with auto-generated
+notes.
 
 ```bash
-gh workflow run release.yml \
-  -f version=1.2.0 \
-  -f changelog="## Changes
-- feat: some new feature
-- fix: some bug fix"
+npm version minor   # or: patch | major
+git push --follow-tags
 ```
 
 After the release, manually update the formula in
@@ -36,7 +34,6 @@ After the release, manually update the formula in
 new version, URL, and sha256:
 
 ```bash
-# Get the sha256 of the release tarball
 curl -sL https://github.com/caiogondim/mocker/archive/refs/tags/v1.2.0.tar.gz | shasum -a 256
 ```
 
