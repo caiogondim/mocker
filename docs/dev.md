@@ -2,13 +2,14 @@
 
 ## Homebrew
 
-The Homebrew formula lives in the
-[caiogondim/homebrew-tap](https://github.com/caiogondim/homebrew-tap) repo.
+The Homebrew formula lives in this repo at `Formula/mocker.rb`. Because the
+repo is not named `homebrew-mocker`, the tap must be added with its explicit
+URL.
 
 ### Install
 
 ```bash
-brew tap caiogondim/tap
+brew tap caiogondim/mocker https://github.com/caiogondim/mocker
 brew install mocker
 ```
 
@@ -29,9 +30,9 @@ npm version minor   # or: patch | major
 git push --follow-tags
 ```
 
-After the release, manually update the formula in
-[caiogondim/homebrew-tap](https://github.com/caiogondim/homebrew-tap) with the
-new version, URL, and sha256:
+After the release, manually update `Formula/mocker.rb` with the new `version`,
+`url`, and `sha256`. Compute the hash from the pushed tag's tarball (substitute
+the version):
 
 ```bash
 curl -sL https://github.com/caiogondim/mocker/archive/refs/tags/v1.2.0.tar.gz | shasum -a 256
