@@ -18,7 +18,7 @@ either as a command-line tool or as a library.
 ### Homebrew
 
 ```bash
-brew tap caiogondim/tap
+brew tap caiogondim/mocker https://github.com/caiogondim/mocker
 brew install mocker
 ```
 
