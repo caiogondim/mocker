@@ -46,7 +46,15 @@ that file as a mocked response.
 In case there is a mocked request there is no need to fetch from origin and a
 response is created from the mocked response file saved on disk.
 
-<img src="./img/architecture/has-mock.png" />
+```mermaid
+sequenceDiagram
+    participant Client
+    participant mocker
+    Client->>mocker: Request
+    Note over mocker: Has mock for the request? Yes
+    mocker->>mocker: read mock
+    mocker-->>Client: Response
+```
 
 ### No mocked response for the request
 
@@ -54,7 +62,20 @@ In case there is no mocked response for the request we fetch from origin and, if
 `--mode` is equal to `read` or `read-write`, the response is saved on disk to be
 used as a mocked response for future requests.
 
-<img src="./img/architecture/no-mock.png" />
+```mermaid
+sequenceDiagram
+    participant Client
+    participant mocker
+    participant Origin
+    Client->>mocker: Request
+    Note over mocker: Has mock for the request? No
+    mocker->>Origin: fetch
+    Origin-->>mocker: response
+    opt read-write or write mode
+        mocker->>mocker: save response
+    end
+    mocker-->>Client: Response
+```
 
 ## Error handling
 
@@ -66,7 +87,20 @@ SIGINT, SIGTERM) and performs graceful shutdown.
 It's possible to start mocker with `--retries N` for it to work as a network
 resilience layer. Especially useful in conjunction with `--mode pass`.
 
-<img src="./img/architecture/automatic-retry.png" />
+```mermaid
+sequenceDiagram
+    participant Client
+    participant mocker
+    participant Origin
+    Client->>mocker: Request
+    mocker->>Origin: Request
+    Origin-->>mocker: Error
+    mocker->>Origin: Retry
+    Origin-->>mocker: Error
+    mocker->>Origin: Retry
+    Origin-->>mocker: Success
+    mocker-->>Client: Success
+```
 
 ## Secrets hiding
 
