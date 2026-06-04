@@ -721,16 +721,12 @@ describe('--rewritePath', () => {
 
   it('trims whitespace around prefix and replacement', async () => {
     const args = await parseArgv(argvWith(' /api/a => /a '))
-    expect(args.rewritePath).toEqual([
-      { prefix: '/api/a', replacement: '/a' },
-    ])
+    expect(args.rewritePath).toEqual([{ prefix: '/api/a', replacement: '/a' }])
   })
 
   it('tolerates a trailing comma', async () => {
     const args = await parseArgv(argvWith('/api/a=>/a,'))
-    expect(args.rewritePath).toEqual([
-      { prefix: '/api/a', replacement: '/a' },
-    ])
+    expect(args.rewritePath).toEqual([{ prefix: '/api/a', replacement: '/a' }])
   })
 
   it('tolerates blank fragments between commas', async () => {

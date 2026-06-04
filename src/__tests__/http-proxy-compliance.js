@@ -1729,7 +1729,10 @@ describe('--rewritePath', () => {
       mode: 'pass',
       origin: `http://localhost:${origin.port}`,
       rewritePath: [
-        { prefix: '/api/federated-gateway-public/graphql', replacement: '/graphql' },
+        {
+          prefix: '/api/federated-gateway-public/graphql',
+          replacement: '/graphql',
+        },
       ],
     })
     await mocker.listen()
@@ -1738,7 +1741,10 @@ describe('--rewritePath', () => {
       `http://localhost:${mocker.port}/api/federated-gateway-public/graphql`,
     )
     if (!parsed.ok) throw parsed.error
-    const requestResult = await createRequest({ url: parsed.value, method: 'POST' })
+    const requestResult = await createRequest({
+      url: parsed.value,
+      method: 'POST',
+    })
     if (!requestResult.ok) throw requestResult.error
     const [request, responsePromise] = requestResult.value
     request.end()
@@ -1755,7 +1761,10 @@ describe('--rewritePath', () => {
       mode: 'pass',
       origin: `http://localhost:${origin.port}`,
       rewritePath: [
-        { prefix: '/api/federated-gateway-public/graphql', replacement: '/graphql' },
+        {
+          prefix: '/api/federated-gateway-public/graphql',
+          replacement: '/graphql',
+        },
       ],
     })
     await mocker.listen()
@@ -1764,7 +1773,10 @@ describe('--rewritePath', () => {
       `http://localhost:${mocker.port}/api/federated-gateway-public/graphql?opname=typename`,
     )
     if (!parsed.ok) throw parsed.error
-    const requestResult = await createRequest({ url: parsed.value, method: 'POST' })
+    const requestResult = await createRequest({
+      url: parsed.value,
+      method: 'POST',
+    })
     if (!requestResult.ok) throw requestResult.error
     const [request, responsePromise] = requestResult.value
     request.end()
@@ -1789,11 +1801,12 @@ describe('--rewritePath', () => {
     })
     await mocker.listen()
 
-    const parsed = parseAbsoluteHttpUrl(
-      `http://localhost:${mocker.port}/api/x`,
-    )
+    const parsed = parseAbsoluteHttpUrl(`http://localhost:${mocker.port}/api/x`)
     if (!parsed.ok) throw parsed.error
-    const requestResult = await createRequest({ url: parsed.value, method: 'POST' })
+    const requestResult = await createRequest({
+      url: parsed.value,
+      method: 'POST',
+    })
     if (!requestResult.ok) throw requestResult.error
     const [request, responsePromise] = requestResult.value
     request.end()
@@ -1818,7 +1831,10 @@ describe('--rewritePath', () => {
       `http://localhost:${mocker.port}/apiv2/users`,
     )
     if (!parsed.ok) throw parsed.error
-    const requestResult = await createRequest({ url: parsed.value, method: 'GET' })
+    const requestResult = await createRequest({
+      url: parsed.value,
+      method: 'GET',
+    })
     if (!requestResult.ok) throw requestResult.error
     const [request, responsePromise] = requestResult.value
     request.end()
@@ -1843,7 +1859,10 @@ describe('--rewritePath', () => {
       `http://localhost:${mocker.port}/.well-known/live`,
     )
     if (!parsed.ok) throw parsed.error
-    const requestResult = await createRequest({ url: parsed.value, method: 'GET' })
+    const requestResult = await createRequest({
+      url: parsed.value,
+      method: 'GET',
+    })
     if (!requestResult.ok) throw requestResult.error
     const [request, responsePromise] = requestResult.value
     request.end()
@@ -1861,7 +1880,10 @@ describe('--rewritePath', () => {
       mode: 'pass',
       origin: `http://localhost:${origin.port}`,
       rewritePath: [
-        { prefix: '/api/federated-gateway-public/graphql', replacement: '/graphql' },
+        {
+          prefix: '/api/federated-gateway-public/graphql',
+          replacement: '/graphql',
+        },
       ],
     })
     await mocker.listen()
@@ -1870,7 +1892,10 @@ describe('--rewritePath', () => {
       `http://localhost:${mocker.port}/api/v2/users/42`,
     )
     if (!parsed.ok) throw parsed.error
-    const requestResult = await createRequest({ url: parsed.value, method: 'GET' })
+    const requestResult = await createRequest({
+      url: parsed.value,
+      method: 'GET',
+    })
     if (!requestResult.ok) throw requestResult.error
     const [request, responsePromise] = requestResult.value
     request.end()
@@ -1893,7 +1918,10 @@ describe('--rewritePath', () => {
       `http://localhost:${mocker.port}/api/federated-gateway-public/graphql`,
     )
     if (!parsed.ok) throw parsed.error
-    const requestResult = await createRequest({ url: parsed.value, method: 'POST' })
+    const requestResult = await createRequest({
+      url: parsed.value,
+      method: 'POST',
+    })
     if (!requestResult.ok) throw requestResult.error
     const [request, responsePromise] = requestResult.value
     request.end()

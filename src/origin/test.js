@@ -71,7 +71,10 @@ describe('applyRewritePath', () => {
 
   it('matches a prefix that equals the whole path', () => {
     expect(
-      applyRewritePath('/api', asRules([{ prefix: '/api', replacement: '/v2' }])),
+      applyRewritePath(
+        '/api',
+        asRules([{ prefix: '/api', replacement: '/v2' }]),
+      ),
     ).toBe('/v2')
   })
 
