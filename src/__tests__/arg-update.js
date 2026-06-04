@@ -1,5 +1,6 @@
 import { describe, it, expect } from '@jest/globals'
 import { createMocker, createMemFs } from './helpers/mocker.js'
+import { createServer } from './helpers/async-http-server.js'
 import { createServer as createTimeServer } from '../../tools/time-server/index.js'
 import { createServer as createStatusCodeServer } from '../../tools/status-code-server/index.js'
 import { createServer as createFlakyServer } from '../../tools/flaky-server/index.js'
@@ -7,6 +8,26 @@ import { createServer as createHeaderEchoServer } from '../../tools/request-head
 import { createRequest, getBody } from '../shared/http/index.js'
 import { setTimeout as sleep } from 'node:timers/promises'
 import { parse as parseAbsoluteHttpUrl } from '../shared/absolute-http-url/index.js'
+
+/**
+ * Echo server that also records every request path it received, so tests can
+ * assert which path the origin actually saw.
+ *
+ * @returns {{ server: import('../shared/types.js').AsyncHttpServer; receivedPaths: string[] }}
+ */
+function createRecordingEchoServer() {
+  /** @type {string[]} */
+  const receivedPaths = []
+  const server = createServer(async (req, res) => {
+    receivedPaths.push(req.url ?? '')
+    for await (const _ of req) {
+      // drain
+    }
+    res.setHeader('content-type', 'application/json')
+    res.end(JSON.stringify({ url: req.url }))
+  })
+  return { server, receivedPaths }
+}
 
 describe('args.update', () => {
   it('updates all mocks with origin in case update=startup', async () => {
@@ -389,5 +410,57 @@ describe('args.update', () => {
     // The flaky server returns 200 on the 3rd request, so with retries
     // the mocker should eventually get a successful response
     expect(response1.statusCode).toBe(200)
+  })
+
+  it('applies --rewritePath when re-fetching mocks during update', async () => {
+    // Origin records the exact paths it receives.
+    const { server: origin, receivedPaths } = createRecordingEchoServer()
+    await origin.listen()
+
+    // Record a mock through a rewrite rule. The client hits /api/graphql; the
+    // origin must see /graphql.
+    const { fs, mocksDir } = await createMemFs()
+    await using mocker1 = await createMocker({
+      mode: 'write',
+      origin: `http://localhost:${origin.port}`,
+      fs,
+      mocksDir,
+      rewritePath: [{ prefix: '/api/graphql', replacement: '/graphql' }],
+    })
+    await mocker1.listen()
+
+    const parsed1 = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker1.port}/api/graphql`,
+    )
+    if (!parsed1.ok) throw parsed1.error
+    const requestResult1 = await createRequest({
+      url: parsed1.value,
+      method: 'GET',
+    })
+    if (!requestResult1.ok) throw requestResult1.error
+    const [request1, response1Promise] = requestResult1.value
+    request1.end()
+    await response1Promise
+    await mocker1.close()
+
+    expect(receivedPaths).toEqual(['/graphql'])
+
+    // Now re-fetch via update=only. The stored mock is keyed on the original
+    // /api/graphql path; the update re-fetch must STILL rewrite to /graphql.
+    await using mocker2 = await createMocker({
+      mode: 'read-write',
+      origin: `http://localhost:${origin.port}`,
+      update: 'only',
+      fs,
+      mocksDir,
+      rewritePath: [{ prefix: '/api/graphql', replacement: '/graphql' }],
+    })
+    await mocker2.listen()
+
+    // Origin must have received /graphql again — never the un-rewritten
+    // /api/graphql — during the update re-fetch.
+    expect(receivedPaths).toEqual(['/graphql', '/graphql'])
+
+    await origin.close()
   })
 })

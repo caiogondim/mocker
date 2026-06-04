@@ -2,10 +2,12 @@
 /** @typedef {import('../shared/types.js').AbsoluteHttpUrl} AbsoluteHttpUrl */
 /** @typedef {import('../args/types.js').HttpUrl} HttpUrl */
 /** @typedef {import('../args/types.js').NonNegativeInteger} NonNegativeInteger */
+/** @typedef {import('../args/types.js').Args} Args */
 /** @typedef {import('../shared/types.js').HttpMethod} HttpMethod */
 
 import { createRequest } from '../shared/http/index.js'
 import { HTTP_METHOD } from '../shared/http-method/index.js'
+import { applyRewritePath } from './rewrite-path.js'
 
 /**
  * @param {Object} options
@@ -13,12 +15,14 @@ import { HTTP_METHOD } from '../shared/http-method/index.js'
  * @param {NonNegativeInteger} [options.retries]
  * @param {Headers} [options.overwriteRequestHeaders]
  * @param {HttpUrl} [options.proxyUrl]
+ * @param {Args['rewritePath']} [options.rewritePath]
  */
 function createOrigin({
   host,
   retries = /** @type {NonNegativeInteger} */ (0),
   overwriteRequestHeaders = {},
   proxyUrl,
+  rewritePath = [],
 }) {
   const parsedProxyUrl = proxyUrl ? new URL(proxyUrl) : null
 
@@ -31,7 +35,7 @@ function createOrigin({
    */
   async function request({ url, headers = {}, method = HTTP_METHOD.GET }) {
     const headersCopy = { ...headers }
-    const absoluteUrl = getAbsoluteUrl(url)
+    const absoluteUrl = getAbsoluteUrl(applyRewritePath(url, rewritePath))
 
     for (const [key, value] of Object.entries(overwriteRequestHeaders)) {
       if (value === null || value === undefined) {

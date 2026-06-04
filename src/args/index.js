@@ -6,6 +6,7 @@
 /** @typedef {import('./types.js').HttpPort} HttpPort */
 /** @typedef {import('./types.js').Milliseconds} Milliseconds */
 /** @typedef {import('./types.js').ThrottleValue} ThrottleValue */
+/** @typedef {import('./types.js').RewritePathRule} RewritePathRule */
 /** @typedef {import('../shared/http/types.js').Headers} Headers */
 /** @typedef {Map<string, string>} ArgvMap */
 
@@ -24,6 +25,7 @@ import { parse as parseNonNegativeInteger } from '../shared/non-negative-integer
 import { parse as parseMilliseconds } from '../shared/milliseconds/index.js'
 import { parse as parseThrottleValue } from '../shared/throttle-value/index.js'
 import { parse as parseAbsoluteDirPath } from '../shared/absolute-dir-path/index.js'
+import { parse as parseAbsolutePath } from '../shared/absolute-path/index.js'
 import { parse as parseHttpPort } from '../shared/http-port/index.js'
 
 const MODE = /** @satisfies {Record<string, Args['mode']>} */ (
@@ -67,6 +69,8 @@ const OVERWRITE_RESPONSE_HEADERS_DEFAULT = {}
 const CORS_DEFAULT = false
 
 const PROXY_DEFAULT = ''
+
+const REWRITE_PATH_DEFAULT = ''
 
 /**
  * @param {ArgvMap} argvMap
@@ -127,6 +131,7 @@ function validateArgvKeys(argv) {
     '--overwriteRequestHeaders',
     '--cors',
     '--proxy',
+    '--rewritePath',
   ]
 
   for (let i = 2; i < argv.length; i += 2) {
@@ -519,6 +524,72 @@ function getProxy(argvMap) {
 }
 
 /**
+ * Parse comma-separated `prefix=>replacement` rules into an ordered list.
+ * Mirrors the --mockKeys comma convention. First matching rule wins at request
+ * time (see applyRewritePath in src/origin/rewrite-path.js).
+ *
+ * Both prefix and replacement must be absolute paths (start with `/`). This
+ * keeps the rewrite a path-only transform: an absolute-URL replacement would
+ * otherwise be forwarded as-is by the origin layer, silently bypassing
+ * --origin.
+ *
+ * @param {string} rewritePathArgv
+ * @returns {Result<Args['rewritePath']>}
+ */
+function parseRewritePath(rewritePathArgv) {
+  /** @type {RewritePathRule[]} */
+  const rules = []
+
+  for (const rule of rewritePathArgv.split(',')) {
+    const trimmedRule = rule.trim()
+
+    // Tolerate blank fragments (trailing/leading commas, whitespace-only).
+    if (trimmedRule === '') {
+      continue
+    }
+
+    // Split on the first `=>` only so a replacement may itself contain `=>`.
+    const separatorIndex = trimmedRule.indexOf('=>')
+    const prefixResult = parseAbsolutePath(
+      separatorIndex === -1 ? '' : trimmedRule.slice(0, separatorIndex).trim(),
+    )
+    const replacementResult = parseAbsolutePath(
+      separatorIndex === -1 ? '' : trimmedRule.slice(separatorIndex + 2).trim(),
+    )
+
+    if (!prefixResult.ok || !replacementResult.ok) {
+      return { ok: false, error: new TypeError('invalid --rewritePath') }
+    }
+
+    rules.push({
+      prefix: prefixResult.value,
+      replacement: replacementResult.value,
+    })
+  }
+
+  return { ok: true, value: rules }
+}
+
+/**
+ * @param {ArgvMap} argvMap
+ * @returns {Args['rewritePath']}
+ */
+function getRewritePath(argvMap) {
+  const rewritePathArgv = argvMap.get('rewritePath') ?? REWRITE_PATH_DEFAULT
+  const result = parseRewritePath(rewritePathArgv)
+
+  if (!result.ok) {
+    throw prettifyError({
+      error: new TypeError(`invalid --rewritePath`),
+      expected: `rules as "prefix=>replacement[,prefix=>replacement]" where prefix and replacement are absolute paths`,
+      received: stringify(rewritePathArgv),
+    })
+  }
+
+  return result.value
+}
+
+/**
  * @param {string[]} argv
  * @returns {Promise<Args>}
  */
@@ -545,6 +616,7 @@ async function parseArgv(argv) {
   const overwriteRequestHeaders = getOverwriteRequestHeaders(argvMap)
   const cors = getCors(argvMap)
   const proxy = getProxy(argvMap)
+  const rewritePath = getRewritePath(argvMap)
 
   /** @type {Args} */
   const args = {
@@ -563,6 +635,7 @@ async function parseArgv(argv) {
     overwriteRequestHeaders,
     cors,
     proxy,
+    rewritePath,
   }
 
   return args
@@ -588,4 +661,5 @@ export {
   OVERWRITE_RESPONSE_HEADERS_DEFAULT,
   CORS_DEFAULT,
   PROXY_DEFAULT,
+  REWRITE_PATH_DEFAULT,
 }

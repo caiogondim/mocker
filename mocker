@@ -20,6 +20,7 @@ import {
   LOGGING_VALID_VALUES,
   OVERWRITE_RESPONSE_HEADERS_DEFAULT,
   PROXY_DEFAULT,
+  REWRITE_PATH_DEFAULT,
 } from './src/args/index.js'
 import Mocker from './src/index.js'
 import createLogger from './src/shared/logger/index.js'
@@ -123,6 +124,12 @@ function printHelp() {
         `  [--proxy <proxy>]`,
         `An HTTP/HTTPS URL ${dim(
           `[default: ${stringify(PROXY_DEFAULT)}]`,
+        )}`,
+      ],
+      [
+        `  [--rewritePath <rules>]`,
+        `Comma-separated "prefix=>replacement" path rewrite rules ${dim(
+          `[e.g.: "/api/graphql=>/graphql"] [default: ${stringify(REWRITE_PATH_DEFAULT)}]`,
         )}`,
       ],
     ),

@@ -133,3 +133,27 @@ sending CORS headers.
 - e.g.: `--proxy http://localhost:8080`
 
 Upstream HTTP(S) proxy URL used when forwarding requests to origin.
+
+`--rewritePath`
+
+- Required: `false`
+- Default: `''`
+- e.g.: `--rewritePath '/api/federated-gateway-public/graphql=>/graphql'`
+
+Rewrite the request path before forwarding to origin. Rules are
+comma-separated `prefix=>replacement` pairs (same comma convention as
+`--mockKeys`). Both `prefix` and `replacement` must be absolute paths (start
+with `/`); an absolute URL is rejected so the rewrite cannot redirect to a
+different host.
+
+Matching is on the path only and anchored at path-segment boundaries: the
+prefix matches when it equals the path or is followed by `/`, so `/api` matches
+`/api` and `/api/users` but not `/apiv2`. The query string is preserved and the
+first matching rule wins. The rewrite is applied to every request forwarded to
+origin, including the `--update` re-fetch; the mock file is still keyed on the
+original (client) path so reads remain stable.
+
+Useful to sit in front of an origin that serves on a different path than the
+client calls — e.g. an Apollo server on `/graphql` behind a client calling
+`/api/federated-gateway-public/graphql`. Multiple rules:
+`--rewritePath '/api/federated-gateway-public/graphql=>/graphql,/api/federated-gateway-protected/graphql=>/graphql'`

@@ -1719,3 +1719,186 @@ describe('edge cases', () => {
     expect(parsed.body).toBe('continued payload')
   })
 })
+
+describe('--rewritePath', () => {
+  it('rewrites a matched path prefix before forwarding', async () => {
+    await using origin = createEchoServer()
+    await origin.listen()
+
+    await using mocker = await createMocker({
+      mode: 'pass',
+      origin: `http://localhost:${origin.port}`,
+      rewritePath: [
+        { prefix: '/api/federated-gateway-public/graphql', replacement: '/graphql' },
+      ],
+    })
+    await mocker.listen()
+
+    const parsed = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/api/federated-gateway-public/graphql`,
+    )
+    if (!parsed.ok) throw parsed.error
+    const requestResult = await createRequest({ url: parsed.value, method: 'POST' })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
+    request.end()
+    const response = await responsePromise
+    const body = JSON.parse(`${await getBody(response)}`)
+    expect(body.url).toBe('/graphql')
+  })
+
+  it('preserves the query string when rewriting', async () => {
+    await using origin = createEchoServer()
+    await origin.listen()
+
+    await using mocker = await createMocker({
+      mode: 'pass',
+      origin: `http://localhost:${origin.port}`,
+      rewritePath: [
+        { prefix: '/api/federated-gateway-public/graphql', replacement: '/graphql' },
+      ],
+    })
+    await mocker.listen()
+
+    const parsed = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/api/federated-gateway-public/graphql?opname=typename`,
+    )
+    if (!parsed.ok) throw parsed.error
+    const requestResult = await createRequest({ url: parsed.value, method: 'POST' })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
+    request.end()
+    const response = await responsePromise
+    const body = JSON.parse(`${await getBody(response)}`)
+    expect(body.url).toBe('/graphql?opname=typename')
+  })
+
+  it('applies the first matching rule when several overlap', async () => {
+    await using origin = createEchoServer()
+    await origin.listen()
+
+    // Both rules match `/api/x`; the FIRST must win. If the later rule were
+    // applied the origin would see `/second/x` instead of `/first/x`.
+    await using mocker = await createMocker({
+      mode: 'pass',
+      origin: `http://localhost:${origin.port}`,
+      rewritePath: [
+        { prefix: '/api', replacement: '/first' },
+        { prefix: '/api/x', replacement: '/second' },
+      ],
+    })
+    await mocker.listen()
+
+    const parsed = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/api/x`,
+    )
+    if (!parsed.ok) throw parsed.error
+    const requestResult = await createRequest({ url: parsed.value, method: 'POST' })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
+    request.end()
+    const response = await responsePromise
+    const body = JSON.parse(`${await getBody(response)}`)
+    expect(body.url).toBe('/first/x')
+  })
+
+  it('does not match a partial path segment', async () => {
+    await using origin = createEchoServer()
+    await origin.listen()
+
+    // Prefix `/api` must not rewrite `/apiv2/...` (different segment).
+    await using mocker = await createMocker({
+      mode: 'pass',
+      origin: `http://localhost:${origin.port}`,
+      rewritePath: [{ prefix: '/api', replacement: '/v2' }],
+    })
+    await mocker.listen()
+
+    const parsed = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/apiv2/users`,
+    )
+    if (!parsed.ok) throw parsed.error
+    const requestResult = await createRequest({ url: parsed.value, method: 'GET' })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
+    request.end()
+    const response = await responsePromise
+    const body = JSON.parse(`${await getBody(response)}`)
+    expect(body.url).toBe('/apiv2/users')
+  })
+
+  it('does not rewrite health-check paths', async () => {
+    await using origin = createEchoServer()
+    await origin.listen()
+
+    // A broad rule must not affect the locally-served health checks.
+    await using mocker = await createMocker({
+      mode: 'pass',
+      origin: `http://localhost:${origin.port}`,
+      rewritePath: [{ prefix: '/.well-known', replacement: '/rewritten' }],
+    })
+    await mocker.listen()
+
+    const parsed = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/.well-known/live`,
+    )
+    if (!parsed.ok) throw parsed.error
+    const requestResult = await createRequest({ url: parsed.value, method: 'GET' })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
+    request.end()
+    const response = await responsePromise
+    // Health check is served locally with 200 and no body, never proxied.
+    expect(response.statusCode).toBe(200)
+    expect(response.headers['x-powered-by']).toBe('mocker')
+  })
+
+  it('forwards a non-matching path unchanged', async () => {
+    await using origin = createEchoServer()
+    await origin.listen()
+
+    await using mocker = await createMocker({
+      mode: 'pass',
+      origin: `http://localhost:${origin.port}`,
+      rewritePath: [
+        { prefix: '/api/federated-gateway-public/graphql', replacement: '/graphql' },
+      ],
+    })
+    await mocker.listen()
+
+    const parsed = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/api/v2/users/42`,
+    )
+    if (!parsed.ok) throw parsed.error
+    const requestResult = await createRequest({ url: parsed.value, method: 'GET' })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
+    request.end()
+    const response = await responsePromise
+    const body = JSON.parse(`${await getBody(response)}`)
+    expect(body.url).toBe('/api/v2/users/42')
+  })
+
+  it('forwards unchanged when no rules are configured', async () => {
+    await using origin = createEchoServer()
+    await origin.listen()
+
+    await using mocker = await createMocker({
+      mode: 'pass',
+      origin: `http://localhost:${origin.port}`,
+    })
+    await mocker.listen()
+
+    const parsed = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/api/federated-gateway-public/graphql`,
+    )
+    if (!parsed.ok) throw parsed.error
+    const requestResult = await createRequest({ url: parsed.value, method: 'POST' })
+    if (!requestResult.ok) throw requestResult.error
+    const [request, responsePromise] = requestResult.value
+    request.end()
+    const response = await responsePromise
+    const body = JSON.parse(`${await getBody(response)}`)
+    expect(body.url).toBe('/api/federated-gateway-public/graphql')
+  })
+})

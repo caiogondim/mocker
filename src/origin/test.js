@@ -1,12 +1,103 @@
 /** @typedef {import('../args/types.js').HttpUrl} HttpUrl */
 /** @typedef {import('../args/types.js').NonNegativeInteger} NonNegativeInteger */
+/** @typedef {import('../args/types.js').Args} Args */
 
 import { describe, it, expect } from '@jest/globals'
 import { createOrigin } from './index.js'
+import { applyRewritePath } from './rewrite-path.js'
 import { getBody } from '../shared/http/index.js'
 import { createServer as createRequestHeaderOnResponseBodyServer } from '../../tools/request-header-on-response-body-server/index.js'
 import { createServer as createFlakyServer } from '../../tools/flaky-server/index.js'
 import { createServer as createMathServer } from '../../tools/math-server/index.js'
+
+/**
+ * @param {{ prefix: string; replacement: string }[]} ruleList
+ * @returns {Args['rewritePath']}
+ */
+function asRules(ruleList) {
+  return /** @type {Args['rewritePath']} */ (/** @type {unknown} */ (ruleList))
+}
+
+describe('applyRewritePath', () => {
+  it('returns the url unchanged when there are no rules', () => {
+    expect(applyRewritePath('/api/graphql', asRules([]))).toBe('/api/graphql')
+  })
+
+  it('returns the url unchanged when no rule matches', () => {
+    expect(
+      applyRewritePath(
+        '/api/users',
+        asRules([{ prefix: '/api/graphql', replacement: '/graphql' }]),
+      ),
+    ).toBe('/api/users')
+  })
+
+  it('rewrites an exact prefix match', () => {
+    expect(
+      applyRewritePath(
+        '/api/graphql',
+        asRules([{ prefix: '/api/graphql', replacement: '/graphql' }]),
+      ),
+    ).toBe('/graphql')
+  })
+
+  it('rewrites a prefix followed by more path', () => {
+    expect(
+      applyRewritePath(
+        '/api/users/42',
+        asRules([{ prefix: '/api', replacement: '/v2' }]),
+      ),
+    ).toBe('/v2/users/42')
+  })
+
+  it('preserves the query string', () => {
+    expect(
+      applyRewritePath(
+        '/api/graphql?opname=typename',
+        asRules([{ prefix: '/api/graphql', replacement: '/graphql' }]),
+      ),
+    ).toBe('/graphql?opname=typename')
+  })
+
+  it('matches only at segment boundaries, not partial segments', () => {
+    // `/api` must NOT match `/apiv2` — that is a different segment.
+    expect(
+      applyRewritePath(
+        '/apiv2/users',
+        asRules([{ prefix: '/api', replacement: '/v2' }]),
+      ),
+    ).toBe('/apiv2/users')
+  })
+
+  it('matches a prefix that equals the whole path', () => {
+    expect(
+      applyRewritePath('/api', asRules([{ prefix: '/api', replacement: '/v2' }])),
+    ).toBe('/v2')
+  })
+
+  it('applies the FIRST matching rule when several overlap', () => {
+    // Both rules match `/api/x`; the first must win. If the loop returned the
+    // last match this would yield `/B` instead of `/A`.
+    expect(
+      applyRewritePath(
+        '/api/x',
+        asRules([
+          { prefix: '/api', replacement: '/A' },
+          { prefix: '/api/x', replacement: '/B' },
+        ]),
+      ),
+    ).toBe('/A/x')
+  })
+
+  it('matches the path before the query string', () => {
+    expect(
+      applyRewritePath(
+        '/api?x=1',
+        asRules([{ prefix: '/api', replacement: '/v2' }]),
+      ),
+    ).toBe('/v2?x=1')
+  })
+})
 
 describe('origin', () => {
   describe('request()', () => {
@@ -90,6 +181,31 @@ describe('origin', () => {
 
       const responseBody = await getBody(response)
       expect(responseBody.toString()).toBe('lorem ipsum dolor sit amet')
+    })
+
+    it('applies rewritePath rules to the forwarded url', async () => {
+      // The math server only answers on `/`. The client calls `/api/math?...`;
+      // the rule must rewrite the path to `/` before the request reaches the
+      // origin, proving the rewrite happens at the origin layer.
+      await using mathServer = createMathServer()
+      await mathServer.listen()
+
+      const origin = createOrigin({
+        host: /** @type {HttpUrl} */ (`http://localhost:${mathServer.port}`),
+        rewritePath: asRules([{ prefix: '/api/math', replacement: '/' }]),
+      })
+      const result = await origin.request({
+        url: `/api/math?a=1&b=2&operation=sum`,
+      })
+      expect(result.ok).toBe(true)
+      if (!result.ok) throw result.error
+      const [request, responsePromise] = result.value
+      request.end()
+
+      const response = await responsePromise
+      expect(response.statusCode).toBe(200)
+      const responseBody = await getBody(response)
+      expect(responseBody.toString()).toBe('3')
     })
 
     it('accepts absolute URLs', async () => {

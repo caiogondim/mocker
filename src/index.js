@@ -178,6 +178,7 @@ class Mocker {
       host: args.origin,
       retries: args.retries,
       overwriteRequestHeaders: args.overwriteRequestHeaders,
+      rewritePath: args.rewritePath,
       ...(args.proxy !== '' ? { proxyUrl: args.proxy } : {}),
     })
 
@@ -231,6 +232,13 @@ class Mocker {
               null,
               2,
             )}`
+          }
+
+          if (entry[0] === 'rewritePath' && Array.isArray(entry[1])) {
+            const formatted = entry[1]
+              .map((rule) => `${rule.prefix}=>${rule.replacement}`)
+              .join(', ')
+            return `- ${bold(entry[0])}: ${formatted}`
           }
 
           return `- ${bold(entry[0])}: ${entry[1]}`

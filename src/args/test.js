@@ -679,3 +679,106 @@ describe('--cors', () => {
     expect(args.cors).toEqual(expected)
   })
 })
+
+describe('--rewritePath', () => {
+  /**
+   * @param {string} value
+   * @returns {string[]}
+   */
+  function argvWith(value) {
+    return ['', '', ...getRequiredArgs(), '--rewritePath', value]
+  }
+
+  it('receives an empty list if not set', async () => {
+    const args = await parseArgv(['', '', ...getRequiredArgs()])
+    expect(args.rewritePath).toEqual([])
+  })
+
+  it('returns an empty list for an empty string', async () => {
+    const args = await parseArgv(argvWith(''))
+    expect(args.rewritePath).toEqual([])
+  })
+
+  it('returns an empty list for a whitespace-only value', async () => {
+    const args = await parseArgv(argvWith('   '))
+    expect(args.rewritePath).toEqual([])
+  })
+
+  it('parses a single rule', async () => {
+    const args = await parseArgv(argvWith('/api/graphql=>/graphql'))
+    expect(args.rewritePath).toEqual([
+      { prefix: '/api/graphql', replacement: '/graphql' },
+    ])
+  })
+
+  it('parses multiple comma-separated rules in order', async () => {
+    const args = await parseArgv(argvWith('/api/a=>/a,/api/b=>/b'))
+    expect(args.rewritePath).toEqual([
+      { prefix: '/api/a', replacement: '/a' },
+      { prefix: '/api/b', replacement: '/b' },
+    ])
+  })
+
+  it('trims whitespace around prefix and replacement', async () => {
+    const args = await parseArgv(argvWith(' /api/a => /a '))
+    expect(args.rewritePath).toEqual([
+      { prefix: '/api/a', replacement: '/a' },
+    ])
+  })
+
+  it('tolerates a trailing comma', async () => {
+    const args = await parseArgv(argvWith('/api/a=>/a,'))
+    expect(args.rewritePath).toEqual([
+      { prefix: '/api/a', replacement: '/a' },
+    ])
+  })
+
+  it('tolerates blank fragments between commas', async () => {
+    const args = await parseArgv(argvWith('/api/a=>/a,,/api/b=>/b'))
+    expect(args.rewritePath).toEqual([
+      { prefix: '/api/a', replacement: '/a' },
+      { prefix: '/api/b', replacement: '/b' },
+    ])
+  })
+
+  it('keeps a "=>" that appears inside the replacement', async () => {
+    const args = await parseArgv(argvWith('/api=>/v=>2'))
+    expect(args.rewritePath).toEqual([{ prefix: '/api', replacement: '/v=>2' }])
+  })
+
+  it('throws when the prefix is missing', async () => {
+    await expect(parseArgv(argvWith('=>/graphql'))).rejects.toThrow(
+      /invalid --rewritePath/,
+    )
+  })
+
+  it('throws when the replacement is empty', async () => {
+    await expect(parseArgv(argvWith('/api=>'))).rejects.toThrow(
+      /invalid --rewritePath/,
+    )
+  })
+
+  it('throws when the prefix is not an absolute path', async () => {
+    await expect(parseArgv(argvWith('api=>/graphql'))).rejects.toThrow(
+      /invalid --rewritePath/,
+    )
+  })
+
+  it('throws when the replacement is not an absolute path', async () => {
+    await expect(parseArgv(argvWith('/api=>graphql'))).rejects.toThrow(
+      /invalid --rewritePath/,
+    )
+  })
+
+  it('throws when the replacement is an absolute URL (host bypass)', async () => {
+    await expect(
+      parseArgv(argvWith('/api=>http://evil.example')),
+    ).rejects.toThrow(/invalid --rewritePath/)
+  })
+
+  it('throws when a rule has no "=>" separator', async () => {
+    await expect(parseArgv(argvWith('/api/graphql'))).rejects.toThrow(
+      /invalid --rewritePath/,
+    )
+  })
+})

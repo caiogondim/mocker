@@ -59,6 +59,7 @@ async function createMocker(args = {}) {
       mode: 'read-write',
       cors: false,
       proxy: '',
+      rewritePath: [],
       ...(await getCommonArgs()),
       ...args,
     }),

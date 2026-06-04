@@ -3,16 +3,19 @@ import { Headers } from '../shared/http/index.js';
 export type {
   HttpUrl,
   AbsoluteDirPath,
+  AbsolutePath,
   NonNegativeInteger,
   HttpPort,
   ThrottleValue,
   Milliseconds,
 } from '../shared/types.js';
 
-import type { HttpUrl, AbsoluteDirPath, NonNegativeInteger, HttpPort, ThrottleValue, Milliseconds } from '../shared/types.js';
+import type { HttpUrl, AbsoluteDirPath, AbsolutePath, NonNegativeInteger, HttpPort, ThrottleValue, Milliseconds } from '../shared/types.js';
 
 type LoggerLevels = 'silent' | 'error' | 'warn' | 'verbose';
 export type MockKey = 'url' | 'method' | 'headers' | 'body' | `body.${string}`;
+export type RewritePathRule = { prefix: AbsolutePath; replacement: AbsolutePath };
+export type UnbrandedRewritePathRule = { prefix: string; replacement: string };
 
 export type Args = Readonly<{
   port: HttpPort;
@@ -30,6 +33,7 @@ export type Args = Readonly<{
   overwriteRequestHeaders: Headers;
   cors: boolean;
   proxy: HttpUrl | '';
+  rewritePath: ReadonlyArray<RewritePathRule>;
 }>;
 
 export type UnbrandedArgs = Readonly<{
@@ -48,4 +52,5 @@ export type UnbrandedArgs = Readonly<{
   overwriteRequestHeaders: Headers;
   cors: boolean;
   proxy: string;
+  rewritePath: ReadonlyArray<UnbrandedRewritePathRule>;
 }>;

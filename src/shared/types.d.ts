@@ -11,6 +11,7 @@ export type ConnectionId = Brand<string, 'ConnectionId'>;
 export type AbsoluteHttpUrl = Brand<string, 'AbsoluteHttpUrl'>;
 export type HttpUrl = Brand<string, 'HttpUrl'>;
 export type AbsoluteDirPath = Brand<string, 'AbsoluteDirPath'>;
+export type AbsolutePath = Brand<string, 'AbsolutePath'>;
 export type NonNegativeInteger = Brand<number, 'NonNegativeInteger'>;
 export type HttpPort = Brand<number, 'HttpPort'>;
 export type ThrottleValue = Brand<number, 'ThrottleValue'>;
