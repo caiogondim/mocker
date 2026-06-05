@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 
 /* eslint-disable no-process-exit */
 
@@ -157,9 +157,15 @@ async function main() {
   ) {
     printHelp()
   } else {
+    const argsResult = await parseArgv(process.argv)
+    if (!argsResult.ok) {
+      logger.log('')
+      logger.error(argsResult.error)
+      process.exit(1)
+    }
+
     try {
-      const args = await parseArgv(process.argv)
-      const mocker = new Mocker(args)
+      const mocker = new Mocker(argsResult.value)
       await mocker.listen()
     } catch (error) {
       logger.log('')

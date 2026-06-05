@@ -1,0 +1,67 @@
+import type { Headers } from '../shared/http/index.js'
+
+export type {
+  AbsoluteDirPath,
+  AbsolutePath,
+  HttpPort,
+  HttpUrl,
+  Milliseconds,
+  NonNegativeInteger,
+  ThrottleValue,
+} from '../shared/types.js'
+
+import type {
+  AbsoluteDirPath,
+  AbsolutePath,
+  HttpPort,
+  HttpUrl,
+  Milliseconds,
+  NonNegativeInteger,
+  ThrottleValue,
+} from '../shared/types.js'
+
+type LoggerLevels = 'silent' | 'error' | 'warn' | 'verbose'
+export type MockKey = 'url' | 'method' | 'headers' | 'body' | `body.${string}`
+export type RewritePathRule = {
+  prefix: AbsolutePath
+  replacement: AbsolutePath
+}
+export type UnbrandedRewritePathRule = { prefix: string; replacement: string }
+
+export type Args = Readonly<{
+  port: HttpPort
+  origin: HttpUrl
+  delay: Milliseconds
+  throttle: ThrottleValue
+  mode: 'read' | 'write' | 'read-write' | 'pass' | 'pass-read' | 'read-pass'
+  update: 'off' | 'startup' | 'only'
+  mocksDir: AbsoluteDirPath
+  logging: LoggerLevels
+  mockKeys: ReadonlySet<MockKey>
+  retries: NonNegativeInteger
+  redactedHeaders: Headers
+  overwriteResponseHeaders: Headers
+  overwriteRequestHeaders: Headers
+  cors: boolean
+  proxy: HttpUrl | ''
+  rewritePath: ReadonlyArray<RewritePathRule>
+}>
+
+export type UnbrandedArgs = Readonly<{
+  port: number
+  origin: string
+  delay: number
+  throttle: number
+  mode: Args['mode']
+  update: Args['update']
+  mocksDir: string
+  logging: Args['logging']
+  mockKeys: ReadonlySet<MockKey>
+  retries: number
+  redactedHeaders: Headers
+  overwriteResponseHeaders: Headers
+  overwriteRequestHeaders: Headers
+  cors: boolean
+  proxy: string
+  rewritePath: ReadonlyArray<UnbrandedRewritePathRule>
+}>

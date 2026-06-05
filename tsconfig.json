@@ -2,21 +2,15 @@
   "compilerOptions": {
     "module": "NodeNext",
     "moduleResolution": "nodenext",
-    "allowJs": true,
-    "checkJs": true,
     "noEmit": true,
     "target": "ES2024",
     "pretty": true,
     "strict": true,
+    "skipLibCheck": true,
     "lib": ["esnext"],
-    "typeRoots": ["./src/types", "./node_modules/@types"],
+    "types": ["node", "bun"],
     "noImplicitReturns": true,
     "resolveJsonModule": true
   },
-  "include": [
-    "./src/**/*.js",
-    "./tools/**/*.js",
-    "./scripts/**/*.js",
-    "./eslint.config.js"
-  ]
+  "include": ["./src/**/*.ts", "./tools/**/*.ts"]
 }

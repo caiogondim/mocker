@@ -1,0 +1,122 @@
+import { describe, expect, it } from 'bun:test'
+import { createServer as createMathServer } from '../../tools/math-server/index.js'
+import { parse as parseAbsoluteHttpUrl } from '../shared/absolute-http-url/index.js'
+import { createRequest } from '../shared/http/index.js'
+import { createMocker } from './helpers/mocker.js'
+
+describe('args.overwriteResponseHeaders', () => {
+  it('overwrites headers from response coming directly from origin', async () => {
+    await using mathServer = createMathServer()
+    await mathServer.listen()
+
+    const contentType = 'text/lorem-ipsum'
+    const overwriteResponseHeaders = { 'content-type': contentType }
+    await using mocker = await createMocker({
+      mode: 'pass',
+      overwriteResponseHeaders,
+      origin: `http://localhost:${mathServer.port}`,
+    })
+    await mocker.listen()
+
+    const parsed1 = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/?a=34&b=35&operation=sum`,
+    )
+    if (!parsed1.ok) throw parsed1.error
+    const requestResult = await createRequest({
+      url: parsed1.value,
+      method: 'GET',
+    })
+    if (!requestResult.ok) throw requestResult.error
+    const [request1, response1Promise] = requestResult.value
+    request1.end()
+    const response1 = await response1Promise
+
+    expect(response1.headers['content-type']).toEqual(contentType)
+  })
+
+  it('removes header if it has a value of `null`', async () => {
+    await using mathServer = createMathServer()
+    await mathServer.listen()
+
+    // Creates a 'pass' mocker instance with `overwriteResponseHeaders`
+    // arg set to remove 'content-type' header.
+    const overwriteResponseHeaders = { 'content-type': null }
+    await using mocker = await createMocker({
+      mode: 'pass',
+      overwriteResponseHeaders,
+      origin: `http://localhost:${mathServer.port}`,
+    })
+    await mocker.listen()
+
+    // Fires a request to mocker.
+    const parsed2 = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/?a=34&b=35&operation=sum`,
+    )
+    if (!parsed2.ok) throw parsed2.error
+    const requestResult = await createRequest({
+      url: parsed2.value,
+      method: 'GET',
+    })
+    if (!requestResult.ok) throw requestResult.error
+    const [request1, response1Promise] = requestResult.value
+    request1.end()
+    const response1 = await response1Promise
+
+    // 'content-type' header should not be present.
+    expect(response1.headers['content-type']).toBeUndefined()
+  })
+
+  it('overwrites headers from response coming from a mock', async () => {
+    await using mathServer = createMathServer()
+    await mathServer.listen()
+
+    const contentType = 'text/lorem-ipsum'
+    const overwriteResponseHeaders = { 'content-type': contentType }
+    await using mocker = await createMocker({
+      overwriteResponseHeaders,
+      mode: 'read-write',
+      origin: `http://localhost:${mathServer.port}`,
+    })
+    await mocker.listen()
+
+    //
+    // Normal flow: client <-> proxy <-> origin
+    //
+
+    const parsed3 = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/?a=34&b=35&operation=sum`,
+    )
+    if (!parsed3.ok) throw parsed3.error
+    const requestResult1 = await createRequest({
+      url: parsed3.value,
+      method: 'GET',
+    })
+    if (!requestResult1.ok) throw requestResult1.error
+    const [request1, response1Promise] = requestResult1.value
+    request1.end()
+    const response1 = await response1Promise
+
+    expect(response1.headers['content-type']).toEqual(contentType)
+    expect(response1.headers['x-mocker-response-from']).toBe('Origin')
+
+    //
+    // Mocked response: client <-> proxy
+    //
+
+    const parsed4 = parseAbsoluteHttpUrl(
+      `http://localhost:${mocker.port}/?a=34&b=35&operation=sum`,
+    )
+    if (!parsed4.ok) throw parsed4.error
+    const requestResult2 = await createRequest({
+      url: parsed4.value,
+      method: 'GET',
+    })
+    if (!requestResult2.ok) throw requestResult2.error
+    const [request2, response2Promise] = requestResult2.value
+    request2.end()
+    const response2 = await response2Promise
+
+    expect(response2.headers['content-type']).toEqual(contentType)
+    expect(response2.headers['x-mocker-response-from']).toBe('Mock')
+  })
+})

@@ -1,0 +1,7 @@
+function stringToBoolean(str: string): boolean {
+  return (
+    str === '1' || str === 'true' || str === 't' || str === 'yes' || str === 'y'
+  )
+}
+
+export default stringToBoolean
